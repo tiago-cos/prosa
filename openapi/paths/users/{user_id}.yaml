@@ -1,0 +1,45 @@
+post:
+  tags:
+    - Authentication
+  summary: "Login"
+  description: Login with a user's credentials and retrieve an authentication token.
+  operationId: login
+
+  parameters:
+    - $ref: ../../components/parameters/user_id.yaml
+
+  requestBody:
+    required: true
+    description: Request body for logging in a user.
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            password:
+              type: string
+              description: The password of the new user
+          required:
+            - password
+        example:
+          password: "password"
+            
+  responses:
+    "200":
+      description: Base64-encoded JWT token
+      content:
+        text/plain:
+          schema:
+            type: string
+            description: Base64-encoded JWT token
+          examples:
+            success:
+              summary: Base64-encoded JWT token
+              value: "ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnpkV0lpT2lJeE1qTTBOVFkzT0Rrd0lpd2libUZ0WlNJNklrcHZhRzRnUkc5bElpd2lhV0YwSWpveE5URTJNak01TURJeWZRLlNmbEt4d1JKU01lS0tGMlFUNGZ3cE1lSmYzNlBPazZ5SlZfYWRRc3N3NWM="
+
+    "400":
+      description: The username and password cannot contain special characters.
+    "422":
+      $ref: ../../components/responses/BadRequest.yaml
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml

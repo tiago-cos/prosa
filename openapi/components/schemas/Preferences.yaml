@@ -1,0 +1,14 @@
+type: object
+description: User's preferences.
+properties:
+  metadata_providers:
+    type: array
+    items:
+      $ref: ./Provider.yaml
+    example: ["goodreads_metadata_scraper", "epub_metadata_extractor"]
+    description: |
+      An array of metadata providers, in order of preference.
+      This is the order in which metadata providers will be used when searching for book metadata.
+
+minProperties: 1
+additionalProperties: false

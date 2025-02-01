@@ -1,0 +1,15 @@
+type: object
+description: Represents a series of books.
+properties:
+  title:
+    type: string
+    description: The title of the series.
+    example: "Harry Potter"
+  number:
+    type: number
+    description: The number of the book in the series.
+    example: 3
+required:
+  - title
+  - number
+additionalProperties: false

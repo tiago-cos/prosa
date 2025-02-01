@@ -1,0 +1,39 @@
+type: object
+description: Contains application specific details about a book.
+properties:
+  book_id:
+    type: string
+    format: uuid
+    description: The unique identifier for the book.
+    example: "2c5f1d4d-3b9d-4b9d-3b9d-4b9d3b9d3b9d"
+  epub_id:
+    type: string
+    format: uuid
+    description: The unique identifier for the EPUB file associated with the book.
+    example: "4d3b9d3b-9d3b-9d3b-4b9d-3b9d3b9d4d3b"
+  metadata_id:
+    type: string
+    format: uuid
+    nullable: true
+    description: |
+      The unique identifier for the metadata entry associated with the book.
+      If no metadata is available, this field can be null.
+    example: "5f3b9d4b-8c9d-4c9b-3a9d-2d4b9c3a5f3b"
+  cover_id:
+    type: string
+    format: uuid
+    nullable: true
+    description: |
+      The unique identifier for the cover image associated with the book.
+      If no cover is available, this field can be null.
+    example: "9c3b8d7f-1a9d-2c9b-3d5f-4a9c8d7f1b2c"
+  owner_id:
+    type: string
+    format: uuid
+    description: The unique identifier for the user who owns the book.
+    example: "7d3b9c4a-1b9d-3c9f-2d7b-5a8c9d4f1b3a"
+required:
+  - book_id
+  - epub_id
+  - owner_id
+additionalProperties: false

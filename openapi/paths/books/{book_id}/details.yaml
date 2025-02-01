@@ -1,0 +1,44 @@
+get:
+  tags:
+    - File
+  summary: "Get book information"
+  description: |
+    Retrieve application specific information about a book.
+    This endpoint can only be accessed by application admins.
+  operationId: getBookDetails
+  
+  parameters:
+    - $ref: ../../../components/parameters/book_id.yaml
+
+  responses:
+    "200":
+      description: The book details were retrieved successfully.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../components/schemas/BookDetails.yaml
+          examples:
+            fullExample:
+              summary: Complete book information
+              value:
+                book_id: "2c5f1d4d-3b9d-4b9d-3b9d-4b9d3b9d3b9d"
+                epub_id: "4d3b9d3b-9d3b-9d3b-4b9d-3b9d3b9d4d3b"
+                metadata_id: "5f3b9d4b-8c9d-4c9b-3a9d-2d4b9c3a5f3b"
+                cover_id: "9c3b8d7f-1a9d-2c9b-3d5f-4a9c8d7f1b2c"
+                owner_id: "7d3b9c4a-1b9d-3c9f-2d7b-5a8c9d4f1b3a"
+            minimalExample:
+              summary: Book with no metadata nor cover
+              value:
+                book_id: "1a2b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p"
+                epub_id: "6p5o4n3m-2l1k-0j9i-8h7g-6f5e4d3c2b1a"
+                owner_id: "3e7f5c9d-2b6f-4c3d-9a1d-0e4b7f6a9c8d"
+
+    "401":
+      $ref: ../../../components/responses/Unauthorized.yaml
+      
+    "404":
+      $ref: ../../../components/responses/NotFound.yaml
+
+  security:
+    - prosaToken: []
+    - apiKey: []

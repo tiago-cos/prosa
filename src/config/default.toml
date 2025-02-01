@@ -1,0 +1,15 @@
+[server]
+host = "0.0.0.0"
+port = 5000
+
+[auth]
+secret_key = "jwt_secret_key"
+admin_key = "admin_key"
+token_duration = 900
+
+[book_storage]
+epub_path = "library/epubs"
+cover_path = "library/covers"
+
+[database]
+file_path = "library/database.db"

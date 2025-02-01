@@ -1,0 +1,5 @@
+/target
+.vscode
+src/config/local.toml
+/library
+tests/node_modules

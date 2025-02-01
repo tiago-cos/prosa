@@ -1,0 +1,63 @@
+get:
+  tags:
+    - State
+  summary: "Get book state"
+  description: |
+    Retrieve state for a specific book owned by a user.
+    The user must be authenticated and have the appropriate permissions.
+  operationId: getBookState
+  parameters:
+    - $ref: ../../../components/parameters/book_id.yaml
+
+  responses:
+    "200":
+      description: The book state was retrieved successfully.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../components/schemas/BookState.yaml
+            required:
+              - location
+              - statistics
+
+    "401":
+      $ref: ../../../components/responses/Unauthorized.yaml
+    "404":
+      $ref: ../../../components/responses/NotFound.yaml
+
+  security:
+    - prosaToken: []
+    - apiKey: []
+
+put:
+  tags:
+    - State
+  summary: "Update book state"
+  description: |
+    Update state for a specific book owned by a user.
+    The user must be authenticated and have the appropriate permissions.
+  operationId: updateBookState
+  parameters:
+    - $ref: ../../../components/parameters/book_id.yaml
+
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../../../components/schemas/BookState.yaml
+          minProperties: 1
+
+  responses:
+    "204":
+      description: The book state was updated successfully.
+    "400":
+      $ref: ../../../components/responses/BadRequest.yaml
+    "401":
+      $ref: ../../../components/responses/Unauthorized.yaml
+    "404":
+      $ref: ../../../components/responses/NotFound.yaml
+
+  security:
+    - prosaToken: []
+    - apiKey: []

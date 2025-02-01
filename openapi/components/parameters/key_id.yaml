@@ -1,0 +1,7 @@
+name: key_id
+in: path
+required: true
+schema:
+  type: string
+  format: uuid
+description: The unique ID of the API key.

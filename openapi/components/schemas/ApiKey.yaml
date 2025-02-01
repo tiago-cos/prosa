@@ -1,0 +1,23 @@
+type: object
+description: App API key
+properties:
+  name:
+    type: string
+    description: The name of the API key.
+    example: "My API Key"
+  capabilities:
+    type: array
+    items:
+      $ref: ./Capability.yaml
+    example: ["create", "read"]
+    description: |
+      An array of capabilities associated with the API key.
+      Capabilities determine the actions that the API key can perform.
+  expires_at:
+    type: string
+    format: date-time
+    description: The expiration date and time of the API key.
+    example: "2023-06-01T12:00:00Z"
+required:
+  - name
+  - capabilities

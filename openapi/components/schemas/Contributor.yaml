@@ -1,0 +1,15 @@
+type: object
+description: Represents a contributor to a book.
+properties:
+  name: 
+    type: string
+    description: The name of the contributor.
+    example: "John Doe"
+  role:
+    type: string
+    description: The role of the contributor in the book.
+    example: "Author"
+required:
+  - name
+  - role
+additionalProperties: false

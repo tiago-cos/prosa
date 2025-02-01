@@ -1,0 +1,53 @@
+type: object
+description: Represents a book's metadata.
+properties:
+  title:
+    type: string
+    description: The title of the book.
+    example: "The Great Gatsby"
+  subtitle:
+    type: string
+    format: uuid
+    description: The subtitle of the book.
+    example: "A novel by F. Scott Fitzgerald"
+  description:
+    type: string
+    description: The description of the book.
+    example: "The Great Gatsby is a novel by F. Scott Fitzgerald."
+  publisher:
+    type: string
+    description: The publisher of the book.
+    example: "HarperCollins"
+  publication_date:
+    type: string
+    format: date
+    description: The publication date of the book.
+    example: "1925-04-10"
+  isbn:
+    type: string
+    description: The ISBN (International Standard Book Number) of the book.
+    example: "978-3-16-148410-0"
+  contributors:
+    type: array
+    items:
+      $ref: './Contributor.yaml'
+    description: The contributors to the book.
+  genres:
+    type: array
+    items:
+      type: string
+    description: The genres of the book.
+    example: ["Fiction", "Classic"]
+  series:
+    $ref: './Series.yaml'
+  page_count:
+    type: integer
+    description: The number of pages in the book.
+    example: 208
+  language:
+    type: string
+    description: The language of the book.
+    example: "English"
+
+minProperties: 1
+additionalProperties: false

@@ -1,0 +1,9 @@
+services:
+  redocly:
+    image: redocly/redoc
+    volumes:
+      - ~/Projects/prosa/openapi/:/usr/share/nginx/html/swagger/
+    environment:
+      - SPEC_URL=swagger/openapi.yaml
+    ports:
+      - "8080:80"

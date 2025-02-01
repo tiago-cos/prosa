@@ -1,0 +1,59 @@
+post:
+  tags:
+    - File
+  summary: "Upload a book"
+  description: |
+    Upload a book file (EPUB format) to the server. 
+    The uploaded file is associated with the specified user.
+    The user must be authenticated and have the appropriate permissions.
+  operationId: uploadBook
+
+  requestBody:
+    required: true
+    description: Request body containing the book file and the owner ID.
+    content:
+      multipart/form-data:
+        schema:
+          type: object
+          properties:
+            owner_id:
+              type: string
+              format: uuid
+              description: |
+                The UUID of the user who owns the book.
+            epub:
+              type: string
+              format: binary
+              description: |
+                The book file to be uploaded. 
+                Only files in the `application/epub+zip` format are accepted.
+          required:
+            - owner_id
+            - epub
+        example:
+          owner_id: "2c5f1d4d-3b9d-4b9d-3b9d-4b9d3b9d3b9d"
+          epub: "(binary data)"
+
+  responses:
+    "200":
+      description: The book file was uploaded successfully.
+      content:
+        text/plain:
+          schema:
+            type: string
+            description: |
+              The unique ID of the uploaded book file.
+          examples:
+            success:
+              summary: Example response for a successful upload
+              value: "2c5f1d4d-3b9d-4b9d-3b9d-4b9d3b9d3b9d"
+    "400":
+      $ref: ../components/responses/BadRequest.yaml
+    "401": 
+      $ref: ../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+      
+  security:
+    - prosaToken: []
+    - apiKey: []

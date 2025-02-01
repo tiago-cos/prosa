@@ -1,0 +1,32 @@
+type: object
+description: Contains the IDs of books whose data has changed since the last sync.
+properties:
+  file:
+    type: array
+    items:
+      type: string
+      format: uuid
+    example: ["2c5f1d4d-3b9d-4b9d-3b9d-4b9d3b9d3b9d", "4d3b9d3b-9d3b-9d3b-4b9d-3b9d3b9d4d3b"]
+
+  metadata:
+    type: array
+    items:
+      type: string
+      format: uuid
+    example: ["7f3b9d4b-8c9d-4c9b-3a9d-2d4b9c3a5f3b", "9c3b8d7f-1a9d-2c9b-3d5f-4a9c8d7f1b2c"]
+
+  cover:
+    type: array
+    items:
+      type: string
+      format: uuid
+    example: ["1d3b9d4b-8c9d-4c9b-3a9d-2d4b9c3a5f3b", "8c3b8d7f-1a9d-2c9b-3d5f-4a9c8d7f1b2c"]
+
+  deleted:
+    type: array
+    items:
+      type: string
+      format: uuid
+    example: ["3ac123d4b-8c9d-4c9b-3a9d-2d4b9c3a5f3b", "9c3b8d7f-1a9d-2c9b-3d5f-4a9c8d7f1b2c"]
+    
+additionalProperties: false

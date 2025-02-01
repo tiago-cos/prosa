@@ -1,0 +1,3 @@
+type: string
+description: Represents a capability in an API key.
+enum: ["create", "read", "update", "delete"]

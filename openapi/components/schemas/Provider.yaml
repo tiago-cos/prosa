@@ -1,0 +1,3 @@
+type: string
+description: Represents a metadata provider.
+enum: ["goodreads_metadata_scraper", "epub_metadata_extractor"]

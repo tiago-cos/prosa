@@ -1,0 +1,138 @@
+openapi: 3.1.0
+info:
+  version: 1.0.0
+  title: Prosa
+  contact:
+    name: Tiago Sousa
+    email: tiago.costa.sousa@proton.me
+    url: https://github.com/tiago-cos
+  license:
+    name: GPL-3.0
+    url: https://www.gnu.org/licenses/gpl-3.0.en.html
+  description: |
+    # Prosa API Documentation
+
+    ## Overview
+    Prosa is a self-hosted book server that allows users to manage their digital book collection. This API provides comprehensive endpoints for book management, user administration, and metadata synchronization.
+
+    ## Authentication
+    Authentication is handled through JWT tokens. All API requests must include a bearer token in the Authorization header.
+
+    ## User Types
+    The system supports two types of users:
+    - **Regular Users**: Can perform operations only on their own books
+    - **Admin Users**: Have full access to perform any operation on any book in the system
+
+    ## Core Features
+
+    ### Book Management
+    - Upload, download, and remove EPUB files
+    - Manage book cover images (upload, download, update, remove)
+    - Handle book metadata (create, read, update, delete)
+
+    ### Metadata Management
+    The system automatically fetches book metadata upon upload using two providers:
+    1. Goodreads Metadata Scraper
+    2. Embedded Metadata Extractor (extracts metadata directly from EPUB files)
+
+    Users can customize their metadata provider preferences, determining the order in which providers are consulted during metadata retrieval.
+
+    ## API Structure
+    The API is organized into the following main categories:
+
+    ### Book Operations
+    - **BookFile**: Handles EPUB file operations
+    - **BookCover**: Manages book cover images
+    - **BookMetadata**: Controls book metadata operations
+
+    ### User Operations
+    - **User**: Handles user management and preferences
+    - **Sync**: Manages data synchronization
+
+    ## Additional Information
+    For more detailed information about the project, please visit our [GitHub repository](https://github.com/tiago-cos/prosa).
+
+    ## License
+    This project is licensed under the [GPL-3.0 License](https://www.gnu.org/licenses/gpl-3.0.en.html).
+    
+externalDocs:
+  description: "Checkout the project repository for more information."
+  url: "https://github.com/tiago-cos/prosa"
+tags:
+  - name: File
+    description: "Operations about book files."
+  - name: Cover
+    description: "Operations about book covers."
+  - name: Metadata
+    description: "Operations about book metadata."
+  - name: State
+    description: "Operations about book state."
+  - name: Sync
+    description: "Operations about synchronization."
+  - name: Authentication
+    description: "Operations about authenticating users."
+  - name: Preferences
+    description: "Operations about user preferences."
+  - name: ApiKeys
+    description: "Operations about user API keys."
+x-tagGroups:
+  - name: Book
+    tags:
+      - File
+      - Cover
+      - Metadata
+      - State
+  - name: Sync
+    tags:
+      - Sync
+  - name: User
+    tags:
+      - Authentication
+      - Preferences
+      - ApiKeys
+servers:
+  - url: http://{host}/api
+    variables:
+      host:
+        default: localhost
+        description: The server host
+paths:
+  /books:
+    $ref: "paths/books.yaml"
+  /books/{book_id}:
+    $ref: "paths/books/{book_id}.yaml"
+  /books/{book_id}/cover:
+    $ref: "paths/books/{book_id}/cover.yaml"
+  #/books/{book_id}/details:
+  #  $ref: "paths/books/{book_id}/details.yaml"
+  /books/{book_id}/metadata:
+    $ref: "paths/books/{book_id}/metadata.yaml"
+  /books/{book_id}/state:
+    $ref: "paths/books/{book_id}/state.yaml"
+  /users:
+    $ref: "paths/users.yaml"
+  /users/{user_id}:
+    $ref: "paths/users/{user_id}.yaml"
+  /users/{user_id}/preferences:
+    $ref: "paths/users/{user_id}/preferences.yaml"
+  /users/{user_id}/keys:
+    $ref: "paths/users/{user_id}/keys.yaml"
+  /users/{user_id}/keys/{key_id}:
+    $ref: "paths/users/{user_id}/keys/{key_id}.yaml"
+  /sync:
+    $ref: "paths/sync.yaml"
+
+components:
+  securitySchemes:
+    prosaToken:
+      description: "User authentication JWT token."
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    
+    apiKey:
+      description: "User API key."
+      type: apiKey
+      name: api-key
+      in: header
+      format: password

@@ -1,0 +1,22 @@
+fullMetadata:
+  summary: Complete book metadata
+  value:
+    title: "The Great Gatsby"
+    subtitle: "A novel by F. Scott Fitzgerald"
+    description: "The Great Gatsby is a novel by F. Scott Fitzgerald."
+    publisher: "HarperCollins"
+    publication_date: "1925-04-10"
+    isbn: "978-3-16-148410-0"
+    contributors: [{ name: "F. Scott Fitzgerald", role: "Author" }]
+    genres: ["Fiction", "Classics", "American Literature"]
+    series: { name: "The Great Gatsby", number: 1 }
+    page_count: 208
+    language: "English"
+
+partialMetadata:
+  summary: Minimal book metadata
+  value:
+    title: "Pride and Prejudice"
+    description: "Pride and Prejudice is a novel by Jane Austen."
+    isbn: "978-3-16-148410-0"
+    language: "English"
