@@ -31,6 +31,10 @@ pub enum AuthError {
     #[strum(props(StatusCode = "400"))]
     InvalidAuthHeader,
 
+    #[strum(message = "Forbidden")]
+    #[strum(props(StatusCode = "403"))]
+    Forbidden,
+
     #[strum(message = "Internal server error")]
     #[strum(props(StatusCode = "500"))]
     InternalError,
@@ -47,13 +51,13 @@ impl From<JwtError> for AuthError {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone)]
 pub enum AuthRole {
     Admin(String),
     User(String),
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
 pub enum AuthType {
     JWT,
     ApiKey,
@@ -73,8 +77,7 @@ pub struct JWTClaims {
     pub exp: u64,
 }
 
-//TODO remove debug for all
-#[derive(new, Clone, Debug)]
+#[derive(new, Clone)]
 pub struct AuthToken {
     pub role: AuthRole,
     pub capabilities: Vec<String>,

@@ -1,5 +1,5 @@
-use crate::app::users;
 use super::models::{AuthError, AuthRole, AuthToken, AuthType, JWTClaims, CAPABILITIES};
+use crate::app::users;
 use argon2::{
     password_hash::{
         rand_core::{OsRng, RngCore},
@@ -51,17 +51,27 @@ pub async fn verify_jwt(token: &str, secret: &str) -> Result<AuthToken, AuthErro
     let validation = Validation::default();
     let token = jsonwebtoken::decode::<JWTClaims>(&token, &key, &validation)?;
 
-    Ok(AuthToken::new(token.claims.role, token.claims.capabilities, AuthType::JWT))
+    Ok(AuthToken::new(
+        token.claims.role,
+        token.claims.capabilities,
+        AuthType::JWT,
+    ))
 }
 
 pub async fn verify_api_key(pool: &SqlitePool, key: &str) -> Result<AuthToken, AuthError> {
     let key = BASE64_STANDARD.decode(key).or(Err(AuthError::InvalidKey))?;
     let hash = BASE64_STANDARD.encode(Sha256::digest(&key));
-    let key = users::data::get_api_key_by_hash(pool, &hash).await.ok_or(AuthError::InvalidKey)?;
-    let user = users::data::get_user(pool, &key.user_id).await.or(Err(AuthError::InvalidKey))?;
+    let key = users::data::get_api_key_by_hash(pool, &hash)
+        .await
+        .ok_or(AuthError::InvalidKey)?;
+    let user = users::data::get_user(pool, &key.user_id)
+        .await
+        .or(Err(AuthError::InvalidKey))?;
 
     // Return error if expired
-    key.expiration.filter(|date| date >= &Utc::now()).ok_or(AuthError::InvalidKey)?;
+    if key.expiration.filter(|date| date >= &Utc::now()) != key.expiration {
+        return Err(AuthError::InvalidKey);
+    }
 
     let role = match user.is_admin {
         true => AuthRole::Admin(user.user_id),

@@ -1,5 +1,3 @@
-use std::{ops::Deref, str::FromStr};
-
 use super::{
     models::{
         ApiKeyError, CreateApiKeyRequest, CreateApiKeyResponse, GetApiKeyResponse, LoginUserRequest,
@@ -7,11 +5,7 @@ use super::{
     },
     service,
 };
-use crate::app::{
-    authentication::{self, models::CAPABILITIES},
-    error::ProsaError,
-    AppState, Pool,
-};
+use crate::app::{authentication, error::ProsaError, AppState, Pool};
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
@@ -19,6 +13,7 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use regex::Regex;
+use std::str::FromStr;
 
 pub async fn register_user_handler(
     State(state): State<AppState>,
@@ -71,21 +66,15 @@ pub async fn create_api_key_handler(
     Path(username): Path<String>,
     body: Json<CreateApiKeyRequest>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if body
-        .capabilities
-        .iter()
-        .any(|e| !CAPABILITIES.contains(&e.deref()))
-    {
-        return Err(ApiKeyError::InvalidCapabilities.into());
-    }
-
     let expiration = body
         .expires_at
         .as_deref()
         .map(|date| DateTime::<Utc>::from_str(date).map_err(|_| ApiKeyError::InvalidTimestamp))
         .transpose()?;
 
-    expiration.filter(|date| date >= &Utc::now()).ok_or(ApiKeyError::InvalidTimestamp)?;
+    if expiration.filter(|date| date >= &Utc::now()) != expiration {
+        return Err(ApiKeyError::InvalidTimestamp.into());
+    }
 
     let (key_id, key) = service::create_api_key(
         &pool,
@@ -104,11 +93,7 @@ pub async fn get_api_key_handler(
     State(pool): State<Pool>,
     Path((username, key_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let key = service::get_api_key(&pool, &key_id).await?;
-
-    if key.user_id != username {
-        return Err(ApiKeyError::KeyNotFound.into());
-    }
+    let key = service::get_api_key(&pool, &username, &key_id).await?;
 
     let key = GetApiKeyResponse::new(
         key.name,

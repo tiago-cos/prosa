@@ -1,6 +1,6 @@
 use super::{
     data,
-    models::{ApiKey, ApiKeyError, User, UserError},
+    models::{ApiKey, User, UserError},
 };
 use crate::app::{
     authentication::{self, service::hash_secret},
@@ -48,7 +48,7 @@ pub async fn create_api_key(
     Ok((key_id, key))
 }
 
-pub async fn get_api_key(pool: &SqlitePool, key_id: &str) -> Result<ApiKey, ApiKeyError> {
-    let key = data::get_api_key(pool, key_id).await?;
+pub async fn get_api_key(pool: &SqlitePool, username: &str, key_id: &str) -> Result<ApiKey, ProsaError> {
+    let key = data::get_api_key(pool, username, key_id).await?;
     Ok(key)
 }

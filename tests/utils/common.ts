@@ -1,3 +1,5 @@
+export const SERVER_URL = "http://localhost:5000";
+
 export function randomString(length: number) {
     let result = "";
     const characters =

@@ -58,7 +58,7 @@ pub enum ApiKeyError {
     #[strum(props(StatusCode = "400"))]
     InvalidCapabilities,
 
-    #[strum(message = "Invalid timestamp for API key")]
+    #[strum(message = "Invalid timestamp for expiration date")]
     #[strum(props(StatusCode = "400"))]
     InvalidTimestamp,
 
@@ -91,6 +91,7 @@ impl From<&SqliteError> for ApiKeyError {
     fn from(error: &SqliteError) -> Self {
         match error.kind() {
             SqlxErrorKind::UniqueViolation => ApiKeyError::InvalidCapabilities,
+            SqlxErrorKind::CheckViolation => ApiKeyError::InvalidCapabilities,
             SqlxErrorKind::Other => ApiKeyError::InvalidCapabilities,
             SqlxErrorKind::ForeignKeyViolation => ApiKeyError::UserNotFound,
             _ => ApiKeyError::InternalError,

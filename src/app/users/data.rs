@@ -75,7 +75,7 @@ pub async fn add_api_key(
     Ok(())
 }
 
-pub async fn get_api_key(pool: &SqlitePool, key_id: &str) -> Result<ApiKey, ApiKeyError> {
+pub async fn get_api_key(pool: &SqlitePool, username: &str, key_id: &str) -> Result<ApiKey, ApiKeyError> {
     let mut key: ApiKey = sqlx::query_as(
         r#"
         SELECT 
@@ -85,10 +85,11 @@ pub async fn get_api_key(pool: &SqlitePool, key_id: &str) -> Result<ApiKey, ApiK
             name,
             expiration
         FROM api_keys
-        WHERE key_id = ?1
+        WHERE key_id = $1 AND user_id = $2
         "#,
     )
     .bind(key_id)
+    .bind(username)
     .fetch_one(pool)
     .await?;
 

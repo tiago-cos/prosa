@@ -1,4 +1,5 @@
 mod authentication;
+mod authorization;
 mod error;
 mod server;
 mod users;
