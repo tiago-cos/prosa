@@ -143,3 +143,38 @@ pub async fn get_api_key_by_hash(pool: &SqlitePool, key_hash: &str) -> Option<Ap
 
     Some(key)
 }
+
+pub async fn get_api_keys(pool: &SqlitePool, username: &str) -> Result<Vec<String>, ApiKeyError> {
+    let keys: Vec<String> = sqlx::query_scalar(
+        r#"
+        SELECT key_id
+        FROM api_keys
+        WHERE user_id = $1
+        "#,
+    )
+    .bind(username)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(keys)
+}
+
+pub async fn delete_api_key(pool: &SqlitePool, username: &str, key_id: &str) -> Result<(), ApiKeyError> {
+    let result = sqlx::query(
+        r#"
+        DELETE
+        FROM api_keys
+        WHERE key_id = $1 AND user_id = $2
+        "#,
+    )
+    .bind(key_id)
+    .bind(username)
+    .execute(pool)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(ApiKeyError::KeyNotFound);
+    }
+
+    Ok(())
+}

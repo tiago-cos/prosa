@@ -59,3 +59,28 @@ export async function getApiKey(
 
   return req.send();
 }
+
+export async function getApiKeys(
+  username: string,
+  auth?: { jwt?: string; apiKey?: string }
+) {
+  let req = request(SERVER_URL).get(`/users/${username}/keys`);
+
+  if (auth?.jwt) req = req.auth(auth.jwt, { type: "bearer" });
+  if (auth?.apiKey) req = req.set("api-key", auth.apiKey);
+
+  return req.send();
+}
+
+export async function deleteApiKey(
+  username: string,
+  keyId: string,
+  auth?: { jwt?: string; apiKey?: string }
+) {
+  let req = request(SERVER_URL).delete(`/users/${username}/keys/${keyId}`);
+
+  if (auth?.jwt) req = req.auth(auth.jwt, { type: "bearer" });
+  if (auth?.apiKey) req = req.set("api-key", auth.apiKey);
+
+  return req.send();
+}

@@ -52,3 +52,17 @@ pub async fn get_api_key(pool: &SqlitePool, username: &str, key_id: &str) -> Res
     let key = data::get_api_key(pool, username, key_id).await?;
     Ok(key)
 }
+
+pub async fn get_api_keys(pool: &SqlitePool, username: &str) -> Result<Vec<String>, ProsaError> {
+    // To verify if user exists
+    data::get_user(pool, username).await?;
+    let keys = data::get_api_keys(pool, username).await?;
+    Ok(keys)
+}
+
+pub async fn revoke_api_key(pool: &SqlitePool, username: &str, key_id: &str) -> Result<(), ProsaError> {
+    // To verify if user exists
+    data::get_user(pool, username).await?;
+    data::delete_api_key(pool, username, key_id).await?;
+    Ok(())
+}

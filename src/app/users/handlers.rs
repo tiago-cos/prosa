@@ -103,3 +103,21 @@ pub async fn get_api_key_handler(
 
     Ok(Json(key))
 }
+
+pub async fn get_api_keys_handler(
+    State(pool): State<Pool>,
+    Path(username): Path<String>,
+) -> Result<impl IntoResponse, ProsaError> {
+    let keys = service::get_api_keys(&pool, &username).await?;
+
+    Ok(Json(keys))
+}
+
+pub async fn revoke_api_key_handler(
+    State(pool): State<Pool>,
+    Path((username, key_id)): Path<(String, String)>,
+) -> Result<impl IntoResponse, ProsaError> {
+    service::revoke_api_key(&pool, &username, &key_id).await?;
+
+    Ok(())
+}
