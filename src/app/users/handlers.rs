@@ -1,7 +1,6 @@
 use super::{
     models::{
-        ApiKeyError, CreateApiKeyRequest, CreateApiKeyResponse, GetApiKeyResponse, LoginUserRequest,
-        RegisterUserRequest, UserError,
+        ApiKeyError, CreateApiKeyRequest, CreateApiKeyResponse, GetApiKeyResponse, LoginUserRequest, Preferences, RegisterUserRequest, UserError
     },
     service,
 };
@@ -119,5 +118,24 @@ pub async fn revoke_api_key_handler(
 ) -> Result<impl IntoResponse, ProsaError> {
     service::revoke_api_key(&pool, &username, &key_id).await?;
 
+    Ok(())
+}
+
+pub async fn get_preferences_handler(
+    State(pool): State<Pool>,
+    Path(username): Path<String>,
+) -> Result<impl IntoResponse, ProsaError> {
+    let preferences = service::get_preferences(&pool, &username).await?;
+
+    Ok(Json(preferences))
+}
+
+pub async fn update_preferences_handler(
+    State(pool): State<Pool>,
+    Path(username): Path<String>,
+    body: Json<Preferences>,
+) -> Result<impl IntoResponse, ProsaError> {
+    service::update_preferences(&pool, &username, body.metadata_providers.clone()).await?;
+    
     Ok(())
 }

@@ -10,7 +10,7 @@ pub async fn create_tables(pool: &SqlitePool) {
             is_admin BOOLEAN DEFAULT FALSE
         );
 
-        CREATE TABLE IF NOT EXISTS preferences (
+        CREATE TABLE IF NOT EXISTS providers (
             provider_type TEXT NOT NULL CHECK(provider_type IN ('goodreads_metadata_scraper','epub_metadata_extractor')),
             priority INTEGER NOT NULL,
             user_id TEXT NOT NULL,

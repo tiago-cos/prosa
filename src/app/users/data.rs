@@ -1,4 +1,4 @@
-use super::models::{ApiKey, ApiKeyError, User, UserError};
+use super::models::{ApiKey, ApiKeyError, Preferences, PreferencesError, User, UserError};
 use chrono::{DateTime, Utc};
 use sqlx::{QueryBuilder, SqlitePool};
 
@@ -175,6 +175,68 @@ pub async fn delete_api_key(pool: &SqlitePool, username: &str, key_id: &str) -> 
     if result.rows_affected() == 0 {
         return Err(ApiKeyError::KeyNotFound);
     }
+
+    Ok(())
+}
+
+pub async fn add_preferences(
+    pool: &SqlitePool,
+    username: &str,
+    providers: Vec<String>,
+) -> Result<(), PreferencesError> {
+    if providers.is_empty() {
+        return Err(PreferencesError::InvalidMetadataProvider);
+    }
+
+    let mut tx = pool.begin().await?;
+
+    let mut index = 1;
+    let mut query = QueryBuilder::new("INSERT INTO providers (provider_type, priority, user_id)");
+
+    query.push_values(providers, |mut b, provider| {
+        b.push_bind(provider).push_bind(index).push_bind(username);
+        index = index + 1;
+    });
+    query.build().execute(&mut *tx).await?;
+
+    tx.commit().await?;
+
+    Ok(())
+}
+
+pub async fn get_preferences(
+    pool: &SqlitePool,
+    username: &str,
+) -> Result<Preferences, PreferencesError> {
+    let providers: Vec<String> = sqlx::query_scalar(
+        r#"
+        SELECT provider_type
+        FROM providers
+        WHERE user_id = $1
+        ORDER BY priority
+        "#,
+    )
+    .bind(username)
+    .fetch_all(pool)
+    .await?;
+
+    Ok(Preferences::new(providers))
+}
+
+pub async fn delete_preferences(
+    pool: &SqlitePool,
+    username: &str,
+) -> Result<(), PreferencesError> {
+    sqlx::query(
+        r#"
+        DELETE
+        FROM providers
+        WHERE user_id = $1
+        "#,
+    )
+    .bind(username)
+    .execute(pool)
+    .await?;
 
     Ok(())
 }

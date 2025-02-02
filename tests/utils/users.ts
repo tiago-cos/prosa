@@ -84,3 +84,32 @@ export async function deleteApiKey(
 
   return req.send();
 }
+
+export async function getPreferences(
+  username: string,
+  auth?: { jwt?: string; apiKey?: string }
+) {
+  let req = request(SERVER_URL).get(`/users/${username}/preferences`);
+
+  if (auth?.jwt) req = req.auth(auth.jwt, { type: "bearer" });
+  if (auth?.apiKey) req = req.set("api-key", auth.apiKey);
+
+  return req.send();
+}
+
+export async function updatePreferences(
+  username: string,
+  providers: string[],
+  auth?: { jwt?: string; apiKey?: string }
+) {
+  let req = request(SERVER_URL).put(`/users/${username}/preferences`);
+
+  if (auth?.jwt) req = req.auth(auth.jwt, { type: "bearer" });
+  if (auth?.apiKey) req = req.set("api-key", auth.apiKey);
+
+  const body: any = {
+    metadata_providers: providers
+  };
+
+  return req.send(body);
+}

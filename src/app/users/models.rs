@@ -99,6 +99,44 @@ impl From<&SqliteError> for ApiKeyError {
     }
 }
 
+#[derive(EnumMessage, EnumProperty)]
+pub enum PreferencesError {
+    #[strum(message = "Invalid metadata provider selection")]
+    #[strum(props(StatusCode = "400"))]
+    InvalidMetadataProvider,
+
+    #[strum(message = "A user with that username was not found")]
+    #[strum(props(StatusCode = "404"))]
+    UserNotFound,
+
+    #[strum(message = "Internal server error")]
+    #[strum(props(StatusCode = "500"))]
+    InternalError,
+}
+
+impl From<SqlxError> for PreferencesError {
+    fn from(error: SqlxError) -> Self {
+        //TODO remove
+        println!("{:#?}", error);
+        match error {
+            SqlxError::Database(error) => error.downcast_ref::<SqliteError>().into(),
+            _ => PreferencesError::InternalError,
+        }
+    }
+}
+
+impl From<&SqliteError> for PreferencesError {
+    fn from(error: &SqliteError) -> Self {
+        match error.kind() {
+            SqlxErrorKind::UniqueViolation => PreferencesError::InvalidMetadataProvider,
+            SqlxErrorKind::CheckViolation => PreferencesError::InvalidMetadataProvider,
+            SqlxErrorKind::Other => PreferencesError::InvalidMetadataProvider,
+            SqlxErrorKind::ForeignKeyViolation => PreferencesError::UserNotFound,
+            _ => PreferencesError::InternalError,
+        }
+    }
+}
+
 #[derive(FromRow)]
 pub struct User {
     pub user_id: String,
@@ -116,6 +154,14 @@ pub struct RegisterUserRequest {
 #[derive(Deserialize)]
 pub struct LoginUserRequest {
     pub password: String,
+}
+
+pub const EPUB_PROVIDER: &str = "epub_metadata_extractor";
+pub const GOODREADS_PROVIDER: &str = "goodreads_metadata_scraper";
+
+#[derive(FromRow, Serialize, Deserialize, new)]
+pub struct Preferences {
+    pub metadata_providers: Vec<String>,
 }
 
 #[derive(FromRow)]

@@ -1,6 +1,6 @@
 use super::{
     data,
-    models::{ApiKey, User, UserError},
+    models::{ApiKey, Preferences, User, UserError, EPUB_PROVIDER},
 };
 use crate::app::{
     authentication::{self, service::hash_secret},
@@ -16,9 +16,10 @@ pub async fn register_user(
     username: &str,
     password: &str,
     is_admin: bool,
-) -> Result<(), UserError> {
+) -> Result<(), ProsaError> {
     let password_hash = hash_secret(password).await;
     data::add_user(pool, username, &password_hash, is_admin).await?;
+    data::add_preferences(pool, username, vec![EPUB_PROVIDER.to_string()]).await?;
 
     Ok(())
 }
@@ -49,20 +50,33 @@ pub async fn create_api_key(
 }
 
 pub async fn get_api_key(pool: &SqlitePool, username: &str, key_id: &str) -> Result<ApiKey, ProsaError> {
+    // To verify if user exists
+    data::get_user(pool, username).await?;
     let key = data::get_api_key(pool, username, key_id).await?;
     Ok(key)
 }
 
 pub async fn get_api_keys(pool: &SqlitePool, username: &str) -> Result<Vec<String>, ProsaError> {
-    // To verify if user exists
     data::get_user(pool, username).await?;
     let keys = data::get_api_keys(pool, username).await?;
     Ok(keys)
 }
 
 pub async fn revoke_api_key(pool: &SqlitePool, username: &str, key_id: &str) -> Result<(), ProsaError> {
-    // To verify if user exists
     data::get_user(pool, username).await?;
     data::delete_api_key(pool, username, key_id).await?;
+    Ok(())
+}
+
+pub async fn get_preferences(pool: &SqlitePool, username: &str) -> Result<Preferences, ProsaError> {
+    data::get_user(pool, username).await?;
+    let preferences = data::get_preferences(pool, username).await?;
+    Ok(preferences)
+}
+
+pub async fn update_preferences(pool: &SqlitePool, username: &str, providers: Vec<String>) -> Result<(), ProsaError> {
+    data::get_user(pool, username).await?;
+    data::delete_preferences(pool, username).await?;
+    data::add_preferences(pool, username, providers).await?;
     Ok(())
 }

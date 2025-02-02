@@ -1,9 +1,9 @@
 import request from "supertest";
 import { randomString } from "../utils/common";
 import { SERVER_URL } from "../utils/common";
-import { registerUser, loginUser, createApiKey, getApiKey, getApiKeys, deleteApiKey } from "../utils/users"
+import { registerUser, loginUser, createApiKey, getApiKey, getApiKeys, deleteApiKey, getPreferences, updatePreferences } from "../utils/users"
 
-describe("Register and login", () => {
+describe("Register and login tests", () => {
   test.concurrent("Register a new user", async () => {
     const { response: registerResponse, username, password } = await registerUser();
     expect(registerResponse.status).toBe(200);
@@ -82,10 +82,10 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, {jwt: registerResponse.text});
+    const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse.text });
     expect(getApiKeyResponse.status).toBe(200);
     expect(getApiKeyResponse.body.name).toBe("Test Key");
     expect(getApiKeyResponse.body.capabilities).toEqual(["Read"]);
@@ -96,10 +96,10 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, {jwt: registerResponse.text});
+    const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse.text });
     expect(getApiKeyResponse.status).toBe(200);
     expect(getApiKeyResponse.body.name).toBe("Test Key");
     expect(getApiKeyResponse.body.capabilities).toEqual(["Create", "Read"]);
@@ -110,19 +110,19 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", {jwt: registerResponse.text});
+    const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", { jwt: registerResponse.text });
     expect(createApiKeyResponse2.status).toBe(200);
 
-    const createApiKeyResponse3 = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", {jwt: registerResponse.text});
+    const createApiKeyResponse3 = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", { jwt: registerResponse.text });
     expect(createApiKeyResponse3.status).toBe(200);
 
-    const getApiKeysResponse = await getApiKeys(username, {jwt: registerResponse.text});
+    const getApiKeysResponse = await getApiKeys(username, { jwt: registerResponse.text });
     expect(getApiKeysResponse.status).toBe(200);
     expect(getApiKeysResponse.body).toEqual([
-      createApiKeyResponse.body.id, 
+      createApiKeyResponse.body.id,
       createApiKeyResponse2.body.id,
       createApiKeyResponse3.body.id
     ]);
@@ -130,7 +130,7 @@ describe("Api key tests", () => {
     const { response: registerResponse2, username: username2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
 
-    const getApiKeysResponse2 = await getApiKeys(username2, {jwt: registerResponse2.text});
+    const getApiKeysResponse2 = await getApiKeys(username2, { jwt: registerResponse2.text });
     expect(getApiKeysResponse2.status).toBe(200);
     expect(getApiKeysResponse2.body).toEqual([]);
   });
@@ -139,16 +139,16 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, {jwt: registerResponse.text});
+    const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse.text });
     expect(getApiKeyResponse.status).toBe(200);
 
-    const deleteApiKeyResponse = await deleteApiKey(username, createApiKeyResponse.body.id, {jwt: registerResponse.text});
+    const deleteApiKeyResponse = await deleteApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse.text });
     expect(deleteApiKeyResponse.status).toBe(200);
 
-    const getApiKeyResponse2 = await getApiKey(username, createApiKeyResponse.body.id, {jwt: registerResponse.text});
+    const getApiKeyResponse2 = await getApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse.text });
     expect(getApiKeyResponse2.status).toBe(404);
   });
 
@@ -156,13 +156,13 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Read"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Read"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(400);
 
-    const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Wrong"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Wrong"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse2.status).toBe(400);
 
-    const createApiKeyResponse3 = await createApiKey(username, "Test Key", [], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse3 = await createApiKey(username, "Test Key", [], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse3.status).toBe(400);
   });
 
@@ -170,10 +170,10 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], "2003-10-28T12:00:00Z", {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], "2003-10-28T12:00:00Z", { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(400);
 
-    const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Read"], "invalid timestamp", {jwt: registerResponse.text});
+    const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Read"], "invalid timestamp", { jwt: registerResponse.text });
     expect(createApiKeyResponse2.status).toBe(400);
   });
 
@@ -181,7 +181,7 @@ describe("Api key tests", () => {
     const { response: registerResponse } = await registerUser(undefined, undefined, "admin_key");
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey("ghost", "Test Key", ["Read"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey("ghost", "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(404);
   });
 
@@ -189,7 +189,7 @@ describe("Api key tests", () => {
     const { response: registerResponse } = await registerUser(undefined, undefined, "admin_key");
     expect(registerResponse.status).toBe(200);
 
-    const getApiKeysResponse = await getApiKeys("ghost", {jwt: registerResponse.text})
+    const getApiKeysResponse = await getApiKeys("ghost", { jwt: registerResponse.text })
     expect(getApiKeysResponse.status).toBe(404);
   });
 
@@ -197,13 +197,13 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser(undefined, undefined, "admin_key");
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const deleteApiKeyResponse = await deleteApiKey("ghost", createApiKeyResponse.body.id, {jwt: registerResponse.text});
+    const deleteApiKeyResponse = await deleteApiKey("ghost", createApiKeyResponse.body.id, { jwt: registerResponse.text });
     expect(deleteApiKeyResponse.status).toBe(404);
 
-    const getApiKeyResponse2 = await getApiKey(username, createApiKeyResponse.body.id, {jwt: registerResponse.text});
+    const getApiKeyResponse2 = await getApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse.text });
     expect(getApiKeyResponse2.status).toBe(200);
   });
 
@@ -211,10 +211,10 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const deleteApiKeyResponse = await deleteApiKey(username, "not found", {jwt: registerResponse.text});
+    const deleteApiKeyResponse = await deleteApiKey(username, "not found", { jwt: registerResponse.text });
     expect(deleteApiKeyResponse.status).toBe(404);
   });
 
@@ -222,7 +222,7 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const getApiKeyResponse = await getApiKey(username, "not found", {jwt: registerResponse.text});
+    const getApiKeyResponse = await getApiKey(username, "not found", { jwt: registerResponse.text });
     expect(getApiKeyResponse.status).toBe(404);
   });
 
@@ -230,10 +230,10 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser(undefined, undefined, "admin_key");
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const getApiKeyResponse = await getApiKey("not found", createApiKeyResponse.body.id, {jwt: registerResponse.text});
+    const getApiKeyResponse = await getApiKey("not found", createApiKeyResponse.body.id, { jwt: registerResponse.text });
     expect(getApiKeyResponse.status).toBe(404);
   });
 
@@ -249,7 +249,7 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
     const deleteApiKeyResponse = await deleteApiKey(username, createApiKeyResponse.body.id);
@@ -260,10 +260,10 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Read"], undefined, {apiKey: createApiKeyResponse.body.key});
+    const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Read"], undefined, { apiKey: createApiKeyResponse.body.key });
     expect(createApiKeyResponse2.status).toBe(403);
   });
 
@@ -271,10 +271,10 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const deleteApiKeyResponse = await deleteApiKey(username, createApiKeyResponse.body.id, {apiKey: createApiKeyResponse.body.key});
+    const deleteApiKeyResponse = await deleteApiKey(username, createApiKeyResponse.body.id, { apiKey: createApiKeyResponse.body.key });
     expect(deleteApiKeyResponse.status).toBe(403);
   });
 
@@ -282,10 +282,10 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, {apiKey: createApiKeyResponse.body.key});
+    const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { apiKey: createApiKeyResponse.body.key });
     expect(getApiKeyResponse.status).toBe(403);
   });
 
@@ -293,10 +293,10 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser(undefined, undefined, "admin_key");
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Read"], undefined, {apiKey: createApiKeyResponse.body.key});
+    const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Read"], undefined, { apiKey: createApiKeyResponse.body.key });
     expect(createApiKeyResponse2.status).toBe(403);
   });
 
@@ -304,10 +304,10 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser(undefined, undefined, "admin_key");
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const deleteApiKeyResponse = await deleteApiKey(username, createApiKeyResponse.body.id, {apiKey: createApiKeyResponse.body.key});
+    const deleteApiKeyResponse = await deleteApiKey(username, createApiKeyResponse.body.id, { apiKey: createApiKeyResponse.body.key });
     expect(deleteApiKeyResponse.status).toBe(403);
   });
 
@@ -315,10 +315,10 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser(undefined, undefined, "admin_key");
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, {apiKey: createApiKeyResponse.body.key});
+    const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { apiKey: createApiKeyResponse.body.key });
     expect(getApiKeyResponse.status).toBe(403);
   });
 
@@ -326,7 +326,7 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
     const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id);
@@ -340,7 +340,7 @@ describe("Api key tests", () => {
     const { response: registerResponse2, username } = await registerUser();
     expect(registerResponse2.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(403);
   });
 
@@ -351,10 +351,10 @@ describe("Api key tests", () => {
     const { response: registerResponse2, username } = await registerUser();
     expect(registerResponse2.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, {jwt: registerResponse2.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse2.text });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, {jwt: registerResponse.text})
+    const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse.text });
     expect(getApiKeyResponse.status).toBe(403);
   });
 
@@ -362,13 +362,13 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
 
-    const deleteApiKeyResponse = await deleteApiKey(username, createApiKeyResponse.body.id, {jwt: registerResponse2.text});
+    const deleteApiKeyResponse = await deleteApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse2.text });
     expect(deleteApiKeyResponse.status).toBe(403);
   });
 
@@ -376,16 +376,16 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, "admin_key");
     expect(registerResponse2.status).toBe(200);
 
-    const deleteApiKeyResponse = await deleteApiKey(username, createApiKeyResponse.body.id, {jwt: registerResponse2.text});
+    const deleteApiKeyResponse = await deleteApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse2.text });
     expect(deleteApiKeyResponse.status).toBe(200);
 
-    const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, {jwt: registerResponse2.text});
+    const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse2.text });
     expect(getApiKeyResponse.status).toBe(404);
   });
 
@@ -396,10 +396,10 @@ describe("Api key tests", () => {
     const { response: registerResponse2, username } = await registerUser();
     expect(registerResponse2.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, {jwt: registerResponse.text})
+    const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse.text });
     expect(getApiKeyResponse.status).toBe(200);
   });
 
@@ -407,10 +407,10 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const getApiKeysResponse = await getApiKeys(username)
+    const getApiKeysResponse = await getApiKeys(username);
     expect(getApiKeysResponse.status).toBe(401);
   });
 
@@ -418,10 +418,10 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser(undefined, undefined, "admin_key");
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const getApiKeysResponse = await getApiKeys(username, {apiKey: createApiKeyResponse.body.key})
+    const getApiKeysResponse = await getApiKeys(username, { apiKey: createApiKeyResponse.body.key });
     expect(getApiKeysResponse.status).toBe(403);
   });
 
@@ -429,10 +429,10 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const getApiKeysResponse = await getApiKeys(username, {apiKey: createApiKeyResponse.body.key})
+    const getApiKeysResponse = await getApiKeys(username, { apiKey: createApiKeyResponse.body.key });
     expect(getApiKeysResponse.status).toBe(403);
   });
 
@@ -440,13 +440,13 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
 
-    const getApiKeysResponse = await getApiKeys(username, {jwt: registerResponse2.text})
+    const getApiKeysResponse = await getApiKeys(username, { jwt: registerResponse2.text })
     expect(getApiKeysResponse.status).toBe(403);
   });
 
@@ -454,13 +454,198 @@ describe("Api key tests", () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", {jwt: registerResponse.text});
+    const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", { jwt: registerResponse.text });
     expect(createApiKeyResponse.status).toBe(200);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, "admin_key");
     expect(registerResponse2.status).toBe(200);
 
-    const getApiKeysResponse = await getApiKeys(username, {jwt: registerResponse2.text})
+    const getApiKeysResponse = await getApiKeys(username, { jwt: registerResponse2.text });
     expect(getApiKeysResponse.status).toBe(200);
+  });
+
+  test.concurrent("Create api key invalid request", async () => {
+    const { response: registerResponse, username } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+
+    const createApiKeyResponse = await request(SERVER_URL)
+      .post(`/users/${username}/keys`)
+      .auth(registerResponse.text, { type: "bearer" })
+      .send({
+        bad: username,
+        field: []
+      });
+
+    expect(createApiKeyResponse.status).toBe(422);
+  });
+});
+
+describe("User preference tests", () => {
+  test.concurrent("Get preferences", async () => {
+    const { response: registerResponse, username } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+
+    const getPreferencesResponse = await getPreferences(username, { jwt: registerResponse.text });
+    expect(getPreferencesResponse.status).toBe(200);
+    expect(getPreferencesResponse.body).toHaveProperty("metadata_providers");
+    expect(getPreferencesResponse.body.metadata_providers).toEqual(["epub_metadata_extractor"]);
+  });
+
+  test.concurrent("Update preferences", async () => {
+    const { response: registerResponse, username } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+
+    const getPreferencesResponse = await getPreferences(username, { jwt: registerResponse.text });
+    expect(getPreferencesResponse.status).toBe(200);
+    expect(getPreferencesResponse.body).toHaveProperty("metadata_providers");
+    expect(getPreferencesResponse.body.metadata_providers).toEqual(["epub_metadata_extractor"]);
+
+    const updatePreferencesResponse = await updatePreferences(
+      username, 
+      ["goodreads_metadata_scraper", "epub_metadata_extractor"],
+      { jwt: registerResponse.text }
+    );
+    expect(updatePreferencesResponse.status).toBe(200);
+    
+    const getPreferencesResponse2 = await getPreferences(username, { jwt: registerResponse.text });
+    expect(getPreferencesResponse2.status).toBe(200);
+    expect(getPreferencesResponse2.body).toHaveProperty("metadata_providers");
+    expect(getPreferencesResponse2.body.metadata_providers).toEqual(["goodreads_metadata_scraper", "epub_metadata_extractor"]);
+
+    const updatePreferencesResponse2 = await updatePreferences(
+      username, 
+      ["goodreads_metadata_scraper"],
+      { jwt: registerResponse.text }
+    );
+    expect(updatePreferencesResponse2.status).toBe(200);
+
+    const getPreferencesResponse3 = await getPreferences(username, { jwt: registerResponse.text });
+    expect(getPreferencesResponse3.status).toBe(200);
+    expect(getPreferencesResponse3.body).toHaveProperty("metadata_providers");
+    expect(getPreferencesResponse3.body.metadata_providers).toEqual(["goodreads_metadata_scraper"]);
+  });
+
+  test.concurrent("Update preferences with invalid providers", async () => {
+    const { response: registerResponse, username } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+
+    const updatePreferencesResponse = await updatePreferences(
+      username, 
+      [],
+      { jwt: registerResponse.text }
+    );
+    expect(updatePreferencesResponse.status).toBe(400);
+    
+    const updatePreferencesResponse2 = await updatePreferences(
+      username, 
+      ["invalid provider"],
+      { jwt: registerResponse.text }
+    );
+    expect(updatePreferencesResponse2.status).toBe(400);
+  });
+
+  test.concurrent("Update preferences non-existent user", async () => {
+    const { response: registerResponse } = await registerUser(undefined, undefined, "admin_key");
+    expect(registerResponse.status).toBe(200);
+
+    const updatePreferencesResponse = await updatePreferences(
+      "ghost", 
+      ["goodreads_metadata_scraper", "epub_metadata_extractor"],
+      { jwt: registerResponse.text }
+    );
+    expect(updatePreferencesResponse.status).toBe(404);
+  });
+
+  test.concurrent("Get preferences non-existent user", async () => {
+    const { response: registerResponse } = await registerUser(undefined, undefined, "admin_key");
+    expect(registerResponse.status).toBe(200);
+
+    const getPreferencesResponse = await getPreferences("ghost", { jwt: registerResponse.text });
+    expect(getPreferencesResponse.status).toBe(404);
+  });
+
+  test.concurrent("Update preferences for another user admin", async () => {
+    const { response: registerResponse, username } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, "admin_key");
+    expect(registerResponse2.status).toBe(200);
+
+    const updatePreferencesResponse = await updatePreferences(
+      username, 
+      ["goodreads_metadata_scraper", "epub_metadata_extractor"],
+      { jwt: registerResponse2.text }
+    );
+    expect(updatePreferencesResponse.status).toBe(200);
+  });
+
+  test.concurrent("Get preferences for another user admin", async () => {
+    const { response: registerResponse, username } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, "admin_key");
+    expect(registerResponse2.status).toBe(200);
+
+    const getPreferencesResponse = await getPreferences(username, { jwt: registerResponse2.text });
+    expect(getPreferencesResponse.status).toBe(200);
+  });
+
+  test.concurrent("Update preferences for another user no admin", async () => {
+    const { response: registerResponse, username } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+
+    const { response: registerResponse2 } = await registerUser();
+    expect(registerResponse2.status).toBe(200);
+
+    const updatePreferencesResponse = await updatePreferences(
+      username, 
+      ["goodreads_metadata_scraper", "epub_metadata_extractor"],
+      { jwt: registerResponse2.text }
+    );
+    expect(updatePreferencesResponse.status).toBe(403);
+  });
+
+  test.concurrent("Get preferences for another user no admin", async () => {
+    const { response: registerResponse, username } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+
+    const { response: registerResponse2 } = await registerUser();
+    expect(registerResponse2.status).toBe(200);
+
+    const getPreferencesResponse = await getPreferences(username, { jwt: registerResponse2.text });
+    expect(getPreferencesResponse.status).toBe(403);
+  });
+
+  test.concurrent("Get preferences no auth", async () => {
+    const { response: registerResponse, username } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+
+    const getPreferencesResponse = await getPreferences(username);
+    expect(getPreferencesResponse.status).toBe(401);
+  });
+
+  test.concurrent("Update preferences no auth", async () => {
+    const { response: registerResponse, username } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+
+    const updatePreferencesResponse = await updatePreferences(
+      username, 
+      ["goodreads_metadata_scraper", "epub_metadata_extractor"]
+    );
+    expect(updatePreferencesResponse.status).toBe(401);
+  });
+
+  test.concurrent("Update preferences invalid request", async () => {
+    const { response: registerResponse, username } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+
+    const updatePreferencesResponse = await request(SERVER_URL)
+      .put(`/users/${username}/preferences`)
+      .auth(registerResponse.text, { type: "bearer" })
+      .send({
+        bad: "field"
+      });
+
+    expect(updatePreferencesResponse.status).toBe(422);
   });
 });
