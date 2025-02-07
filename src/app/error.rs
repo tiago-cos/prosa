@@ -2,11 +2,12 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use std::fmt::Debug;
 use std::str::FromStr;
 use strum::{EnumMessage, EnumProperty};
 
-pub trait ProsaErrorTrait: EnumMessage + EnumProperty {}
-impl<T> ProsaErrorTrait for T where T: EnumMessage + EnumProperty {}
+pub trait ProsaErrorTrait: EnumMessage + EnumProperty + Debug {}
+impl<T> ProsaErrorTrait for T where T: EnumMessage + EnumProperty + Debug {}
 pub type ProsaError = Box<dyn ProsaErrorTrait>;
 
 impl<T> From<T> for ProsaError

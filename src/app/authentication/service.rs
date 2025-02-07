@@ -23,7 +23,7 @@ pub async fn generate_jwt(secret: &str, username: String, is_admin: bool, durati
 
     let capabilities = CAPABILITIES.iter().map(|&s| s.to_string()).collect();
     let role = if is_admin { AuthRole::Admin(username) } else { AuthRole::User(username) };
-    let claims = JWTClaims::new(role, capabilities, now + duration);
+    let claims = JWTClaims { role, capabilities, exp: now + duration };
 
     let token = jsonwebtoken::encode(
         &Header::default(),
@@ -51,11 +51,13 @@ pub async fn verify_jwt(token: &str, secret: &str) -> Result<AuthToken, AuthErro
     let validation = Validation::default();
     let token = jsonwebtoken::decode::<JWTClaims>(&token, &key, &validation)?;
 
-    Ok(AuthToken::new(
-        token.claims.role,
-        token.claims.capabilities,
-        AuthType::JWT,
-    ))
+    let token = AuthToken {
+        role: token.claims.role,
+        capabilities: token.claims.capabilities,
+        auth_type: AuthType::JWT,
+    };
+
+    Ok(token)
 }
 
 pub async fn verify_api_key(pool: &SqlitePool, key: &str) -> Result<AuthToken, AuthError> {
@@ -78,7 +80,11 @@ pub async fn verify_api_key(pool: &SqlitePool, key: &str) -> Result<AuthToken, A
         false => AuthRole::User(user.user_id),
     };
 
-    Ok(AuthToken::new(role, key.capabilities, AuthType::ApiKey))
+    Ok(AuthToken {
+        role,
+        capabilities: key.capabilities,
+        auth_type: AuthType::ApiKey,
+    })
 }
 
 pub async fn hash_secret(secret: &str) -> String {

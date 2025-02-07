@@ -11,5 +11,9 @@ token_duration = 900
 epub_path = "library/epubs"
 cover_path = "library/covers"
 
+[metadata_cooldown]
+goodreads = 1000
+epub_extractor = 0
+
 [database]
 file_path = "library/database.db"

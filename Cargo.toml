@@ -6,18 +6,24 @@ publish = false
 
 [dependencies]
 argon2 = { version = "0.5.3", features = ["std"] }
+async-trait = "0.1.86"
 axum = { version = "0.8.1", features = ["multipart"] }
+axum_typed_multipart = "0.15.1"
 base64 = "0.22.1"
-chrono = "0.4.39"
-config = "0.15.6"
-derive-new = "0.7.0"
+chrono = { version = "0.4.39", features = ["serde"] }
+config = "0.15.7"
+epub = "2.1.2"
+goodreads-metadata-scraper = "0.2.0"
 jsonwebtoken = { version = "9.3.0", default-features = false }
+merge = "0.1.0"
 regex = "1.11.1"
 serde = "1.0.217"
+serde_json = "1.0.138"
 serde_with = "3.12.0"
 sha2 = "0.10.8"
-sqlx = { version = "0.8.3", features = [ "runtime-tokio", "sqlite", "chrono"] }
+sqlx = { version = "0.8.3", features = ["runtime-tokio", "sqlite", "chrono"] }
 strum = "0.26.3"
 strum_macros = "0.26.4"
 tokio = { version = "1.43.0", features = ["full"] }
+ureq = "3.0.4"
 uuid = { version = "1.12.1", features = ["v4"] }

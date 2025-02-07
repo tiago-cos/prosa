@@ -204,10 +204,7 @@ pub async fn add_preferences(
     Ok(())
 }
 
-pub async fn get_preferences(
-    pool: &SqlitePool,
-    username: &str,
-) -> Result<Preferences, PreferencesError> {
+pub async fn get_preferences(pool: &SqlitePool, username: &str) -> Result<Preferences, PreferencesError> {
     let providers: Vec<String> = sqlx::query_scalar(
         r#"
         SELECT provider_type
@@ -220,13 +217,12 @@ pub async fn get_preferences(
     .fetch_all(pool)
     .await?;
 
-    Ok(Preferences::new(providers))
+    Ok(Preferences {
+        metadata_providers: providers,
+    })
 }
 
-pub async fn delete_preferences(
-    pool: &SqlitePool,
-    username: &str,
-) -> Result<(), PreferencesError> {
+pub async fn delete_preferences(pool: &SqlitePool, username: &str) -> Result<(), PreferencesError> {
     sqlx::query(
         r#"
         DELETE

@@ -9,10 +9,7 @@ use axum::{
     Extension,
 };
 
-async fn username_matches(
-    username: &str, 
-    token: AuthToken,
-) -> bool {
+async fn username_matches(username: &str, token: AuthToken) -> bool {
     let user_id = match token.role {
         AuthRole::Admin(_) => return true,
         AuthRole::User(id) => id,

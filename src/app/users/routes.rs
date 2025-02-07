@@ -1,7 +1,10 @@
 use super::handlers;
 use crate::app::{
     authentication::middleware::extract_token_middleware,
-    authorization::middleware::{can_create_api_key, can_delete_api_key, can_read_api_key, can_read_api_keys, can_read_preferences, can_update_preferences},
+    authorization::users::{
+        can_create_api_key, can_delete_api_key, can_read_api_key, can_read_api_keys, can_read_preferences,
+        can_update_preferences,
+    },
     server::AppState,
 };
 use axum::{

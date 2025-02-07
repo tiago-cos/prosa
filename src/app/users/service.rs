@@ -74,9 +74,15 @@ pub async fn get_preferences(pool: &SqlitePool, username: &str) -> Result<Prefer
     Ok(preferences)
 }
 
-pub async fn update_preferences(pool: &SqlitePool, username: &str, providers: Vec<String>) -> Result<(), ProsaError> {
+pub async fn update_preferences(
+    pool: &SqlitePool,
+    username: &str,
+    providers: Vec<String>,
+) -> Result<(), ProsaError> {
     data::get_user(pool, username).await?;
     data::delete_preferences(pool, username).await?;
-    data::add_preferences(pool, username, providers).await?;
+    if !providers.is_empty() {
+        data::add_preferences(pool, username, providers).await?;
+    }
     Ok(())
 }

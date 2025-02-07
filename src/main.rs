@@ -4,6 +4,7 @@ use tokio::fs::create_dir_all;
 mod app;
 mod config;
 mod database;
+mod metadata_manager;
 
 #[tokio::main]
 async fn main() {

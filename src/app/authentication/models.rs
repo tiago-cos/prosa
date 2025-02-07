@@ -1,11 +1,10 @@
-use derive_new::new;
 use serde::{Deserialize, Serialize};
 use strum_macros::{EnumMessage, EnumProperty};
 
 type JwtError = jsonwebtoken::errors::Error;
 type JwtErrorKind = jsonwebtoken::errors::ErrorKind;
 
-#[derive(EnumMessage, EnumProperty)]
+#[derive(EnumMessage, EnumProperty, Debug)]
 pub enum AuthError {
     #[strum(message = "The provided token is expired")]
     #[strum(props(StatusCode = "401"))]
@@ -70,14 +69,14 @@ pub const UPDATE: &str = "Update";
 
 pub const CAPABILITIES: [&str; 4] = [READ, CREATE, DELETE, UPDATE];
 
-#[derive(Serialize, Deserialize, new)]
+#[derive(Serialize, Deserialize)]
 pub struct JWTClaims {
     pub role: AuthRole,
     pub capabilities: Vec<String>,
     pub exp: u64,
 }
 
-#[derive(new, Clone)]
+#[derive(Clone)]
 pub struct AuthToken {
     pub role: AuthRole,
     pub capabilities: Vec<String>,

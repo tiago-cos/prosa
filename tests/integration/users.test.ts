@@ -514,7 +514,7 @@ describe("User preference tests", () => {
 
     const updatePreferencesResponse2 = await updatePreferences(
       username, 
-      ["goodreads_metadata_scraper"],
+      [],
       { jwt: registerResponse.text }
     );
     expect(updatePreferencesResponse2.status).toBe(200);
@@ -522,19 +522,12 @@ describe("User preference tests", () => {
     const getPreferencesResponse3 = await getPreferences(username, { jwt: registerResponse.text });
     expect(getPreferencesResponse3.status).toBe(200);
     expect(getPreferencesResponse3.body).toHaveProperty("metadata_providers");
-    expect(getPreferencesResponse3.body.metadata_providers).toEqual(["goodreads_metadata_scraper"]);
+    expect(getPreferencesResponse3.body.metadata_providers).toEqual([]);
   });
 
   test.concurrent("Update preferences with invalid providers", async () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);
-
-    const updatePreferencesResponse = await updatePreferences(
-      username, 
-      [],
-      { jwt: registerResponse.text }
-    );
-    expect(updatePreferencesResponse.status).toBe(400);
     
     const updatePreferencesResponse2 = await updatePreferences(
       username, 
@@ -550,7 +543,7 @@ describe("User preference tests", () => {
 
     const updatePreferencesResponse = await updatePreferences(
       "ghost", 
-      ["goodreads_metadata_scraper", "epub_metadata_extractor"],
+      ["goodreads_metadata_scraper"],
       { jwt: registerResponse.text }
     );
     expect(updatePreferencesResponse.status).toBe(404);
@@ -573,7 +566,7 @@ describe("User preference tests", () => {
 
     const updatePreferencesResponse = await updatePreferences(
       username, 
-      ["goodreads_metadata_scraper", "epub_metadata_extractor"],
+      ["goodreads_metadata_scraper"],
       { jwt: registerResponse2.text }
     );
     expect(updatePreferencesResponse.status).toBe(200);
@@ -599,7 +592,7 @@ describe("User preference tests", () => {
 
     const updatePreferencesResponse = await updatePreferences(
       username, 
-      ["goodreads_metadata_scraper", "epub_metadata_extractor"],
+      ["goodreads_metadata_scraper"],
       { jwt: registerResponse2.text }
     );
     expect(updatePreferencesResponse.status).toBe(403);
@@ -630,7 +623,7 @@ describe("User preference tests", () => {
 
     const updatePreferencesResponse = await updatePreferences(
       username, 
-      ["goodreads_metadata_scraper", "epub_metadata_extractor"]
+      ["goodreads_metadata_scraper"]
     );
     expect(updatePreferencesResponse.status).toBe(401);
   });

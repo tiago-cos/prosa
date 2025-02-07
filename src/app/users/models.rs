@@ -1,5 +1,4 @@
 use chrono::{DateTime, Utc};
-use derive_new::new;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use sqlx::{error::DatabaseError, prelude::FromRow, sqlite::SqliteError};
@@ -8,7 +7,7 @@ use strum_macros::{EnumMessage, EnumProperty};
 type SqlxError = sqlx::error::Error;
 type SqlxErrorKind = sqlx::error::ErrorKind;
 
-#[derive(EnumMessage, EnumProperty)]
+#[derive(EnumMessage, EnumProperty, Debug)]
 pub enum UserError {
     #[strum(message = "That username is already taken")]
     #[strum(props(StatusCode = "409"))]
@@ -33,8 +32,6 @@ pub enum UserError {
 
 impl From<SqlxError> for UserError {
     fn from(error: SqlxError) -> Self {
-        //TODO remove
-        println!("{:#?}", error);
         match error {
             SqlxError::RowNotFound => UserError::UserNotFound,
             SqlxError::Database(error) => error.downcast_ref::<SqliteError>().into(),
@@ -52,7 +49,7 @@ impl From<&SqliteError> for UserError {
     }
 }
 
-#[derive(EnumMessage, EnumProperty)]
+#[derive(EnumMessage, EnumProperty, Debug)]
 pub enum ApiKeyError {
     #[strum(message = "Invalid capabilities")]
     #[strum(props(StatusCode = "400"))]
@@ -77,8 +74,6 @@ pub enum ApiKeyError {
 
 impl From<SqlxError> for ApiKeyError {
     fn from(error: SqlxError) -> Self {
-        //TODO remove
-        println!("{:#?}", error);
         match error {
             SqlxError::RowNotFound => ApiKeyError::KeyNotFound,
             SqlxError::Database(error) => error.downcast_ref::<SqliteError>().into(),
@@ -99,7 +94,7 @@ impl From<&SqliteError> for ApiKeyError {
     }
 }
 
-#[derive(EnumMessage, EnumProperty)]
+#[derive(EnumMessage, EnumProperty, Debug)]
 pub enum PreferencesError {
     #[strum(message = "Invalid metadata provider selection")]
     #[strum(props(StatusCode = "400"))]
@@ -116,8 +111,6 @@ pub enum PreferencesError {
 
 impl From<SqlxError> for PreferencesError {
     fn from(error: SqlxError) -> Self {
-        //TODO remove
-        println!("{:#?}", error);
         match error {
             SqlxError::Database(error) => error.downcast_ref::<SqliteError>().into(),
             _ => PreferencesError::InternalError,
@@ -159,7 +152,7 @@ pub struct LoginUserRequest {
 pub const EPUB_PROVIDER: &str = "epub_metadata_extractor";
 pub const GOODREADS_PROVIDER: &str = "goodreads_metadata_scraper";
 
-#[derive(FromRow, Serialize, Deserialize, new)]
+#[derive(FromRow, Serialize, Deserialize)]
 pub struct Preferences {
     pub metadata_providers: Vec<String>,
 }
@@ -176,7 +169,7 @@ pub struct ApiKey {
 }
 
 #[skip_serializing_none]
-#[derive(Serialize, new)]
+#[derive(Serialize)]
 pub struct GetApiKeyResponse {
     pub name: String,
     pub capabilities: Vec<String>,
@@ -190,7 +183,7 @@ pub struct CreateApiKeyRequest {
     pub expires_at: Option<String>,
 }
 
-#[derive(Serialize, new)]
+#[derive(Serialize)]
 pub struct CreateApiKeyResponse {
     pub id: String,
     pub key: String,

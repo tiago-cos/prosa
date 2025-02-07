@@ -1,6 +1,7 @@
 use super::{
     models::{
-        ApiKeyError, CreateApiKeyRequest, CreateApiKeyResponse, GetApiKeyResponse, LoginUserRequest, Preferences, RegisterUserRequest, UserError
+        ApiKeyError, CreateApiKeyRequest, CreateApiKeyResponse, GetApiKeyResponse, LoginUserRequest,
+        Preferences, RegisterUserRequest, UserError,
     },
     service,
 };
@@ -16,7 +17,7 @@ use std::str::FromStr;
 
 pub async fn register_user_handler(
     State(state): State<AppState>,
-    body: Json<RegisterUserRequest>,
+    Json(body): Json<RegisterUserRequest>,
 ) -> Result<impl IntoResponse, ProsaError> {
     let filter = Regex::new(r"^[\w.!@-]*$").unwrap();
     if !filter.is_match(&body.username) || !filter.is_match(&body.password) {
@@ -45,7 +46,7 @@ pub async fn register_user_handler(
 pub async fn login_user_handler(
     State(state): State<AppState>,
     Path(username): Path<String>,
-    body: Json<LoginUserRequest>,
+    Json(body): Json<LoginUserRequest>,
 ) -> Result<impl IntoResponse, ProsaError> {
     let user = service::login_user(&state.pool, &username, &body.password).await?;
 
@@ -63,7 +64,7 @@ pub async fn login_user_handler(
 pub async fn create_api_key_handler(
     State(pool): State<Pool>,
     Path(username): Path<String>,
-    body: Json<CreateApiKeyRequest>,
+    Json(body): Json<CreateApiKeyRequest>,
 ) -> Result<impl IntoResponse, ProsaError> {
     let expiration = body
         .expires_at
@@ -84,7 +85,7 @@ pub async fn create_api_key_handler(
     )
     .await?;
 
-    let response = CreateApiKeyResponse::new(key_id, key);
+    let response = CreateApiKeyResponse { id: key_id, key };
     Ok(Json(response))
 }
 
@@ -94,11 +95,11 @@ pub async fn get_api_key_handler(
 ) -> Result<impl IntoResponse, ProsaError> {
     let key = service::get_api_key(&pool, &username, &key_id).await?;
 
-    let key = GetApiKeyResponse::new(
-        key.name,
-        key.capabilities,
-        key.expiration.map(|date| date.to_rfc2822()),
-    );
+    let key = GetApiKeyResponse {
+        name: key.name,
+        capabilities: key.capabilities,
+        expires_at: key.expiration.map(|date| date.to_rfc2822()),
+    };
 
     Ok(Json(key))
 }
@@ -133,9 +134,9 @@ pub async fn get_preferences_handler(
 pub async fn update_preferences_handler(
     State(pool): State<Pool>,
     Path(username): Path<String>,
-    body: Json<Preferences>,
+    Json(body): Json<Preferences>,
 ) -> Result<impl IntoResponse, ProsaError> {
     service::update_preferences(&pool, &username, body.metadata_providers.clone()).await?;
-    
+
     Ok(())
 }
