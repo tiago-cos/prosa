@@ -1,6 +1,7 @@
 use super::providers::{epub_extractor::EpubExtractor, goodreads::GoodreadsMetadataScraper};
 use crate::{app::metadata::models::Metadata, config::Configuration};
 use async_trait::async_trait;
+use merge::Merge;
 use std::collections::HashMap;
 
 #[async_trait]
@@ -36,17 +37,39 @@ impl MetadataFetcher {
         epub_data: Vec<u8>,
         providers: Vec<String>,
     ) -> (Option<Metadata>, Option<Vec<u8>>) {
-        for provider in providers {
-            let provider = match self.providers.get_mut(&provider) {
-                None => continue,
-                Some(provider) => provider,
-            };
+        let mut metadata = Metadata {
+            title: None,
+            subtitle: None,
+            description: None,
+            publisher: None,
+            publication_date: None,
+            isbn: None,
+            contributors: None,
+            genres: None,
+            series: None,
+            page_count: None,
+            language: None,
+        };
+        let mut image: Vec<u8> = Vec::new();
 
-            match provider.fetch_metadata(&epub_data).await {
-                (None, _) => continue,
-                (metadata, image) => return (metadata, image),
+        for provider in providers {
+            let Some(provider) = self.providers.get_mut(&provider) else { continue };
+            let (m, i) = provider.fetch_metadata(&epub_data).await;
+
+            if let Some(m) = m {
+                metadata.merge(m);
+            }
+
+            if let Some(i) = i {
+                if i.len() > image.len() {
+                    image = i;
+                }
             }
         }
-        (None, None)
+
+        let metadata = if metadata.is_empty() { None } else { Some(metadata) };
+        let image = if image.is_empty() { None } else { Some(image) };
+
+        (metadata, image)
     }
 }
