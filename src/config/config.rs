@@ -24,12 +24,18 @@ pub struct Configuration {
     pub book_storage: BookStorage,
     pub metadata_cooldown: MetadataCooldown,
     pub database: Database,
+    pub kepubify: Kepubify,
 }
 
 #[derive(Deserialize, Clone)]
 pub struct BookStorage {
     pub epub_path: String,
     pub cover_path: String,
+}
+
+#[derive(Deserialize, Clone)]
+pub struct Kepubify {
+    pub path: String,
 }
 
 #[derive(Deserialize, Clone)]

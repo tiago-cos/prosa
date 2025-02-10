@@ -25,6 +25,7 @@ pub async fn upload_book_handler(
 ) -> Result<impl IntoResponse, ProsaError> {
     let epub_id = epubs::service::write_epub(
         &state.pool,
+        &state.config.kepubify.path,
         &state.config.book_storage.epub_path,
         &data.epub.to_vec(),
     )

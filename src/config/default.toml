@@ -17,3 +17,6 @@ epub_extractor = 0
 
 [database]
 file_path = "library/database.db"
+
+[kepubify]
+path = "kepubify/kepubify"

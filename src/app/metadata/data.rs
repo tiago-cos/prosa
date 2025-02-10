@@ -57,8 +57,6 @@ pub async fn get_metadata(pool: &SqlitePool, metadata_id: &str) -> Result<Metada
     Ok(metadata)
 }
 
-//TODO two things left: Use kepubify to convert books (no need to handle repeats, nothing breaks) and in the metadata search use the new merge crate to merge fields from preferences. Higher preferences take priority. Also, keep the image with the highest size (vec length)
-
 //TODO test situations where there is no metadata except series/genre/contributors
 pub async fn add_metadata(
     pool: &SqlitePool,

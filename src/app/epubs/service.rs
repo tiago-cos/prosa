@@ -5,11 +5,13 @@ use sqlx::SqlitePool;
 use tokio::{
     fs::{remove_file, File},
     io::{AsyncReadExt, AsyncWriteExt},
+    process::Command,
 };
 use uuid::Uuid;
 
 pub async fn write_epub(
     pool: &SqlitePool,
+    kepubify_path: &str,
     epub_path: &str,
     epub_data: &Vec<u8>,
 ) -> Result<String, EpubError> {
@@ -24,7 +26,9 @@ pub async fn write_epub(
 
     let epub_id = Uuid::new_v4().to_string();
     let epub_file = format!("{}/{}.epub", epub_path, epub_id);
-    let mut file = File::create(epub_file).await.expect("Failed to create epub file");
+    let mut file = File::create(&epub_file)
+        .await
+        .expect("Failed to create epub file");
 
     file.write_all(epub_data)
         .await
@@ -32,14 +36,36 @@ pub async fn write_epub(
 
     file.sync_all().await.expect("Failed to sync epub file");
 
+    convert_to_kepub(kepubify_path, &epub_path, &epub_file).await;
+
     data::add_epub(pool, &epub_id, &hash).await;
 
     Ok(epub_id)
 }
 
-pub async fn read_epub(epub_path: &str, epub_id: &str) -> Result<Vec<u8>, EpubError> {
-    let epub_file = format!("{}/{}.epub", epub_path, epub_id);
+async fn convert_to_kepub(kepubify_path: &str, epub_path: &str, epub_file: &str) {
+    let output = Command::new(kepubify_path)
+        .args([
+            "--smarten-punctuation",
+            "--fullscreen-reading-fixes",
+            "-o",
+            epub_path,
+            "-i",
+            epub_file,
+        ])
+        .output()
+        .await
+        .expect("Failed to convert to kepub");
 
+    if !output.status.success() {
+        panic!("Failed to convert to kepub");
+    }
+
+    remove_file(epub_file).await.expect("Failed to convert to kepub");
+}
+
+pub async fn read_epub(epub_path: &str, epub_id: &str) -> Result<Vec<u8>, EpubError> {
+    let epub_file = format!("{}/{}.kepub.epub", epub_path, epub_id);
     let mut file = File::open(epub_file).await?;
     let mut buffer = Vec::new();
 
@@ -51,7 +77,7 @@ pub async fn read_epub(epub_path: &str, epub_id: &str) -> Result<Vec<u8>, EpubEr
 }
 
 pub async fn delete_epub(pool: &SqlitePool, epub_path: &str, epub_id: &str) -> Result<(), EpubError> {
-    let epub_file = format!("{}/{}.epub", epub_path, epub_id);
+    let epub_file = format!("{}/{}.kepub.epub", epub_path, epub_id);
     remove_file(epub_file).await?;
 
     data::delete_epub(pool, &epub_id).await?;

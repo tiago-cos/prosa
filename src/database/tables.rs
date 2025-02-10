@@ -134,33 +134,25 @@ pub async fn create_tables(pool: &SqlitePool) {
 }
 
 pub async fn clear_tables(pool: &SqlitePool) {
-    // User tables
     sqlx::query(
         r#"
-        DROP TABLE IF EXISTS users;
-        DROP TABLE IF EXISTS preferences;
-        DROP TABLE IF EXISTS api_keys;
         DROP TABLE IF EXISTS key_capabilities;
-        "#,
-    )
-    .execute(pool)
-    .await
-    .expect("Failed to drop user tables");
-
-    // Book tables
-    sqlx::query(
-        r#"
+        DROP TABLE IF EXISTS providers;
         DROP TABLE IF EXISTS books;
+        DROP TABLE IF EXISTS deleted_books;
+        DROP TABLE IF EXISTS series;
+        DROP TABLE IF EXISTS contributors;
+        DROP TABLE IF EXISTS genres;
+        DROP TABLE IF EXISTS api_keys;
         DROP TABLE IF EXISTS epubs;
         DROP TABLE IF EXISTS covers;
         DROP TABLE IF EXISTS metadata;
-        DROP TABLE IF EXISTS series;
-        DROP TABLE IF EXISTS contributors;
         DROP TABLE IF EXISTS state;
         DROP TABLE IF EXISTS sync;
+        DROP TABLE IF EXISTS users;
         "#,
     )
     .execute(pool)
     .await
-    .expect("Failed to drop book tables");
+    .expect("Failed to drop tables");
 }
