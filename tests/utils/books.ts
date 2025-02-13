@@ -8,32 +8,32 @@ export const BOOK_NOT_FOUND = "The requested book does not exist or is not acces
 export const INVALID_BOOK = "The provided EPUB data is invalid.";
 
 export async function uploadBook(owner_id: string, epub_name: string, auth?: { jwt?: string; apiKey?: string }) {
-  let req = request(SERVER_URL)
-    .post(`/books`)
-    .field("owner_id", owner_id);
+    let req = request(SERVER_URL)
+        .post(`/books`)
+        .field("owner_id", owner_id);
 
-  if (auth?.jwt) req = req.auth(auth.jwt, { type: "bearer" });
-  if (auth?.apiKey) req = req.set("api-key", auth.apiKey);
+    if (auth?.jwt) req = req.auth(auth.jwt, { type: "bearer" });
+    if (auth?.apiKey) req = req.set("api-key", auth.apiKey);
 
-  return req.attach("epub", path.join(BOOK_DIR, epub_name));
+    return req.attach("epub", path.join(BOOK_DIR, epub_name));
 }
 
 export async function downloadBook(book_id: string, auth?: { jwt?: string; apiKey?: string }) {
-  let req = request(SERVER_URL)
-    .get(`/books/${book_id}`);
+    let req = request(SERVER_URL)
+        .get(`/books/${book_id}`);
 
-  if (auth?.jwt) req = req.auth(auth.jwt, { type: "bearer" });
-  if (auth?.apiKey) req = req.set("api-key", auth.apiKey);
+    if (auth?.jwt) req = req.auth(auth.jwt, { type: "bearer" });
+    if (auth?.apiKey) req = req.set("api-key", auth.apiKey);
 
-  return req.send();
+    return req.send();
 }
 
 export async function deleteBook(book_id: string, auth?: { jwt?: string; apiKey?: string }) {
-  let req = request(SERVER_URL)
-    .delete(`/books/${book_id}`);
+    let req = request(SERVER_URL)
+        .delete(`/books/${book_id}`);
 
-  if (auth?.jwt) req = req.auth(auth.jwt, { type: "bearer" });
-  if (auth?.apiKey) req = req.set("api-key", auth.apiKey);
+    if (auth?.jwt) req = req.auth(auth.jwt, { type: "bearer" });
+    if (auth?.apiKey) req = req.set("api-key", auth.apiKey);
 
-  return req.send();
+    return req.send();
 }

@@ -1,5 +1,6 @@
 use super::{data, models::CoverError};
 use base64::{prelude::BASE64_STANDARD, Engine};
+use image::ImageFormat;
 use sha2::{Digest, Sha256};
 use sqlx::SqlitePool;
 use tokio::{
@@ -13,6 +14,10 @@ pub async fn write_cover(
     cover_path: &str,
     cover_data: &Vec<u8>,
 ) -> Result<String, CoverError> {
+    if !is_valid_image(cover_data).await {
+        return Err(CoverError::InvalidCover);
+    }
+
     let hash = BASE64_STANDARD.encode(Sha256::digest(cover_data));
     if let Some(cover_id) = data::get_cover_by_hash(pool, &hash).await {
         return Ok(cover_id);
@@ -55,4 +60,12 @@ pub async fn delete_cover(pool: &SqlitePool, cover_path: &str, cover_id: &str) -
     data::delete_cover(pool, &cover_id).await?;
 
     Ok(())
+}
+
+async fn is_valid_image(cover_data: &Vec<u8>) -> bool {
+    match image::guess_format(&cover_data) {
+        Ok(ImageFormat::Png) => true,
+        Ok(ImageFormat::Jpeg) => true,
+        _ => false,
+    }
 }
