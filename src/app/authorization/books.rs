@@ -1,6 +1,6 @@
 use crate::app::{
     authentication::models::{AuthError, AuthRole, AuthToken, CREATE, DELETE, READ, UPDATE},
-    books::{self, models::UploadBoodRequest},
+    books::{self, models::{BookError, UploadBoodRequest}},
     error::ProsaError,
     Pool,
 };
@@ -64,7 +64,7 @@ pub async fn can_read_book(
     let book = books::service::get_book(&pool, &book_id).await?;
 
     if !username_matches(&book.owner_id, token).await {
-        return Err(AuthError::Forbidden.into());
+        return Err(BookError::BookNotFound.into());
     }
 
     Ok(next.run(request).await)
@@ -84,7 +84,7 @@ pub async fn can_delete_book(
     let book = books::service::get_book(&pool, &book_id).await?;
 
     if !username_matches(&book.owner_id, token).await {
-        return Err(AuthError::Forbidden.into());
+        return Err(BookError::BookNotFound.into());
     }
 
     Ok(next.run(request).await)
@@ -104,7 +104,7 @@ pub async fn can_update_book(
     let book = books::service::get_book(&pool, &book_id).await?;
 
     if !username_matches(&book.owner_id, token).await {
-        return Err(AuthError::Forbidden.into());
+        return Err(BookError::BookNotFound.into());
     }
 
     Ok(next.run(request).await)

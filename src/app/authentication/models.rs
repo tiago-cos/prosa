@@ -6,31 +6,31 @@ type JwtErrorKind = jsonwebtoken::errors::ErrorKind;
 
 #[derive(EnumMessage, EnumProperty, Debug)]
 pub enum AuthError {
-    #[strum(message = "The provided token is expired")]
+    #[strum(message = "The provided token is expired.")]
     #[strum(props(StatusCode = "401"))]
     ExpiredToken,
 
-    #[strum(message = "The provided token is invalid")]
+    #[strum(message = "The provided token is invalid.")]
     #[strum(props(StatusCode = "401"))]
     InvalidToken,
 
-    #[strum(message = "The provided API key is invalid")]
+    #[strum(message = "The provided API key is invalid.")]
     #[strum(props(StatusCode = "401"))]
     InvalidKey,
 
-    #[strum(message = "The provided signature is invalid")]
+    #[strum(message = "The provided signature is invalid.")]
     #[strum(props(StatusCode = "401"))]
     InvalidSignature,
 
-    #[strum(message = "No authentication was provided")]
+    #[strum(message = "No authentication was provided.")]
     #[strum(props(StatusCode = "401"))]
     MissingAuth,
 
-    #[strum(message = "The authentication header is invalid")]
+    #[strum(message = "The authentication header is invalid.")]
     #[strum(props(StatusCode = "400"))]
     InvalidAuthHeader,
 
-    #[strum(message = "Forbidden")]
+    #[strum(message = "Forbidden.")]
     #[strum(props(StatusCode = "403"))]
     Forbidden,
 

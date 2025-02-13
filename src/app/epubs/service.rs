@@ -1,5 +1,8 @@
+use std::io::Cursor;
+
 use super::{data, models::EpubError};
 use base64::{prelude::BASE64_STANDARD, Engine};
+use epub::doc::EpubDoc;
 use sha2::{Digest, Sha256};
 use sqlx::SqlitePool;
 use tokio::{
@@ -15,7 +18,7 @@ pub async fn write_epub(
     epub_path: &str,
     epub_data: &Vec<u8>,
 ) -> Result<String, EpubError> {
-    if epub_data.is_empty() {
+    if !is_valid_epub(epub_data).await {
         return Err(EpubError::InvalidEpub);
     }
 
@@ -83,4 +86,17 @@ pub async fn delete_epub(pool: &SqlitePool, epub_path: &str, epub_id: &str) -> R
     data::delete_epub(pool, &epub_id).await?;
 
     Ok(())
+}
+
+async fn is_valid_epub(epub_data: &Vec<u8>) -> bool {
+    if epub_data.is_empty() {
+        return false;
+    }
+
+    let cursor = Cursor::new(epub_data);
+    if EpubDoc::from_reader(cursor).is_err() {
+        return false;
+    }
+
+    true
 }

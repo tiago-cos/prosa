@@ -5,10 +5,10 @@ type FileErrorKind = std::io::ErrorKind;
 
 #[derive(EnumMessage, EnumProperty, Debug)]
 pub enum EpubError {
-    #[strum(message = "Invalid epub data")]
+    #[strum(message = "The provided EPUB data is invalid.")]
     #[strum(props(StatusCode = "400"))]
     InvalidEpub,
-    #[strum(message = "Epub with that ID was not found")]
+    #[strum(message = "The requested EPUB does not exist or is not accessible.")]
     #[strum(props(StatusCode = "404"))]
     EpubNotFound,
     #[strum(message = "Internal error")]

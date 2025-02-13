@@ -9,19 +9,19 @@ type SqlxErrorKind = sqlx::error::ErrorKind;
 
 #[derive(EnumMessage, EnumProperty, Debug)]
 pub enum UserError {
-    #[strum(message = "That username is already taken")]
+    #[strum(message = "The username is already taken.")]
     #[strum(props(StatusCode = "409"))]
     UserConflict,
 
-    #[strum(message = "A user with that username was not found")]
+    #[strum(message = "The requested user does not exist or is not accessible.")]
     #[strum(props(StatusCode = "404"))]
     UserNotFound,
 
-    #[strum(message = "Invalid credentials")]
+    #[strum(message = "Invalid credentials provided.")]
     #[strum(props(StatusCode = "403"))]
     InvalidCredentials,
 
-    #[strum(message = "Username and password cannot contain special characters")]
+    #[strum(message = "Username and password must not contain special characters.")]
     #[strum(props(StatusCode = "400"))]
     InvalidInput,
 
@@ -51,19 +51,19 @@ impl From<&SqliteError> for UserError {
 
 #[derive(EnumMessage, EnumProperty, Debug)]
 pub enum ApiKeyError {
-    #[strum(message = "Invalid capabilities")]
+    #[strum(message = "Invalid or unsupported capabilities provided.")]
     #[strum(props(StatusCode = "400"))]
     InvalidCapabilities,
 
-    #[strum(message = "Invalid timestamp for expiration date")]
+    #[strum(message = "Expiration timestamp is invalid or incorrectly formatted.")]
     #[strum(props(StatusCode = "400"))]
     InvalidTimestamp,
 
-    #[strum(message = "No key with that ID was found")]
+    #[strum(message = "The requested key does not exist or is not accessible.")]
     #[strum(props(StatusCode = "404"))]
     KeyNotFound,
 
-    #[strum(message = "A user with that username was not found")]
+    #[strum(message = "The requested user does not exist or is not accessible.")]
     #[strum(props(StatusCode = "404"))]
     UserNotFound,
 
@@ -96,11 +96,11 @@ impl From<&SqliteError> for ApiKeyError {
 
 #[derive(EnumMessage, EnumProperty, Debug)]
 pub enum PreferencesError {
-    #[strum(message = "Invalid metadata provider selection")]
+    #[strum(message = "Invalid or unsupported metadata provider selection.")]
     #[strum(props(StatusCode = "400"))]
     InvalidMetadataProvider,
 
-    #[strum(message = "A user with that username was not found")]
+    #[strum(message = "The requested user does not exist or is not accessible.")]
     #[strum(props(StatusCode = "404"))]
     UserNotFound,
 

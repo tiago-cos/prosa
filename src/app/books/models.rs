@@ -11,10 +11,10 @@ type SqlxError = sqlx::Error;
 
 #[derive(EnumMessage, EnumProperty, Debug)]
 pub enum BookError {
-    #[strum(message = "The requested book was not found")]
+    #[strum(message = "The requested book does not exist or is not accessible.")]
     #[strum(props(StatusCode = "404"))]
     BookNotFound,
-    #[strum(message = "This book already exists in your library")]
+    #[strum(message = "This book is already in your library.")]
     #[strum(props(StatusCode = "409"))]
     BookConflict,
     #[strum(message = "Internal error")]

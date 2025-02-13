@@ -1,4 +1,8 @@
 export const SERVER_URL = "http://localhost:5000";
+export const BOOK_DIR = "books/"
+
+export const FORBIDDEN = "Forbidden.";
+export const UNAUTHORIZED = "No authentication was provided."
 
 export function randomString(length: number) {
     let result = "";

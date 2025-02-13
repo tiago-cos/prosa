@@ -1,6 +1,7 @@
 /target
 .vscode
 src/config/local.toml
+tests/config/.env.local
 /library
 tests/node_modules
 /kepubify

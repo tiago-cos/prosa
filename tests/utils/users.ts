@@ -2,6 +2,14 @@ import request from "supertest";
 import { randomString } from "./common";
 import { SERVER_URL } from "./common";
 
+export const INVALID_CREDENTIALS = "Invalid credentials provided.";
+export const INVALID_USERNAME_PASSWORD = "Username and password must not contain special characters.";
+export const USERNAME_IN_USE = "The username is already taken.";
+export const USER_NOT_FOUND = "The requested user does not exist or is not accessible.";
+export const API_KEY_NOT_FOUND = "The requested key does not exist or is not accessible.";
+export const INVALID_CAPABILITIES = "Invalid or unsupported capabilities provided.";
+export const INVALID_TIMESTAMP = "Expiration timestamp is invalid or incorrectly formatted.";
+
 export async function registerUser(username?: string, password?: string, adminKey?: string) {
   username = username || randomString(16);
   password = password || randomString(16);
