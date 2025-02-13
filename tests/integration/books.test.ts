@@ -194,7 +194,7 @@ describe("Upload book api key", () => {
         expect(uploadResponse.text).toBe(INVALID_BOOK);
     });
 
-    test.concurrent("Upload and download book wrong permissions", async () => {
+    test.concurrent("Upload and download book wrong capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -314,7 +314,7 @@ describe("Download book api key", () => {
         expect(downloadResponse.status).toBe(200);
     });
 
-    test.concurrent("Download book wrong permissions", async () => {
+    test.concurrent("Download book wrong capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -402,5 +402,94 @@ describe("Delete book JWT", () => {
         const downloadResponse = await deleteBook(uploadResponse.text);
         expect(downloadResponse.status).toBe(401);
         expect(downloadResponse.text).toBe(UNAUTHORIZED);
+    });
+});
+
+describe("Delete book api key", () => {
+    test.concurrent("Delete book", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const downloadResponse = await downloadBook(uploadResponse.text, { jwt: registerResponse.text });
+        expect(downloadResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Delete"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const deleteResponse = await deleteBook(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(deleteResponse.status).toBe(200);
+
+        const downloadResponse2 = await downloadBook(uploadResponse.text, { jwt: registerResponse.text });
+        expect(downloadResponse2.status).toBe(404);
+        expect(downloadResponse2.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test.concurrent("Delete non-existent book", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Delete"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const deleteResponse = await deleteBook("non-existent", { apiKey: createApiKeyResponse.body.key });
+        expect(deleteResponse.status).toBe(404);
+        expect(deleteResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test.concurrent("Delete book | Different username | !admin", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const { response: registerResponse2, username: username2 } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Delete"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const deleteResponse = await deleteBook(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(deleteResponse.status).toBe(404);
+        expect(deleteResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test.concurrent("Download book | Different username | admin", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const { response: registerResponse2, username: username2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Delete"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const deleteResponse = await deleteBook(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(deleteResponse.status).toBe(200);
+
+        const downloadResponse = await downloadBook(uploadResponse.text, { jwt: registerResponse.text });
+        expect(downloadResponse.status).toBe(404);
+        expect(downloadResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test.concurrent("Delete book wrong capabilities", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create", "Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const downloadResponse = await deleteBook(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(downloadResponse.status).toBe(403);
+        expect(downloadResponse.text).toBe(FORBIDDEN);
     });
 });
