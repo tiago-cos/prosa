@@ -1,4 +1,4 @@
-import { BOOK_DIR, FORBIDDEN, UNAUTHORIZED } from "../utils/common";
+import { BOOK_DIR, FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from "../utils/common";
 import { registerUser, createApiKey, USER_NOT_FOUND } from "../utils/users"
 import { BOOK_CONFLICT, BOOK_NOT_FOUND, deleteBook, downloadBook, INVALID_BOOK, uploadBook } from "../utils/books"
 import path from "path";
@@ -82,7 +82,6 @@ describe("Upload book JWT", () => {
         expect(uploadResponse.text).toBe(USER_NOT_FOUND);
     });
 
-    //TODO sometimes this fails with write EPIPE
     test("Upload book | No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
@@ -210,6 +209,26 @@ describe("Upload book api key", () => {
         expect(downloadResponse.status).toBe(403);
         expect(downloadResponse.text).toBe(FORBIDDEN);
     });
+
+    test("Upload and download book expired key", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const timestamp = new Date(Date.now() + 2000).toISOString();
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Delete"], timestamp, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        // Wait for the key to expire
+        await wait(2.5);
+
+        const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { apiKey: createApiKeyResponse.body.key });
+        expect(uploadResponse.status).toBe(401);
+        expect(uploadResponse.text).toBe(INVALID_API_KEY);
+
+        const downloadResponse = await downloadBook(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(downloadResponse.status).toBe(401);
+        expect(downloadResponse.text).toBe(INVALID_API_KEY);
+    });
 });
 
 describe("Download book JWT", () => {
@@ -325,6 +344,25 @@ describe("Download book api key", () => {
         const downloadResponse = await downloadBook(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
         expect(downloadResponse.status).toBe(403);
         expect(downloadResponse.text).toBe(FORBIDDEN);
+    });
+
+    test.concurrent("Download book expired key", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const timestamp = new Date(Date.now() + 2000).toISOString();
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], timestamp, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        // Wait for the key to expire
+        await wait(2.5);
+
+        const downloadResponse = await downloadBook(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(downloadResponse.status).toBe(401);
+        expect(downloadResponse.text).toBe(INVALID_API_KEY);
     });
 });
 
@@ -489,5 +527,24 @@ describe("Delete book api key", () => {
         const downloadResponse = await deleteBook(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
         expect(downloadResponse.status).toBe(403);
         expect(downloadResponse.text).toBe(FORBIDDEN);
+    });
+
+    test.concurrent("Delete book expired key", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const timestamp = new Date(Date.now() + 2000).toISOString();
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Delete"], timestamp, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        // Wait for the key to expire
+        await wait(2.5);
+
+        const downloadResponse = await deleteBook(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(downloadResponse.status).toBe(401);
+        expect(downloadResponse.text).toBe(INVALID_API_KEY);
     });
 });

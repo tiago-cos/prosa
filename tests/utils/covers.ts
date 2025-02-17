@@ -24,7 +24,7 @@ export async function addCover(book_id: string, cover_name: string, auth?: { jwt
 
 export async function updateCover(book_id: string, cover_name: string, auth?: { jwt?: string; apiKey?: string }) {
     const coverPath = path.join(COVERS_DIR, cover_name);
-    const coverStream = fs.createReadStream(coverPath);
+    const coverStream = fs.readFileSync(coverPath);
 
     let req = request(SERVER_URL)
         .put(`/books/${book_id}/cover`)

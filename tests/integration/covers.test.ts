@@ -1,7 +1,7 @@
-import { BOOK_DIR, COVERS_DIR, FORBIDDEN, UNAUTHORIZED, wait } from "../utils/common";
+import { BOOK_DIR, COVERS_DIR, FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from "../utils/common";
 import { registerUser, createApiKey, USER_NOT_FOUND } from "../utils/users"
 import { BOOK_CONFLICT, BOOK_NOT_FOUND, deleteBook, downloadBook, INVALID_BOOK, uploadBook } from "../utils/books"
-import { addCover, COVER_CONFLICT, COVER_NOT_FOUND, getCover, INVALID_COVER } from "../utils/covers"
+import { addCover, COVER_CONFLICT, COVER_NOT_FOUND, deleteCover, getCover, INVALID_COVER, updateCover } from "../utils/covers"
 import path from "path";
 import fs from "fs";
 
@@ -12,7 +12,7 @@ describe("Get cover JWT", () => {
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
-        
+
         // Wait for cover to be extracted
         await wait(0.5);
 
@@ -56,7 +56,7 @@ describe("Get cover JWT", () => {
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
-        
+
         // Wait for cover to be extracted
         await wait(0.5);
 
@@ -74,7 +74,7 @@ describe("Get cover JWT", () => {
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
-        
+
         // Wait for cover to be extracted
         await wait(0.5);
 
@@ -91,7 +91,7 @@ describe("Get cover JWT", () => {
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
-        
+
         // Wait for cover to be extracted
         await wait(0.5);
 
@@ -108,7 +108,7 @@ describe("Get cover api key", () => {
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
-        
+
         // Wait for cover to be extracted
         await wait(0.5);
 
@@ -161,7 +161,7 @@ describe("Get cover api key", () => {
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
-        
+
         // Wait for cover to be extracted
         await wait(0.5);
 
@@ -182,7 +182,7 @@ describe("Get cover api key", () => {
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
-        
+
         // Wait for cover to be extracted
         await wait(0.5);
 
@@ -202,7 +202,7 @@ describe("Get cover api key", () => {
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
-        
+
         // Wait for cover to be extracted
         await wait(0.5);
 
@@ -213,6 +213,28 @@ describe("Get cover api key", () => {
         expect(downloadResponse.status).toBe(403);
         expect(downloadResponse.text).toBe(FORBIDDEN);
     });
+
+    test.concurrent("Get cover expired api key", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const timestamp = new Date(Date.now() + 2000).toISOString();
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], timestamp, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        // Wait for the key to expire
+        await wait(2.5);
+
+        const downloadResponse = await getCover(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(downloadResponse.status).toBe(401);
+        expect(downloadResponse.text).toBe(INVALID_API_KEY);
+    });
 });
 
 describe("Add cover JWT", () => {
@@ -222,7 +244,7 @@ describe("Add cover JWT", () => {
 
         const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
-        
+
         // Give chance for any cover to be extracted
         await wait(0.5);
 
@@ -244,7 +266,7 @@ describe("Add cover JWT", () => {
 
         const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
-        
+
         // Give chance for any cover to be extracted
         await wait(0.5);
 
@@ -259,7 +281,7 @@ describe("Add cover JWT", () => {
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
-        
+
         // Wait for cover to be extracted
         await wait(0.5);
 
@@ -283,7 +305,7 @@ describe("Add cover JWT", () => {
 
         const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
-        
+
         // Give chance for any cover to be extracted
         await wait(0.5);
 
@@ -301,7 +323,7 @@ describe("Add cover JWT", () => {
 
         const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
-        
+
         // Give chance for any cover to be extracted
         await wait(0.5);
 
@@ -318,7 +340,7 @@ describe("Add cover JWT", () => {
 
         const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
-        
+
         // Give chance for any cover to be extracted
         await wait(0.5);
 
@@ -328,4 +350,626 @@ describe("Add cover JWT", () => {
     });
 });
 
-//TODO check if PUT should be idempotent, and if so, change cover PUT to allow to create a cover image if not previously present.
+describe("Add cover api key", () => {
+    test("Add cover", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Give chance for any cover to be extracted
+        await wait(0.5);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const addResponse = await addCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        expect(addResponse.status).toBe(200);
+
+        const downloadResponse = await getCover(uploadResponse.text, { jwt: registerResponse.text });
+        expect(downloadResponse.status).toBe(200);
+
+        let coverPath = path.join(COVERS_DIR, "Generic.jpeg");
+        let cover = fs.readFileSync(coverPath);
+
+        expect(cover).toEqual(downloadResponse.body);
+    });
+
+    test("Add invalid cover", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Give chance for any cover to be extracted
+        await wait(0.5);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const addResponse = await addCover(uploadResponse.text, "This_is_not_a_cover.txt", { apiKey: createApiKeyResponse.body.key });
+        expect(addResponse.status).toBe(400);
+        expect(addResponse.text).toBe(INVALID_COVER);
+    });
+
+    test("Add cover conflict", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const addResponse = await addCover(uploadResponse.text, "Alices_Adventures_in_Wonderland.jpeg", { apiKey: createApiKeyResponse.body.key });
+        expect(addResponse.status).toBe(409);
+        expect(addResponse.text).toBe(COVER_CONFLICT);
+    });
+
+    test("Add cover non-existent book", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const addResponse = await addCover("non-existent", "Alices_Adventures_in_Wonderland.jpeg", { apiKey: createApiKeyResponse.body.key });
+        expect(addResponse.status).toBe(404);
+        expect(addResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test("Add cover | different user | !admin", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Give chance for any cover to be extracted
+        await wait(0.5);
+
+        const { response: registerResponse2, username: username2 } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Update"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const addResponse = await addCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        expect(addResponse.status).toBe(404);
+        expect(addResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test("Add cover | different user | admin", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Give chance for any cover to be extracted
+        await wait(0.5);
+
+        const { response: registerResponse2, username: username2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Update"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const addResponse = await addCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        expect(addResponse.status).toBe(200);
+    });
+
+    test("Add cover wrong capabilities", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Give chance for any cover to be extracted
+        await wait(0.5);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Create", "Read", "Delete"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const addResponse = await addCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        expect(addResponse.status).toBe(403);
+        expect(addResponse.text).toBe(FORBIDDEN);
+    });
+
+    test("Add cover expired key", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Give chance for any cover to be extracted
+        await wait(0.5);
+
+        const timestamp = new Date(Date.now() + 2000).toISOString();
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], timestamp, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        // Wait for the key to expire
+        await wait(2.5);
+
+        const addResponse = await addCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        expect(addResponse.status).toBe(401);
+        expect(addResponse.text).toBe(INVALID_API_KEY);
+    });
+});
+
+describe("Delete cover JWT", () => {
+    test.concurrent("Delete cover", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const deleteResponse = await deleteCover(uploadResponse.text, { jwt: registerResponse.text });
+        expect(deleteResponse.status).toBe(200);
+
+        const downloadResponse = await getCover(uploadResponse.text, { jwt: registerResponse.text });
+        expect(downloadResponse.status).toBe(404);
+        expect(downloadResponse.text).toBe(COVER_NOT_FOUND);
+    });
+
+    test.concurrent("Delete non-existent cover", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        // This epub does not contain a cover
+        const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Give chance for any cover to be extracted
+        await wait(0.5);
+
+        const deleteResponse = await deleteCover(uploadResponse.text, { jwt: registerResponse.text });
+        expect(deleteResponse.status).toBe(404);
+        expect(deleteResponse.text).toBe(COVER_NOT_FOUND);
+    });
+
+    test.concurrent("Delete cover from non-existent book", async () => {
+        const { response: registerResponse } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const deleteResponse = await deleteCover("non-existent", { jwt: registerResponse.text });
+        expect(deleteResponse.status).toBe(404);
+        expect(deleteResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test.concurrent("Delete cover | Different user | !admin", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const { response: registerResponse2 } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const deleteResponse = await deleteCover(uploadResponse.text, { jwt: registerResponse2.text });
+        expect(deleteResponse.status).toBe(404);
+        expect(deleteResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test.concurrent("Delete cover | Different user | admin", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse2.status).toBe(200);
+
+        const deleteResponse = await deleteCover(uploadResponse.text, { jwt: registerResponse2.text });
+        expect(deleteResponse.status).toBe(200);
+    });
+
+    test.concurrent("Delete cover no auth", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const deleteResponse = await deleteCover(uploadResponse.text);
+        expect(deleteResponse.status).toBe(401);
+        expect(deleteResponse.text).toBe(UNAUTHORIZED);
+    });
+});
+
+describe("Delete cover api key", () => {
+    test.concurrent("Delete cover", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Delete"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const deleteResponse = await deleteCover(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(deleteResponse.status).toBe(200);
+
+        const downloadResponse = await getCover(uploadResponse.text, { jwt: registerResponse.text });
+        expect(downloadResponse.status).toBe(404);
+        expect(downloadResponse.text).toBe(COVER_NOT_FOUND);
+    });
+
+    test.concurrent("Delete non-existent cover", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        // This epub does not contain a cover
+        const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Give chance for any cover to be extracted
+        await wait(0.5);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Delete"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const deleteResponse = await deleteCover(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(deleteResponse.status).toBe(404);
+        expect(deleteResponse.text).toBe(COVER_NOT_FOUND);
+    });
+
+    test.concurrent("Delete cover from non-existent book", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Delete"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const deleteResponse = await deleteCover("non-existent", { apiKey: createApiKeyResponse.body.key });
+        expect(deleteResponse.status).toBe(404);
+        expect(deleteResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test.concurrent("Delete cover | Different user | !admin", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const { response: registerResponse2, username: username2 } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Delete"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const deleteResponse = await deleteCover(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(deleteResponse.status).toBe(404);
+        expect(deleteResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test.concurrent("Delete cover | Different user | admin", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const { response: registerResponse2, username: username2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Delete"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const deleteResponse = await deleteCover(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(deleteResponse.status).toBe(200);
+    });
+
+    test.concurrent("Delete cover wrong capabilities", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create", "Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const deleteResponse = await deleteCover(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(deleteResponse.status).toBe(403);
+        expect(deleteResponse.text).toBe(FORBIDDEN);
+    });
+
+    test.concurrent("Delete cover expired key", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const timestamp = new Date(Date.now() + 2000).toISOString();
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Delete"], timestamp, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        // Wait for the key to expire
+        await wait(2.5);
+
+        const deleteResponse = await deleteCover(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(deleteResponse.status).toBe(401);
+        expect(deleteResponse.text).toBe(INVALID_API_KEY);
+    });
+});
+
+describe("Update cover JWT", () => {
+    test("Update cover", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { jwt: registerResponse.text });
+        expect(updateResponse.status).toBe(200);
+
+        const downloadResponse = await getCover(uploadResponse.text, { jwt: registerResponse.text });
+        expect(downloadResponse.status).toBe(200);
+
+        let coverPath = path.join(COVERS_DIR, "Generic.jpeg");
+        let cover = fs.readFileSync(coverPath);
+
+        expect(cover).toEqual(downloadResponse.body);
+    });
+
+    test("Update non-existent cover", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        // This epub does not contain a cover
+        const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Give chance for any cover to be extracted
+        await wait(0.5);
+
+        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { jwt: registerResponse.text });
+        expect(updateResponse.status).toBe(404);
+        expect(updateResponse.text).toBe(COVER_NOT_FOUND);
+    });
+
+    test("Update cover from non-existent book", async () => {
+        const { response: registerResponse } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const updateResponse = await updateCover("non-existent", "Generic.jpeg", { jwt: registerResponse.text });
+        expect(updateResponse.status).toBe(404);
+        expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test("Update cover | Different user | !admin", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const { response: registerResponse2 } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { jwt: registerResponse2.text });
+        expect(updateResponse.status).toBe(404);
+        expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test("Update cover | Different user | admin", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse2.status).toBe(200);
+
+        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { jwt: registerResponse2.text });
+        expect(updateResponse.status).toBe(200);
+    });
+
+    test("Update cover no auth", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg");
+        expect(updateResponse.status).toBe(401);
+        expect(updateResponse.text).toBe(UNAUTHORIZED);
+    });
+});
+
+describe("Update cover api key", () => {
+    test("Update cover", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        expect(updateResponse.status).toBe(200);
+
+        const downloadResponse = await getCover(uploadResponse.text, { jwt: registerResponse.text });
+        expect(downloadResponse.status).toBe(200);
+
+        let coverPath = path.join(COVERS_DIR, "Generic.jpeg");
+        let cover = fs.readFileSync(coverPath);
+
+        expect(cover).toEqual(downloadResponse.body);
+    });
+
+    test("Update non-existent cover", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        // This epub does not contain a cover
+        const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Give chance for any cover to be extracted
+        await wait(0.5);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        expect(updateResponse.status).toBe(404);
+        expect(updateResponse.text).toBe(COVER_NOT_FOUND);
+    });
+
+    test("Update cover from non-existent book", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const updateResponse = await updateCover("non-existent", "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        expect(updateResponse.status).toBe(404);
+        expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test("Update cover | Different user | !admin", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const { response: registerResponse2, username: username2} = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Update"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        expect(updateResponse.status).toBe(404);
+        expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test("Update cover | Different user | admin", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const { response: registerResponse2, username: username2} = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Update"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        expect(updateResponse.status).toBe(200);
+    });
+
+    test("Update cover wrong capabilities", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Create", "Read", "Delete"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        expect(updateResponse.status).toBe(403);
+        expect(updateResponse.text).toBe(FORBIDDEN);
+    });
+
+    test("Update cover expired key", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const timestamp = new Date(Date.now() + 2000).toISOString();
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], timestamp, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        // Wait for the key to expire
+        await wait(2.5);
+
+        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        expect(updateResponse.status).toBe(401);
+        expect(updateResponse.text).toBe(INVALID_API_KEY);
+    });
+});

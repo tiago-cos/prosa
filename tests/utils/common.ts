@@ -3,7 +3,8 @@ export const BOOK_DIR = "books/"
 export const COVERS_DIR = "covers/"
 
 export const FORBIDDEN = "Forbidden.";
-export const UNAUTHORIZED = "No authentication was provided."
+export const UNAUTHORIZED = "No authentication was provided.";
+export const INVALID_API_KEY = "The provided API key is invalid.";
 
 export function randomString(length: number) {
     let result = "";
