@@ -45,7 +45,7 @@ pub async fn upload_book_handler(
     let preferences = users::service::get_preferences(&state.pool, &data.owner_id).await?;
     let book_id = service::add_book(&state.pool, book).await?;
 
-    tokio::spawn(state.metadata_manager.search_metadata(
+    tokio::spawn(state.metadata_manager.fetch_metadata(
         state.pool,
         book_id.clone(),
         preferences.metadata_providers,

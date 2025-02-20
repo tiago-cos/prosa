@@ -1,6 +1,9 @@
 use crate::app::{
     authentication::models::{AuthError, AuthRole, AuthToken, CREATE, DELETE, READ, UPDATE},
-    books::{self, models::{BookError, UploadBoodRequest}},
+    books::{
+        self,
+        models::{BookError, UploadBoodRequest},
+    },
     error::ProsaError,
     Pool,
 };

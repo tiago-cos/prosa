@@ -69,7 +69,8 @@ pub async fn patch_metadata_handler(
     Path(book_id): Path<String>,
     Json(metadata): Json<Metadata>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let book = books::service::get_book(&pool, &book_id).await?;
+    let mut book = books::service::get_book(&pool, &book_id).await?;
+    let sync_id = book.sync_id.clone();
 
     let metadata_id = match book.metadata_id {
         None => return Err(MetadataError::MetadataNotFound.into()),
@@ -78,7 +79,11 @@ pub async fn patch_metadata_handler(
 
     service::patch_metadata(&pool, &metadata_id, metadata).await?;
 
-    sync::service::update_metadata_timestamp(&pool, &book.sync_id).await;
+    // We need to reset the metadata_id because the update temporarily deletes the metadata, which causes the foreign key restriction to set the entry to null
+    book.metadata_id = Some(metadata_id);
+    books::service::update_book(&pool, &book_id, book).await?;
+
+    sync::service::update_metadata_timestamp(&pool, &sync_id).await;
 
     Ok(())
 }
@@ -88,7 +93,8 @@ pub async fn update_metadata_handler(
     Path(book_id): Path<String>,
     Json(metadata): Json<Metadata>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let book = books::service::get_book(&pool, &book_id).await?;
+    let mut book = books::service::get_book(&pool, &book_id).await?;
+    let sync_id = book.sync_id.clone();
 
     let metadata_id = match book.metadata_id {
         None => return Err(MetadataError::MetadataNotFound.into()),
@@ -97,7 +103,11 @@ pub async fn update_metadata_handler(
 
     service::update_metadata(&pool, &metadata_id, metadata).await?;
 
-    sync::service::update_metadata_timestamp(&pool, &book.sync_id).await;
+    // We need to reset the metadata_id because the update temporarily deletes the metadata, which causes the foreign key restriction to set the entry to null
+    book.metadata_id = Some(metadata_id);
+    books::service::update_book(&pool, &book_id, book).await?;
+
+    sync::service::update_metadata_timestamp(&pool, &sync_id).await;
 
     Ok(())
 }

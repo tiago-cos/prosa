@@ -13,13 +13,13 @@ type SqlxError = sqlx::Error;
 
 #[derive(EnumMessage, EnumProperty, Debug)]
 pub enum MetadataError {
-    #[strum(message = "Invalid metadata input")]
+    #[strum(message = "The provided metadata is invalid.")]
     #[strum(props(StatusCode = "400"))]
     InvalidMetadata,
-    #[strum(message = "Metadata for the given book was not found")]
+    #[strum(message = "The requested metadata does not exist or is not accessible.")]
     #[strum(props(StatusCode = "404"))]
     MetadataNotFound,
-    #[strum(message = "Metadata for the given book already exists")]
+    #[strum(message = "This book already has metadata.")]
     #[strum(props(StatusCode = "409"))]
     MetadataConflict,
     #[strum(message = "Internal error")]
@@ -66,7 +66,7 @@ pub struct Metadata {
     pub subtitle: Option<String>,
     pub description: Option<String>,
     pub publisher: Option<String>,
-    #[serde(with = "ts_seconds_option")]
+    #[serde(default, with = "ts_seconds_option")]
     pub publication_date: Option<DateTime<Utc>>,
     pub isbn: Option<String>,
     #[sqlx(skip)]

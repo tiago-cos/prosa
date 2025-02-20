@@ -53,7 +53,9 @@ impl MetadataFetcher {
         let mut image: Vec<u8> = Vec::new();
 
         for provider in providers {
-            let Some(provider) = self.providers.get_mut(&provider) else { continue };
+            let Some(provider) = self.providers.get_mut(&provider) else {
+                continue;
+            };
             let (m, i) = provider.fetch_metadata(&epub_data).await;
 
             if let Some(m) = m {

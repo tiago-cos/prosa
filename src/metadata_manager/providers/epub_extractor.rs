@@ -20,6 +20,7 @@ impl EpubExtractor {
     }
 }
 
+//TODO extract genres with "subject"
 #[async_trait]
 impl MetadataProvider for EpubExtractor {
     async fn fetch_metadata(&mut self, epub_data: &Vec<u8>) -> (Option<Metadata>, Option<Vec<u8>>) {
@@ -34,7 +35,7 @@ impl MetadataProvider for EpubExtractor {
         let publisher = epub.mdata("publisher");
         let isbn = epub.mdata("identifier");
         let series = epub.mdata("calibre:series");
-        let page_count = Some(epub.get_num_pages() as i64);
+        let page_count = None;
         let language = epub.mdata("language");
 
         let series_number = epub

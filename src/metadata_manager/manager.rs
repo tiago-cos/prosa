@@ -3,6 +3,7 @@ use crate::{
     app::{
         books, covers, epubs,
         metadata::{self, models::Metadata},
+        sync,
     },
     config::Configuration,
 };
@@ -25,14 +26,14 @@ impl MetadataManager {
         }
     }
 
-    //TODO when this panicks, the program should still work
-    pub async fn search_metadata(
+    //TODO when this panics, the program should still work
+    pub async fn fetch_metadata(
         self: Arc<Self>,
         pool: Arc<SqlitePool>,
         book_id: String,
         providers: Vec<String>,
     ) -> () {
-        let mut book = books::service::get_book(&pool, &book_id)
+        let book = books::service::get_book(&pool, &book_id)
             .await
             .expect("Failed to get book");
         let epub_data = epubs::service::read_epub(&self.epub_path, &book.epub_id)
@@ -46,67 +47,90 @@ impl MetadataManager {
             .fetch_metadata(epub_data, providers)
             .await;
 
-        let metadata_id = match (book.metadata_id, metadata) {
-            (id, None) => id,
-            (Some(id), Some(metadata)) => handle_metadata_update(&pool, id, metadata).await,
-            (None, Some(metadata)) => handle_metadata_create(&pool, metadata).await,
+        match (book.metadata_id, metadata) {
+            (_, None) => (),
+            (Some(_), Some(metadata)) => handle_metadata_update(&pool, &book_id, metadata).await,
+            (None, Some(metadata)) => handle_metadata_create(&pool, &book_id, metadata).await,
         };
 
-        let cover_id = match (book.cover_id, image) {
-            (id, None) => id,
-            (Some(id), Some(image)) => handle_cover_update(&pool, &self.cover_path, id, image).await,
-            (None, Some(image)) => handle_cover_create(&pool, &self.cover_path, image).await,
+        match (book.cover_id, image) {
+            (_, None) => (),
+            (Some(_), Some(image)) => handle_cover_update(&pool, &book_id, &self.cover_path, image).await,
+            (None, Some(image)) => handle_cover_create(&pool, &book_id, &self.cover_path, image).await,
         };
-
-        book.metadata_id = metadata_id;
-        book.cover_id = cover_id;
-
-        books::service::update_book(&pool, &book_id, book)
-            .await
-            .expect("Failed to update book");
     }
 }
 
-async fn handle_metadata_update(
-    pool: &SqlitePool,
-    metadata_id: String,
-    metadata: Metadata,
-) -> Option<String> {
-    metadata::service::update_metadata(pool, &metadata_id, metadata)
+async fn handle_metadata_update(pool: &SqlitePool, book_id: &str, metadata: Metadata) -> () {
+    let book = books::service::get_book(&pool, &book_id)
+        .await
+        .expect("Failed to get book");
+
+    let metadata_id = book.metadata_id.expect("Failed to retrieve metadata id");
+    metadata::service::update_metadata(&pool, &metadata_id, metadata)
         .await
         .expect("Failed to update metadata");
 
-    Some(metadata_id)
+    sync::service::update_metadata_timestamp(&pool, &book.sync_id).await;
 }
 
-async fn handle_metadata_create(pool: &SqlitePool, metadata: Metadata) -> Option<String> {
-    let id = metadata::service::add_metadata(pool, metadata)
+async fn handle_metadata_create(pool: &SqlitePool, book_id: &str, metadata: Metadata) -> () {
+    let mut book = books::service::get_book(&pool, &book_id)
+        .await
+        .expect("Failed to get book");
+    let sync_id = book.sync_id.clone();
+
+    let metadata_id = metadata::service::add_metadata(&pool, metadata)
         .await
         .expect("Failed to add metadata");
 
-    Some(id)
+    book.metadata_id = Some(metadata_id);
+    books::service::update_book(&pool, &book_id, book)
+        .await
+        .expect("Failed to update book");
+
+    sync::service::update_metadata_timestamp(&pool, &sync_id).await;
 }
 
-async fn handle_cover_update(
-    pool: &SqlitePool,
-    cover_path: &str,
-    cover_id: String,
-    cover: Vec<u8>,
-) -> Option<String> {
-    covers::service::delete_cover(pool, &cover_path, &cover_id)
+async fn handle_cover_update(pool: &SqlitePool, book_id: &str, cover_path: &str, cover: Vec<u8>) -> () {
+    let mut book = books::service::get_book(&pool, &book_id)
         .await
-        .expect("Failed to delete cover");
-    let id = covers::service::write_cover(pool, &cover_path, &cover)
+        .expect("Failed to get book");
+    let sync_id = book.sync_id.clone();
+
+    let old_cover_id = book.cover_id.expect("Failed to retrieve old cover id");
+    let new_cover_id = covers::service::write_cover(pool, &cover_path, &cover)
         .await
         .expect("Failed to write cover");
 
-    Some(id)
+    book.cover_id = Some(new_cover_id);
+    books::service::update_book(&pool, &book_id, book)
+        .await
+        .expect("Failed to update book");
+
+    if !books::service::cover_is_in_use(&pool, &old_cover_id).await {
+        covers::service::delete_cover(&pool, cover_path, &old_cover_id)
+            .await
+            .expect("Failed to delete unused cover");
+    }
+
+    sync::service::update_cover_timestamp(&pool, &sync_id).await;
 }
 
-async fn handle_cover_create(pool: &SqlitePool, cover_path: &str, cover: Vec<u8>) -> Option<String> {
-    let id = covers::service::write_cover(pool, &cover_path, &cover)
+async fn handle_cover_create(pool: &SqlitePool, book_id: &str, cover_path: &str, cover: Vec<u8>) -> () {
+    let mut book = books::service::get_book(&pool, &book_id)
+        .await
+        .expect("Failed to get book");
+    let sync_id = book.sync_id.clone();
+
+    let cover_id = covers::service::write_cover(pool, &cover_path, &cover)
         .await
         .expect("Failed to write cover");
 
-    Some(id)
+    book.cover_id = Some(cover_id);
+    books::service::update_book(&pool, &book_id, book)
+        .await
+        .expect("Failed to update book");
+
+    sync::service::update_cover_timestamp(&pool, &sync_id).await;
 }

@@ -7,7 +7,7 @@ mod error;
 pub mod metadata;
 mod server;
 mod state;
-mod sync;
+pub mod sync;
 pub mod users;
 
 pub use server::*;
