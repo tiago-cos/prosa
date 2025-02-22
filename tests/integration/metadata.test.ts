@@ -743,148 +743,178 @@ describe("Update metadata JWT", () => {
 
         expect(downloadResponse.body).toEqual(EXAMPLE_METADATA);
     });
-});/*
-    test("Update non-existent cover", async () => {
+
+    test("Update non-existent metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
-        // This epub does not contain a cover
+        // This epub does not contain metadata
         const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
-        // Give chance for any cover to be extracted
+        // Give chance for any metadata to be extracted
         await wait(0.5);
 
-        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { jwt: registerResponse.text });
+        const updateResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA, { jwt: registerResponse.text });
         expect(updateResponse.status).toBe(404);
-        expect(updateResponse.text).toBe(COVER_NOT_FOUND);
+        expect(updateResponse.text).toBe(METADATA_NOT_FOUND);
     });
 
-    test("Update cover from non-existent book", async () => {
+    test("Update metadata from non-existent book", async () => {
         const { response: registerResponse } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
-        const updateResponse = await updateCover("non-existent", "Generic.jpeg", { jwt: registerResponse.text });
+        const updateResponse = await updateMetadata("non-existent", EXAMPLE_METADATA, { jwt: registerResponse.text });
         expect(updateResponse.status).toBe(404);
         expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test("Update cover | Different user | !admin", async () => {
+    test("Update invalid metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
-        // Wait for cover to be extracted
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        const updateResponse = await updateMetadata(uploadResponse.text, {}, { jwt: registerResponse.text });
+        expect(updateResponse.status).toBe(400);
+        expect(updateResponse.text).toBe(INVALID_METADATA);
+    });
+
+    test("Update metadata | Different user | !admin", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for metadata to be extracted
         await wait(0.5);
 
         const { response: registerResponse2 } = await registerUser();
         expect(registerResponse2.status).toBe(200);
 
-        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { jwt: registerResponse2.text });
+        const updateResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA, { jwt: registerResponse2.text });
         expect(updateResponse.status).toBe(404);
         expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test("Update cover | Different user | admin", async () => {
+    test("Update metadata | Different user | admin", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
-        // Wait for cover to be extracted
+        // Wait for metadata to be extracted
         await wait(0.5);
 
         const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse2.status).toBe(200);
 
-        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { jwt: registerResponse2.text });
+        const updateResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA, { jwt: registerResponse2.text });
         expect(updateResponse.status).toBe(200);
     });
 
-    test("Update cover no auth", async () => {
+    test("Update metadata no auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
-        // Wait for cover to be extracted
+        // Wait for metadata to be extracted
         await wait(0.5);
 
-        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg");
+        const updateResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA);
         expect(updateResponse.status).toBe(401);
         expect(updateResponse.text).toBe(UNAUTHORIZED);
     });
 });
 
-describe("Update cover api key", () => {
-    test("Update cover", async () => {
+describe("Update metadata api key", () => {
+    test("Update metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
-        // Wait for cover to be extracted
+        // Wait for metadata to be extracted
         await wait(0.5);
 
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
-        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        const updateResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA, { apiKey: createApiKeyResponse.body.key });
         expect(updateResponse.status).toBe(200);
 
-        const downloadResponse = await getCover(uploadResponse.text, { jwt: registerResponse.text });
+        const downloadResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse.status).toBe(200);
 
-        let coverPath = path.join(COVERS_DIR, "Generic.jpeg");
-        let cover = fs.readFileSync(coverPath);
-
-        expect(cover).toEqual(downloadResponse.body);
+        expect(downloadResponse.body).toEqual(EXAMPLE_METADATA);
     });
 
-    test("Update non-existent cover", async () => {
+    test("Update non-existent metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
-        // This epub does not contain a cover
+        // This epub does not contain metadata
         const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
-        // Give chance for any cover to be extracted
+        // Give chance for any metadata to be extracted
         await wait(0.5);
 
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
-        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        const updateResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA, { apiKey: createApiKeyResponse.body.key });
         expect(updateResponse.status).toBe(404);
-        expect(updateResponse.text).toBe(COVER_NOT_FOUND);
+        expect(updateResponse.text).toBe(METADATA_NOT_FOUND);
     });
 
-    test("Update cover from non-existent book", async () => {
+    test("Update metadata from non-existent book", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
-        const updateResponse = await updateCover("non-existent", "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        const updateResponse = await updateMetadata("non-existent", EXAMPLE_METADATA, { apiKey: createApiKeyResponse.body.key });
         expect(updateResponse.status).toBe(404);
         expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test("Update cover | Different user | !admin", async () => {
+    test("Update invalid metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
-        // Wait for cover to be extracted
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const updateResponse = await updateMetadata(uploadResponse.text, {}, { apiKey: createApiKeyResponse.body.key });
+        expect(updateResponse.status).toBe(400);
+        expect(updateResponse.text).toBe(INVALID_METADATA);
+    });
+
+    test("Update metadata | Different user | !admin", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for metadata to be extracted
         await wait(0.5);
 
         const { response: registerResponse2, username: username2 } = await registerUser();
@@ -893,19 +923,19 @@ describe("Update cover api key", () => {
         const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Update"], undefined, { jwt: registerResponse2.text });
         expect(createApiKeyResponse.status).toBe(200);
 
-        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        const updateResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA, { apiKey: createApiKeyResponse.body.key });
         expect(updateResponse.status).toBe(404);
         expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test("Update cover | Different user | admin", async () => {
+    test("Update metadata | Different user | admin", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
-        // Wait for cover to be extracted
+        // Wait for metadata to be extracted
         await wait(0.5);
 
         const { response: registerResponse2, username: username2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
@@ -914,36 +944,36 @@ describe("Update cover api key", () => {
         const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Update"], undefined, { jwt: registerResponse2.text });
         expect(createApiKeyResponse.status).toBe(200);
 
-        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        const updateResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA, { apiKey: createApiKeyResponse.body.key });
         expect(updateResponse.status).toBe(200);
     });
 
-    test("Update cover wrong capabilities", async () => {
+    test("Update metadata wrong capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
-        // Wait for cover to be extracted
+        // Wait for metadata to be extracted
         await wait(0.5);
 
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Create", "Read", "Delete"], undefined, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
-        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        const updateResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA, { apiKey: createApiKeyResponse.body.key });
         expect(updateResponse.status).toBe(403);
         expect(updateResponse.text).toBe(FORBIDDEN);
     });
 
-    test("Update cover expired key", async () => {
+    test("Update metadata expired key", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
-        // Wait for cover to be extracted
+        // Wait for metadata to be extracted
         await wait(0.5);
 
         const timestamp = new Date(Date.now() + 2000).toISOString();
@@ -953,8 +983,279 @@ describe("Update cover api key", () => {
         // Wait for the key to expire
         await wait(2.5);
 
-        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
+        const updateResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA, { apiKey: createApiKeyResponse.body.key });
         expect(updateResponse.status).toBe(401);
         expect(updateResponse.text).toBe(INVALID_API_KEY);
     });
-});*/
+});
+
+describe("Patch metadata JWT", () => {
+    test("Patch metadata", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { jwt: registerResponse.text });
+        expect(patchResponse.status).toBe(200);
+
+        let expectedMetadata = ALICE_METADATA;
+        expectedMetadata.title = "title test";
+
+        const downloadResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.text });
+        expect(downloadResponse.status).toBe(200);
+
+        expect(downloadResponse.body).toEqual(expectedMetadata);
+    });
+
+    test("Patch non-existent metadata", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        // This epub does not contain metadata
+        const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Give chance for any metadata to be extracted
+        await wait(0.5);
+
+        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { jwt: registerResponse.text });
+        expect(patchResponse.status).toBe(404);
+        expect(patchResponse.text).toBe(METADATA_NOT_FOUND);
+    });
+
+    test("Patch metadata from non-existent book", async () => {
+        const { response: registerResponse } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchResponse = await patchMetadata("non-existent", {title: "title test"}, { jwt: registerResponse.text });
+        expect(patchResponse.status).toBe(404);
+        expect(patchResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test("Patch invalid metadata", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        const patchResponse = await patchMetadata(uploadResponse.text, {}, { jwt: registerResponse.text });
+        expect(patchResponse.status).toBe(400);
+        expect(patchResponse.text).toBe(INVALID_METADATA);
+    });
+
+    test("Patch metadata | Different user | !admin", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        const { response: registerResponse2 } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { jwt: registerResponse2.text });
+        expect(patchResponse.status).toBe(404);
+        expect(patchResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test("Patch metadata | Different user | admin", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse2.status).toBe(200);
+
+        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { jwt: registerResponse2.text });
+        expect(patchResponse.status).toBe(200);
+    });
+
+    test("Patch metadata no auth", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"});
+        expect(patchResponse.status).toBe(401);
+        expect(patchResponse.text).toBe(UNAUTHORIZED);
+    });
+});
+
+describe("Patch metadata api key", () => {
+    test("Patch metadata", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { apiKey: createApiKeyResponse.body.key });
+        expect(patchResponse.status).toBe(200);
+
+        let expectedMetadata = ALICE_METADATA;
+        expectedMetadata.title = "title test";
+
+        const downloadResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.text });
+        expect(downloadResponse.status).toBe(200);
+
+        expect(downloadResponse.body).toEqual(expectedMetadata);
+    });
+
+    test("Patch non-existent metadata", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        // This epub does not contain metadata
+        const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Give chance for any metadata to be extracted
+        await wait(0.5);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { apiKey: createApiKeyResponse.body.key });
+        expect(patchResponse.status).toBe(404);
+        expect(patchResponse.text).toBe(METADATA_NOT_FOUND);
+    });
+
+    test("Patch metadata from non-existent book", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const patchResponse = await patchMetadata("non-existent", {title: "title test"}, { apiKey: createApiKeyResponse.body.key });
+        expect(patchResponse.status).toBe(404);
+        expect(patchResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test("Patch invalid metadata", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const patchResponse = await patchMetadata(uploadResponse.text, {}, { apiKey: createApiKeyResponse.body.key });
+        expect(patchResponse.status).toBe(400);
+        expect(patchResponse.text).toBe(INVALID_METADATA);
+    });
+
+    test("Patch metadata | Different user | !admin", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        const { response: registerResponse2, username: username2 } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Update"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { apiKey: createApiKeyResponse.body.key });
+        expect(patchResponse.status).toBe(404);
+        expect(patchResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test("Patch metadata | Different user | admin", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        const { response: registerResponse2, username: username2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Update"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { apiKey: createApiKeyResponse.body.key });
+        expect(patchResponse.status).toBe(200);
+    });
+
+    test("Patch metadata wrong capabilities", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Create", "Read", "Delete"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { apiKey: createApiKeyResponse.body.key });
+        expect(patchResponse.status).toBe(403);
+        expect(patchResponse.text).toBe(FORBIDDEN);
+    });
+
+    test("Patch metadata expired key", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        const timestamp = new Date(Date.now() + 2000).toISOString();
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], timestamp, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        // Wait for the key to expire
+        await wait(2.5);
+
+        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { apiKey: createApiKeyResponse.body.key });
+        expect(patchResponse.status).toBe(401);
+        expect(patchResponse.text).toBe(INVALID_API_KEY);
+    });
+});

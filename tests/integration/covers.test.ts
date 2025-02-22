@@ -784,6 +784,21 @@ describe("Update cover JWT", () => {
         expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
+    test("Update invalid cover", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const updateResponse = await updateCover(uploadResponse.text, "This_is_not_a_cover.txt", { jwt: registerResponse.text });
+        expect(updateResponse.status).toBe(400);
+        expect(updateResponse.text).toBe(INVALID_COVER);
+    });
+
     test("Update cover | Different user | !admin", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
@@ -890,6 +905,24 @@ describe("Update cover api key", () => {
         const updateResponse = await updateCover("non-existent", "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
         expect(updateResponse.status).toBe(404);
         expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test("Update invalid cover", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover to be extracted
+        await wait(0.5);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const updateResponse = await updateCover(uploadResponse.text, "This_is_not_a_cover.txt", { apiKey: createApiKeyResponse.body.key });
+        expect(updateResponse.status).toBe(400);
+        expect(updateResponse.text).toBe(INVALID_COVER);
     });
 
     test("Update cover | Different user | !admin", async () => {
