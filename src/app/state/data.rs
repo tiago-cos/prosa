@@ -14,14 +14,19 @@ pub async fn get_state(pool: &SqlitePool, state_id: &str) -> State {
     .await
     .expect("Failed to get book state");
 
-    let location = Location { tag, source };
-
-    let statistics = Statistics { rating };
+    let location = tag.zip(source).map(|(t, s)| Location { tag: Some(t), source: Some(s) });
+    let statistics = rating.map(|r| Statistics { rating: Some(r) });
 
     State { location, statistics }
 }
 
 pub async fn add_state(pool: &SqlitePool, state_id: &str, state: State) -> () {
+    let (tag, source) = state.location
+        .map(|l| (l.tag, l.source))
+        .unwrap_or((None, None));
+
+    let rating = state.statistics.map(|s| s.rating).unwrap_or(None);
+
     sqlx::query(
         r#"
         INSERT INTO state (state_id, tag, source, rating) VALUES
@@ -29,15 +34,21 @@ pub async fn add_state(pool: &SqlitePool, state_id: &str, state: State) -> () {
         "#,
     )
     .bind(state_id)
-    .bind(state.location.tag)
-    .bind(state.location.source)
-    .bind(state.statistics.rating)
+    .bind(tag)
+    .bind(source)
+    .bind(rating)
     .execute(pool)
     .await
     .expect("Failed to add book state");
 }
 
 pub async fn update_state(pool: &SqlitePool, state_id: &str, state: State) -> () {
+    let (tag, source) = state.location
+        .map(|l| (l.tag, l.source))
+        .unwrap_or((None, None));
+
+    let rating = state.statistics.map(|s| s.rating).unwrap_or(None);
+
     sqlx::query(
         r#"
         UPDATE state
@@ -45,10 +56,10 @@ pub async fn update_state(pool: &SqlitePool, state_id: &str, state: State) -> ()
         WHERE state_id = $4
         "#,
     )
+    .bind(tag)
+    .bind(source)
+    .bind(rating)
     .bind(state_id)
-    .bind(state.location.tag)
-    .bind(state.location.source)
-    .bind(state.statistics.rating)
     .execute(pool)
     .await
     .expect("Failed to update book state");

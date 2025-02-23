@@ -1,9 +1,7 @@
-import { COVERS_DIR, FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from "../utils/common";
+import { FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from "../utils/common";
 import { registerUser, createApiKey } from "../utils/users"
 import { BOOK_NOT_FOUND, uploadBook } from "../utils/books"
 import { addMetadata, METADATA_CONFLICT, METADATA_NOT_FOUND, deleteMetadata, getMetadata, INVALID_METADATA, updateMetadata, patchMetadata, ALICE_METADATA, EXAMPLE_METADATA } from "../utils/metadata"
-import path from "path";
-import fs from "fs";
 
 describe("Get metadata JWT", () => {
     test.concurrent("Get metadata", async () => {
@@ -21,7 +19,7 @@ describe("Get metadata JWT", () => {
 
         expect(downloadResponse.body).toEqual(ALICE_METADATA);
     });
-    
+
     test.concurrent("Get non-existent metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
@@ -1000,10 +998,10 @@ describe("Patch metadata JWT", () => {
         // Wait for metadata to be extracted
         await wait(0.5);
 
-        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { jwt: registerResponse.text });
+        const patchResponse = await patchMetadata(uploadResponse.text, { title: "title test" }, { jwt: registerResponse.text });
         expect(patchResponse.status).toBe(200);
 
-        let expectedMetadata = ALICE_METADATA;
+        let expectedMetadata = structuredClone(ALICE_METADATA);
         expectedMetadata.title = "title test";
 
         const downloadResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.text });
@@ -1023,7 +1021,7 @@ describe("Patch metadata JWT", () => {
         // Give chance for any metadata to be extracted
         await wait(0.5);
 
-        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { jwt: registerResponse.text });
+        const patchResponse = await patchMetadata(uploadResponse.text, { title: "title test" }, { jwt: registerResponse.text });
         expect(patchResponse.status).toBe(404);
         expect(patchResponse.text).toBe(METADATA_NOT_FOUND);
     });
@@ -1032,7 +1030,7 @@ describe("Patch metadata JWT", () => {
         const { response: registerResponse } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
-        const patchResponse = await patchMetadata("non-existent", {title: "title test"}, { jwt: registerResponse.text });
+        const patchResponse = await patchMetadata("non-existent", { title: "title test" }, { jwt: registerResponse.text });
         expect(patchResponse.status).toBe(404);
         expect(patchResponse.text).toBe(BOOK_NOT_FOUND);
     });
@@ -1065,7 +1063,7 @@ describe("Patch metadata JWT", () => {
         const { response: registerResponse2 } = await registerUser();
         expect(registerResponse2.status).toBe(200);
 
-        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { jwt: registerResponse2.text });
+        const patchResponse = await patchMetadata(uploadResponse.text, { title: "title test" }, { jwt: registerResponse2.text });
         expect(patchResponse.status).toBe(404);
         expect(patchResponse.text).toBe(BOOK_NOT_FOUND);
     });
@@ -1083,7 +1081,7 @@ describe("Patch metadata JWT", () => {
         const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse2.status).toBe(200);
 
-        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { jwt: registerResponse2.text });
+        const patchResponse = await patchMetadata(uploadResponse.text, { title: "title test" }, { jwt: registerResponse2.text });
         expect(patchResponse.status).toBe(200);
     });
 
@@ -1097,7 +1095,7 @@ describe("Patch metadata JWT", () => {
         // Wait for metadata to be extracted
         await wait(0.5);
 
-        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"});
+        const patchResponse = await patchMetadata(uploadResponse.text, { title: "title test" });
         expect(patchResponse.status).toBe(401);
         expect(patchResponse.text).toBe(UNAUTHORIZED);
     });
@@ -1117,10 +1115,10 @@ describe("Patch metadata api key", () => {
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
-        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { apiKey: createApiKeyResponse.body.key });
+        const patchResponse = await patchMetadata(uploadResponse.text, { title: "title test" }, { apiKey: createApiKeyResponse.body.key });
         expect(patchResponse.status).toBe(200);
 
-        let expectedMetadata = ALICE_METADATA;
+        let expectedMetadata = structuredClone(ALICE_METADATA);
         expectedMetadata.title = "title test";
 
         const downloadResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.text });
@@ -1143,7 +1141,7 @@ describe("Patch metadata api key", () => {
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
-        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { apiKey: createApiKeyResponse.body.key });
+        const patchResponse = await patchMetadata(uploadResponse.text, { title: "title test" }, { apiKey: createApiKeyResponse.body.key });
         expect(patchResponse.status).toBe(404);
         expect(patchResponse.text).toBe(METADATA_NOT_FOUND);
     });
@@ -1155,7 +1153,7 @@ describe("Patch metadata api key", () => {
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
-        const patchResponse = await patchMetadata("non-existent", {title: "title test"}, { apiKey: createApiKeyResponse.body.key });
+        const patchResponse = await patchMetadata("non-existent", { title: "title test" }, { apiKey: createApiKeyResponse.body.key });
         expect(patchResponse.status).toBe(404);
         expect(patchResponse.text).toBe(BOOK_NOT_FOUND);
     });
@@ -1194,7 +1192,7 @@ describe("Patch metadata api key", () => {
         const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Update"], undefined, { jwt: registerResponse2.text });
         expect(createApiKeyResponse.status).toBe(200);
 
-        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { apiKey: createApiKeyResponse.body.key });
+        const patchResponse = await patchMetadata(uploadResponse.text, { title: "title test" }, { apiKey: createApiKeyResponse.body.key });
         expect(patchResponse.status).toBe(404);
         expect(patchResponse.text).toBe(BOOK_NOT_FOUND);
     });
@@ -1215,7 +1213,7 @@ describe("Patch metadata api key", () => {
         const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Update"], undefined, { jwt: registerResponse2.text });
         expect(createApiKeyResponse.status).toBe(200);
 
-        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { apiKey: createApiKeyResponse.body.key });
+        const patchResponse = await patchMetadata(uploadResponse.text, { title: "title test" }, { apiKey: createApiKeyResponse.body.key });
         expect(patchResponse.status).toBe(200);
     });
 
@@ -1232,7 +1230,7 @@ describe("Patch metadata api key", () => {
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Create", "Read", "Delete"], undefined, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
-        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { apiKey: createApiKeyResponse.body.key });
+        const patchResponse = await patchMetadata(uploadResponse.text, { title: "title test" }, { apiKey: createApiKeyResponse.body.key });
         expect(patchResponse.status).toBe(403);
         expect(patchResponse.text).toBe(FORBIDDEN);
     });
@@ -1254,7 +1252,7 @@ describe("Patch metadata api key", () => {
         // Wait for the key to expire
         await wait(2.5);
 
-        const patchResponse = await patchMetadata(uploadResponse.text, {title: "title test"}, { apiKey: createApiKeyResponse.body.key });
+        const patchResponse = await patchMetadata(uploadResponse.text, { title: "title test" }, { apiKey: createApiKeyResponse.body.key });
         expect(patchResponse.status).toBe(401);
         expect(patchResponse.text).toBe(INVALID_API_KEY);
     });

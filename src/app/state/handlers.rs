@@ -22,9 +22,7 @@ pub async fn patch_state_handler(
     Json(state): Json<models::State>,
 ) -> Result<impl IntoResponse, ProsaError> {
     let book = books::service::get_book(&app_state.pool, &book_id).await?;
-
-    service::validate_state(&state, &app_state.config.book_storage.epub_path, &book.epub_id).await?;
-    service::patch_state(&app_state.pool, &book.state_id, state).await;
+    service::patch_state(&app_state.pool, &book.state_id, &app_state.config.book_storage.epub_path, &book.epub_id, state).await?;
 
     Ok(())
 }
@@ -35,9 +33,7 @@ pub async fn update_state_handler(
     Json(state): Json<models::State>,
 ) -> Result<impl IntoResponse, ProsaError> {
     let book = books::service::get_book(&app_state.pool, &book_id).await?;
-
-    service::validate_state(&state, &app_state.config.book_storage.epub_path, &book.epub_id).await?;
-    service::update_state(&app_state.pool, &book.state_id, state).await;
+    service::update_state(&app_state.pool, &book.state_id, &app_state.config.book_storage.epub_path, &book.epub_id, state).await?;
 
     Ok(())
 }

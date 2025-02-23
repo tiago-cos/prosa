@@ -5,10 +5,10 @@ use strum_macros::{EnumMessage, EnumProperty};
 
 #[derive(EnumMessage, EnumProperty, Debug)]
 pub enum StateError {
-    #[strum(message = "Invalid rating value")]
+    #[strum(message = "The provided rating is invalid.")]
     #[strum(props(StatusCode = "400"))]
     InvalidRating,
-    #[strum(message = "Invalid location value")]
+    #[strum(message = "The provided location is invalid.")]
     #[strum(props(StatusCode = "400"))]
     InvalidLocation,
 }
@@ -26,8 +26,9 @@ pub struct Statistics {
     pub rating: Option<f32>,
 }
 
+#[skip_serializing_none]
 #[derive(Serialize, Deserialize, Merge)]
 pub struct State {
-    pub location: Location,
-    pub statistics: Statistics,
+    pub location: Option<Location>,
+    pub statistics: Option<Statistics>,
 }
