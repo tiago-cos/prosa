@@ -61,6 +61,8 @@ pub async fn delete_book_handler(
     let book = service::get_book(&state.pool, &book_id).await?;
     service::delete_book(&state.pool, &book_id).await?;
 
+    sync::service::update_delete_timestamp(&state.pool, &book.sync_id).await;
+
     if let Some(metadata_id) = book.metadata_id {
         metadata::service::delete_metadata(&state.pool, &metadata_id).await?;
     }
@@ -77,8 +79,6 @@ pub async fn delete_book_handler(
     if !service::cover_is_in_use(&state.pool, &cover_id).await {
         covers::service::delete_cover(&state.pool, &state.config.book_storage.cover_path, &cover_id).await?;
     }
-
-    sync::service::update_delete_timestamp(&state.pool, &book.sync_id).await;
 
     Ok(())
 }

@@ -5,7 +5,7 @@ use strum_macros::{EnumMessage, EnumProperty};
 
 #[derive(EnumMessage, EnumProperty, Debug)]
 pub enum SyncError {
-    #[strum(message = "Invalid sync timestamp")]
+    #[strum(message = "The provided timestamp is invalid.")]
     #[strum(props(StatusCode = "400"))]
     InvalidTimestamp,
 }

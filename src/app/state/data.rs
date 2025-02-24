@@ -14,16 +14,17 @@ pub async fn get_state(pool: &SqlitePool, state_id: &str) -> State {
     .await
     .expect("Failed to get book state");
 
-    let location = tag.zip(source).map(|(t, s)| Location { tag: Some(t), source: Some(s) });
+    let location = tag.zip(source).map(|(t, s)| Location {
+        tag: Some(t),
+        source: Some(s),
+    });
     let statistics = rating.map(|r| Statistics { rating: Some(r) });
 
     State { location, statistics }
 }
 
 pub async fn add_state(pool: &SqlitePool, state_id: &str, state: State) -> () {
-    let (tag, source) = state.location
-        .map(|l| (l.tag, l.source))
-        .unwrap_or((None, None));
+    let (tag, source) = state.location.map(|l| (l.tag, l.source)).unwrap_or((None, None));
 
     let rating = state.statistics.map(|s| s.rating).unwrap_or(None);
 
@@ -43,9 +44,7 @@ pub async fn add_state(pool: &SqlitePool, state_id: &str, state: State) -> () {
 }
 
 pub async fn update_state(pool: &SqlitePool, state_id: &str, state: State) -> () {
-    let (tag, source) = state.location
-        .map(|l| (l.tag, l.source))
-        .unwrap_or((None, None));
+    let (tag, source) = state.location.map(|l| (l.tag, l.source)).unwrap_or((None, None));
 
     let rating = state.statistics.map(|s| s.rating).unwrap_or(None);
 

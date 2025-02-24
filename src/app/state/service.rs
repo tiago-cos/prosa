@@ -8,7 +8,10 @@ use sqlx::SqlitePool;
 use uuid::Uuid;
 
 pub async fn initialize_state(pool: &SqlitePool) -> String {
-    let initial_state = State { location: None, statistics: None };
+    let initial_state = State {
+        location: None,
+        statistics: None,
+    };
     let state_id = Uuid::new_v4().to_string();
 
     data::add_state(pool, &state_id, initial_state).await;
@@ -23,15 +26,15 @@ pub async fn get_state(pool: &SqlitePool, state_id: &str) -> State {
 }
 
 pub async fn patch_state(
-    pool: &SqlitePool, 
+    pool: &SqlitePool,
     state_id: &str,
     epub_path: &str,
     epub_id: &str,
-    mut state: State
+    mut state: State,
 ) -> Result<(), StateError> {
     let original = data::get_state(pool, state_id).await;
     state.merge(original);
-    
+
     validate_state(&state, epub_path, epub_id).await?;
     data::update_state(pool, state_id, state).await;
 
@@ -39,11 +42,11 @@ pub async fn patch_state(
 }
 
 pub async fn update_state(
-    pool: &SqlitePool, 
+    pool: &SqlitePool,
     state_id: &str,
     epub_path: &str,
     epub_id: &str,
-    state: State
+    state: State,
 ) -> Result<(), StateError> {
     validate_state(&state, epub_path, epub_id).await?;
     data::update_state(pool, state_id, state).await;
@@ -58,7 +61,9 @@ pub async fn validate_state(state: &State, epub_path: &str, epub_id: &str) -> Re
     };
 
     match &state.location {
-        Some(l) if !validate_location(l, epub_path, epub_id).await => return Err(StateError::InvalidLocation),
+        Some(l) if !validate_location(l, epub_path, epub_id).await => {
+            return Err(StateError::InvalidLocation)
+        }
         _ => (),
     };
 
@@ -66,7 +71,7 @@ pub async fn validate_state(state: &State, epub_path: &str, epub_id: &str) -> Re
 }
 
 async fn validate_statistics(stats: &Statistics) -> bool {
-    return stats.rating >= Some(0.0) && stats.rating <= Some(5.0)
+    return stats.rating >= Some(0.0) && stats.rating <= Some(5.0);
 }
 
 async fn validate_location(location: &Location, epub_path: &str, epub_id: &str) -> bool {
