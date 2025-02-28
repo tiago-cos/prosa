@@ -13,9 +13,6 @@ properties:
         type: string
         description: The file where the tag can be found.
         example: "OEBPS/text/9780063021440_Chapter_3.xhtml"
-    required:
-      - tag
-      - source
   statistics:
     type: object
     description: The statistics of the book.
@@ -25,7 +22,5 @@ properties:
         format: float
         description: The rating of the book.
         example: 4.5
-    required:
-      - rating
       
 additionalProperties: false

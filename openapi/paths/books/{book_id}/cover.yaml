@@ -1,3 +1,41 @@
+post:
+  tags:
+    - Cover
+  summary: "Add book cover"
+  description: |
+    Add a cover for a specific book owned by a user.
+    The user must be authenticated and have the appropriate permissions.
+  operationId: addBookCover
+  parameters:
+    - $ref: ../../../components/parameters/book_id.yaml
+
+  requestBody:
+    required: true
+    description: The cover image to add.
+    content:
+      image/jpeg:
+        schema:
+          type: string
+          format: binary
+
+  responses:
+    "200":
+      description: The book cover was added successfully.
+    "400":
+      $ref: ../../../components/responses/covers/InvalidCover.yaml
+    "401":
+      $ref: ../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../../components/responses/books/BookNotFound.yaml
+    "409":
+      $ref: ../../../components/responses/covers/CoverConflict.yaml
+
+  security:
+    - prosaToken: []
+    - apiKey: []
+
 get:
   tags:
     - Cover
@@ -6,7 +44,6 @@ get:
     Get the cover of a specific book owned by a user.
     The user must be authenticated and have the appropriate permissions.
   operationId: getBookCover
-
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml
 
@@ -20,69 +57,10 @@ get:
             format: binary
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../components/responses/Forbidden.yaml
     "404":
-      $ref: ../../../components/responses/NotFound.yaml
-
-  security:
-    - prosaToken: []
-    - apiKey: []
-
-post:
-  tags:
-    - Cover
-  summary: "Add book cover"
-  description: |
-    Add a cover for a specific book owned by a user.
-    The user must be authenticated and have the appropriate permissions.
-  operationId: addBookCover
-
-  parameters:
-    - $ref: ../../../components/parameters/book_id.yaml
-
-  requestBody:
-    required: true
-    description: The cover image to add.
-    content:
-        image/jpeg:
-          schema:
-            type: string
-            format: binary
-
-  responses:
-    "204":
-      description: The book cover was added successfully.
-    "400":
-      $ref: ../../../components/responses/BadRequest.yaml
-    "401":
-      $ref: ../../../components/responses/Unauthorized.yaml
-    "404":
-      $ref: ../../../components/responses/NotFound.yaml
-    "409":
-      $ref: ../../../components/responses/Conflict.yaml
-
-  security:
-    - prosaToken: []
-    - apiKey: []
-
-delete:
-  tags:
-    - Cover
-  summary: "Delete book cover"
-  description: |
-    Delete the cover of a specific book owned by a user.
-    The user must be authenticated and have the appropriate permissions.
-  operationId: deleteBookCover
-
-  parameters:
-    - $ref: ../../../components/parameters/book_id.yaml
-
-  responses:
-    "204":
-      description: The book cover was deleted successfully.
-    "401":
-      $ref: ../../../components/responses/Unauthorized.yaml
-    "404":
-      $ref: ../../../components/responses/NotFound.yaml
+      description: The requested book or cover was not found or cannot be accessed.
 
   security:
     - prosaToken: []
@@ -96,7 +74,6 @@ put:
     Update the cover of a specific book owned by a user.
     The user must be authenticated and have the appropriate permissions.
   operationId: updateBookCover
-
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml
 
@@ -104,20 +81,47 @@ put:
     required: true
     description: The cover image to change to.
     content:
-        image/jpeg:
-          schema:
-            type: string
-            format: binary
+      image/jpeg:
+        schema:
+          type: string
+          format: binary
 
   responses:
-    "204":
+    "200":
       description: The book metadata was updated successfully.
     "400":
-      $ref: ../../../components/responses/BadRequest.yaml
+      $ref: ../../../components/responses/covers/InvalidCover.yaml
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../components/responses/Forbidden.yaml
     "404":
-      $ref: ../../../components/responses/NotFound.yaml
+      description: The requested book or cover was not found or cannot be accessed.
+
+  security:
+    - prosaToken: []
+    - apiKey: []
+
+delete:
+  tags:
+    - Cover
+  summary: "Delete book cover"
+  description: |
+    Delete the cover of a specific book owned by a user.
+    The user must be authenticated and have the appropriate permissions.
+  operationId: deleteBookCover
+  parameters:
+    - $ref: ../../../components/parameters/book_id.yaml
+
+  responses:
+    "200":
+      description: The book cover was deleted successfully.
+    "401":
+      $ref: ../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../components/responses/Forbidden.yaml
+    "404":
+      description: The requested book or cover was not found or cannot be accessed.
 
   security:
     - prosaToken: []

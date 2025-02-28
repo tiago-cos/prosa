@@ -16,14 +16,12 @@ get:
         application/json:
           schema:
             $ref: ../../../components/schemas/BookState.yaml
-            required:
-              - location
-              - statistics
-
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../components/responses/Forbidden.yaml
     "404":
-      $ref: ../../../components/responses/NotFound.yaml
+      $ref: ../../../components/responses/books/BookNotFound.yaml
 
   security:
     - prosaToken: []
@@ -35,6 +33,7 @@ put:
   summary: "Update book state"
   description: |
     Update state for a specific book owned by a user.
+    The existing state will be completely replaced by the new one.
     The user must be authenticated and have the appropriate permissions.
   operationId: updateBookState
   parameters:
@@ -49,14 +48,52 @@ put:
           minProperties: 1
 
   responses:
-    "204":
+    "200":
       description: The book state was updated successfully.
     "400":
-      $ref: ../../../components/responses/BadRequest.yaml
+      description: The provided book state is invalid.
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../components/responses/Forbidden.yaml
     "404":
-      $ref: ../../../components/responses/NotFound.yaml
+      $ref: ../../../components/responses/books/BookNotFound.yaml
+
+  security:
+    - prosaToken: []
+    - apiKey: []
+
+patch:
+  tags:
+    - State
+  summary: "Patch book state"
+  description: |
+    Update state for a specific book owned by a user.
+    Only the fields specified in the request body will be updated.
+    The user must be authenticated and have the appropriate permissions.
+  operationId: patchBookState
+  parameters:
+    - $ref: ../../../components/parameters/book_id.yaml
+
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../../../components/schemas/BookState.yaml
+          minProperties: 1
+
+  responses:
+    "200":
+      description: The book state was patched successfully.
+    "400":
+      description: The provided book state is invalid.
+    "401":
+      $ref: ../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../../components/responses/books/BookNotFound.yaml
 
   security:
     - prosaToken: []

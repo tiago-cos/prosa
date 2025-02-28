@@ -1,7 +1,7 @@
 import request from "supertest";
 import { FORBIDDEN, randomString, UNAUTHORIZED } from "../utils/common";
 import { SERVER_URL } from "../utils/common";
-import { registerUser, loginUser, createApiKey, getApiKey, getApiKeys, deleteApiKey, getPreferences, updatePreferences, INVALID_CREDENTIALS, INVALID_USERNAME_PASSWORD, USERNAME_IN_USE, USER_NOT_FOUND, API_KEY_NOT_FOUND, INVALID_CAPABILITIES, INVALID_TIMESTAMP } from "../utils/users"
+import { registerUser, loginUser, createApiKey, getApiKey, getApiKeys, deleteApiKey, getPreferences, updatePreferences, INVALID_CREDENTIALS, INVALID_USERNAME_PASSWORD, USERNAME_IN_USE, USER_NOT_FOUND, API_KEY_NOT_FOUND, INVALID_CAPABILITIES, INVALID_TIMESTAMP, INVALID_PROVIDERS } from "../utils/users"
 
 describe("Register and login tests", () => {
     test.concurrent("Register a new user", async () => {
@@ -562,12 +562,13 @@ describe("User preference tests", () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
-        const updatePreferencesResponse2 = await updatePreferences(
+        const updatePreferencesResponse = await updatePreferences(
             username,
             ["invalid provider"],
             { jwt: registerResponse.text }
         );
-        expect(updatePreferencesResponse2.status).toBe(400);
+        expect(updatePreferencesResponse.status).toBe(400);
+        expect(updatePreferencesResponse.text).toBe(INVALID_PROVIDERS);
     });
 
     test.concurrent("Update preferences non-existent user", async () => {

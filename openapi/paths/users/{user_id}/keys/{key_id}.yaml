@@ -21,7 +21,7 @@ get:
     "403":
       $ref: ../../../../components/responses/Forbidden.yaml
     "404":
-      $ref: ../../../../components/responses/NotFound.yaml
+      description: The requested user or api key was not found or cannot be accessed.
 
   security:
     - prosaToken: []
@@ -38,14 +38,14 @@ delete:
     - $ref: ../../../../components/parameters/key_id.yaml
 
   responses:
-    "204":
+    "200":
       description: API key revoked successfully.
     "401":
       $ref: ../../../../components/responses/Unauthorized.yaml
     "403":
       $ref: ../../../../components/responses/Forbidden.yaml
     "404":
-      $ref: ../../../../components/responses/NotFound.yaml
+      description: The requested user or api key was not found or cannot be accessed.
 
   security:
     - prosaToken: []

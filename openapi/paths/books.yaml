@@ -7,7 +7,6 @@ post:
     The uploaded file is associated with the specified user.
     The user must be authenticated and have the appropriate permissions.
   operationId: uploadBook
-
   requestBody:
     required: true
     description: Request body containing the book file and the owner ID.
@@ -19,8 +18,7 @@ post:
             owner_id:
               type: string
               format: uuid
-              description: |
-                The UUID of the user who owns the book.
+              description: The UUID of the user who owns the book.
             epub:
               type: string
               format: binary
@@ -41,19 +39,22 @@ post:
         text/plain:
           schema:
             type: string
-            description: |
-              The unique ID of the uploaded book file.
+            description: The unique ID of the uploaded book file.
           examples:
             success:
               summary: Example response for a successful upload
               value: "2c5f1d4d-3b9d-4b9d-3b9d-4b9d3b9d3b9d"
     "400":
       $ref: ../components/responses/BadRequest.yaml
-    "401": 
+    "401":
       $ref: ../components/responses/Unauthorized.yaml
     "403":
       $ref: ../components/responses/Forbidden.yaml
-      
+    "404":
+      $ref: ../components/responses/users/UserNotFound.yaml
+    "409":
+      $ref: ../components/responses/books/BookConflict.yaml
+
   security:
     - prosaToken: []
     - apiKey: []

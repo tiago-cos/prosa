@@ -3,11 +3,10 @@ post:
     - Authentication
   summary: "Register"
   description: |
-    Register (create) a new user to the database.
+    Register a new user.
     The new user can either be an admin or a regular user.
     To register an admin user, the admin key must be provided in the request body.
   operationId: register
-
   requestBody:
     required: true
     description: Request body for adding a new user.
@@ -40,7 +39,7 @@ post:
               username: "admin"
               password: "password123"
               admin_key: "88ce1268d9f1dda402cd172"
-            
+
   responses:
     "200":
       description: The JWT token for the newly created user
@@ -54,10 +53,8 @@ post:
               summary: Base64-encoded JWT token
               value: "ZXlKMGVYQWlPaUpLVjFRaUxDSmhiR2NpT2lKSVV6STFOaUo5LmV5SnliMnhsSWpwN0lsVnpaWElpT2lKaFpHRm1JbjBzSW1WNGNDSTZNVGN6T0RFNE1UTTNNWDAuZExmYWJFVnJ6VXI1eTgwNTlFTUl0dC1VLXhoc2lQWlFYU3R5WUo4Q29hYw=="
     "400":
-      description: The username and password cannot contain special characters.
-    "422":
-      $ref: ../components/responses/BadRequest.yaml
+      $ref: ../components/responses/users/InvalidUsernamePassword.yaml
     "403":
-      $ref: ../components/responses/Forbidden.yaml
+      $ref: ../components/responses/users/InvalidCredentials.yaml
     "409":
-      $ref: ../components/responses/Conflict.yaml
+      $ref: ../components/responses/users/UserConflict.yaml

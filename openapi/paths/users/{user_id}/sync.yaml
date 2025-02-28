@@ -1,0 +1,41 @@
+get:
+  tags:
+    - Sync
+  summary: "Sync device"
+  description: |
+    Returns a list of book IDs belonging to a given user that have changed since the last sync, categorized into four groups:  
+
+    - `file`: Newly added books.  
+    - `metadata`: Books with updated metadata.  
+    - `cover`: Books with updated covers.  
+    - `deleted`: Books that have been removed.
+  operationId: sync
+  parameters:
+    - name: since
+      in: query
+      description: The UNIX timestamp of the last sync. If empty, assumes first sync.
+      required: false
+      schema:
+        type: integer
+        format: int64
+        example: 1705740000
+
+  responses:
+    "200":
+      description: The list of books whose data has changed since the last sync.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../components/schemas/Sync.yaml
+    "400":
+      $ref: ../../../components/responses/sync/InvalidTimestamp.yaml
+    "401":
+      $ref: ../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../../components/responses/users/UserNotFound.yaml
+
+  security:
+    - prosaToken: []
+    - apiKey: []

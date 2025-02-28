@@ -6,7 +6,6 @@ get:
     Download a book owned by a user.
     The user must be authenticated and have the appropriate permissions.
   operationId: downloadBook
-  
   parameters:
     - $ref: ../../components/parameters/book_id.yaml
 
@@ -18,12 +17,12 @@ get:
           schema:
             type: string
             format: binary
-
     "401":
       $ref: ../../components/responses/Unauthorized.yaml
-      
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml
     "404":
-      $ref: ../../components/responses/NotFound.yaml
+      $ref: ../../components/responses/books/BookNotFound.yaml
 
   security:
     - prosaToken: []
@@ -37,17 +36,18 @@ delete:
     Delete a book owned by a user.
     The user must be authenticated and have the appropriate permissions.
   operationId: deleteBook
-
   parameters:
     - $ref: ../../components/parameters/book_id.yaml
 
   responses:
-    "204":
+    "200":
       description: The book was deleted successfully.
     "401":
       $ref: ../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml
     "404":
-      $ref: ../../components/responses/NotFound.yaml
+      $ref: ../../components/responses/books/BookNotFound.yaml
 
   security:
     - prosaToken: []

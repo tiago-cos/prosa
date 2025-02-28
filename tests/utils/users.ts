@@ -9,6 +9,7 @@ export const USER_NOT_FOUND = "The requested user does not exist or is not acces
 export const API_KEY_NOT_FOUND = "The requested key does not exist or is not accessible.";
 export const INVALID_CAPABILITIES = "Invalid or unsupported capabilities provided.";
 export const INVALID_TIMESTAMP = "Expiration timestamp is invalid or incorrectly formatted.";
+export const INVALID_PROVIDERS = "Invalid or unsupported metadata provider selection.";
 
 export async function registerUser(username?: string, password?: string, adminKey?: string) {
     username = username || randomString(16);

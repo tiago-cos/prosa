@@ -6,7 +6,6 @@ post:
     Create an API key for a user.
     This key can be used to authenticate requests to the API.
   operationId: createApiKey
-
   parameters:
     - $ref: ../../../components/parameters/user_id.yaml
 
@@ -42,13 +41,13 @@ post:
                 id: 3a8d9e3a-8d9e-3a8d-9e3a-8d9e3a8d9e3a
                 key: "uXl248ck5oWd9uXl248c5oWd9uXl2"
     "400":
-      $ref: ../../../components/responses/BadRequest.yaml
+      $ref: ../../../components/responses/users/InvalidApiKey.yaml
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
     "403":
       $ref: ../../../components/responses/Forbidden.yaml
     "404":
-      $ref: ../../../components/responses/NotFound.yaml
+      $ref: ../../../components/responses/users/UserNotFound.yaml
 
   security:
     - prosaToken: []
@@ -75,14 +74,12 @@ get:
               format: uuid
             example:
               - 3a8d9e3a-8d9e-3a8d-9e3a-8d9e3a8d9e3a
-    "400":
-      $ref: ../../../components/responses/BadRequest.yaml
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
     "403":
       $ref: ../../../components/responses/Forbidden.yaml
     "404":
-      $ref: ../../../components/responses/NotFound.yaml
+      $ref: ../../../components/responses/users/UserNotFound.yaml
 
   security:
     - prosaToken: []

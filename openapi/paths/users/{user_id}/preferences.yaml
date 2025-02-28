@@ -1,36 +1,3 @@
-put:
-  tags:
-    - Preferences
-  summary: "Update preferences"
-  description: Update a user's preferences
-  operationId: updatePreferences
-
-  parameters:
-    - $ref: ../../../components/parameters/user_id.yaml
-
-  requestBody:
-    required: true
-    description: Request body for updating a user's preferences.
-    content:
-      application/json:
-        schema:
-          $ref: ../../../components/schemas/Preferences.yaml
-
-  responses:
-    "204":
-      description: Preferences updated successfully.
-    "400":
-      $ref: ../../../components/responses/BadRequest.yaml
-    "401":
-      $ref: ../../../components/responses/Unauthorized.yaml
-    "403":
-      $ref: ../../../components/responses/Forbidden.yaml
-    "404":
-      $ref: ../../../components/responses/NotFound.yaml
-
-  security:
-    - prosaToken: []
-
 get:
   tags:
     - Preferences
@@ -53,7 +20,41 @@ get:
     "403":
       $ref: ../../../components/responses/Forbidden.yaml
     "404":
-      $ref: ../../../components/responses/NotFound.yaml
+      $ref: ../../../components/responses/users/UserNotFound.yaml
+
+  security:
+    - prosaToken: []
+
+put:
+  tags:
+    - Preferences
+  summary: "Update preferences"
+  description: |
+    Update a user's preferences
+    The existing preferences will be completely replaced by the new ones.
+  operationId: updatePreferences
+  parameters:
+    - $ref: ../../../components/parameters/user_id.yaml
+
+  requestBody:
+    required: true
+    description: Request body for updating a user's preferences.
+    content:
+      application/json:
+        schema:
+          $ref: ../../../components/schemas/Preferences.yaml
+
+  responses:
+    "200":
+      description: Preferences updated successfully.
+    "400":
+      $ref: ../../../components/responses/users/InvalidProviders.yaml
+    "401":
+      $ref: ../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../../components/responses/users/UserNotFound.yaml
 
   security:
     - prosaToken: []

@@ -23,10 +23,10 @@ post:
             - password
         example:
           password: "password"
-            
+
   responses:
     "200":
-      description: Base64-encoded JWT token
+      description: The JWT token for the user
       content:
         text/plain:
           schema:
@@ -36,10 +36,7 @@ post:
             success:
               summary: Base64-encoded JWT token
               value: "ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnpkV0lpT2lJeE1qTTBOVFkzT0Rrd0lpd2libUZ0WlNJNklrcHZhRzRnUkc5bElpd2lhV0YwSWpveE5URTJNak01TURJeWZRLlNmbEt4d1JKU01lS0tGMlFUNGZ3cE1lSmYzNlBPazZ5SlZfYWRRc3N3NWM="
-
-    "400":
-      description: The username and password cannot contain special characters.
-    "422":
-      $ref: ../../components/responses/BadRequest.yaml
     "403":
-      $ref: ../../components/responses/Forbidden.yaml
+      $ref: ../../components/responses/users/InvalidCredentials.yaml
+    "404":
+      $ref: ../../components/responses/users/UserNotFound.yaml
