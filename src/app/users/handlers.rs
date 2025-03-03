@@ -13,13 +13,12 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use regex::Regex;
-use std::str::FromStr;
 
 pub async fn register_user_handler(
     State(state): State<AppState>,
     Json(body): Json<RegisterUserRequest>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let filter = Regex::new(r"^[\w.!@-]*$").unwrap();
+    let filter = Regex::new(r"^[\w.!@-]+$").unwrap();
     if !filter.is_match(&body.username) || !filter.is_match(&body.password) {
         return Err(UserError::InvalidInput.into());
     }
@@ -68,8 +67,8 @@ pub async fn create_api_key_handler(
 ) -> Result<impl IntoResponse, ProsaError> {
     let expiration = body
         .expires_at
-        .as_deref()
-        .map(|date| DateTime::<Utc>::from_str(date).map_err(|_| ApiKeyError::InvalidTimestamp))
+        .map(|date| DateTime::<Utc>::from_timestamp_millis(date))
+        .map(|result| result.ok_or(ApiKeyError::InvalidTimestamp))
         .transpose()?;
 
     if expiration.filter(|date| date >= &Utc::now()) != expiration {
@@ -98,7 +97,7 @@ pub async fn get_api_key_handler(
     let key = GetApiKeyResponse {
         name: key.name,
         capabilities: key.capabilities,
-        expires_at: key.expiration.map(|date| date.to_rfc2822()),
+        expires_at: key.expiration.map(|date| date.timestamp_millis()),
     };
 
     Ok(Json(key))

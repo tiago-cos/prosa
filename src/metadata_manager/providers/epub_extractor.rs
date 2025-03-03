@@ -58,6 +58,8 @@ impl MetadataProvider for EpubExtractor {
             None => None,
         };
 
+        let genres = epub.metadata.get("subject").map(|g| g.to_owned());
+
         let publication_date = epub
             .mdata("date")
             .map(|date| parse_date(&date).expect("Failed to parse date"));
@@ -70,7 +72,7 @@ impl MetadataProvider for EpubExtractor {
             publication_date,
             isbn,
             contributors,
-            genres: None,
+            genres,
             series,
             page_count,
             language,

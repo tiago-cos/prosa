@@ -13,12 +13,12 @@ get:
   parameters:
     - name: since
       in: query
-      description: The UNIX timestamp of the last sync. If empty, assumes first sync.
+      description: The UNIX timestamp (milliseconds) of the last sync. If empty, assumes first sync.
       required: false
       schema:
         type: integer
         format: int64
-        example: 1705740000
+        example: 1705740000000
 
   responses:
     "200":

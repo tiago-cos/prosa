@@ -1,7 +1,6 @@
 use super::models::EpubError;
 use sqlx::SqlitePool;
 
-//TODO this panicked three times due to unique hash constraint fail, mightve been due to concurrency
 pub async fn add_epub(pool: &SqlitePool, epub_id: &str, hash: &str) -> () {
     sqlx::query(
         r#"

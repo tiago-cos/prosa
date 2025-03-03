@@ -81,7 +81,6 @@ pub async fn get_api_key(pool: &SqlitePool, username: &str, key_id: &str) -> Res
         SELECT 
             key_id,
             user_id,
-            key_hash,
             name,
             expiration
         FROM api_keys
@@ -115,7 +114,6 @@ pub async fn get_api_key_by_hash(pool: &SqlitePool, key_hash: &str) -> Option<Ap
         SELECT 
             key_id,
             user_id,
-            key_hash,
             name,
             expiration
         FROM api_keys

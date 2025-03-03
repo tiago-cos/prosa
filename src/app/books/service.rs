@@ -1,4 +1,7 @@
-use super::{data, models::Book};
+use super::{
+    data,
+    models::{Book, BookError, PaginatedBooks},
+};
 use crate::app::error::ProsaError;
 use sqlx::SqlitePool;
 use uuid::Uuid;
@@ -26,6 +29,31 @@ pub async fn delete_book(pool: &SqlitePool, book_id: &str) -> Result<(), ProsaEr
     data::delete_book(pool, book_id).await?;
 
     Ok(())
+}
+
+pub async fn search_books(
+    pool: &SqlitePool,
+    user_id: Option<String>,
+    title: Option<String>,
+    author: Option<String>,
+    page: Option<i64>,
+    page_size: Option<i64>,
+) -> Result<PaginatedBooks, ProsaError> {
+    let page = match page {
+        None => 1,
+        Some(page) => page,
+    };
+
+    let page_size = match page_size {
+        None => 10,
+        Some(page_size) => page_size,
+    };
+
+    if page <= 0 || page_size <= 0 {
+        return Err(BookError::InvalidPagination.into());
+    }
+
+    Ok(data::get_paginated_books(pool, page, page_size, user_id, title, author).await)
 }
 
 pub async fn cover_is_in_use(pool: &SqlitePool, cover_id: &str) -> bool {

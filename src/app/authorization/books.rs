@@ -9,16 +9,16 @@ use crate::app::{
 };
 use axum::{
     body::{to_bytes, Body},
-    extract::{FromRequest, Path, Request, State},
+    extract::{FromRequest, Path, Query, Request, State},
     middleware::Next,
     response::IntoResponse,
     Extension,
 };
 use axum_typed_multipart::TypedMultipart;
-use std::usize;
+use std::{collections::HashMap, usize};
 
-async fn username_matches(username: &str, token: AuthToken) -> bool {
-    let user_id = match token.role {
+async fn username_matches(username: &str, token: &AuthToken) -> bool {
+    let user_id = match &token.role {
         AuthRole::Admin(_) => return true,
         AuthRole::User(id) => id,
     };
@@ -46,7 +46,7 @@ pub async fn can_create_book(
         .await
         .expect("Failed to parse request");
 
-    if !username_matches(&data.owner_id, token).await {
+    if !username_matches(&data.owner_id, &token).await {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -66,9 +66,28 @@ pub async fn can_read_book(
 
     let book = books::service::get_book(&pool, &book_id).await?;
 
-    if !username_matches(&book.owner_id, token).await {
+    if !username_matches(&book.owner_id, &token).await {
         return Err(BookError::BookNotFound.into());
     }
+
+    Ok(next.run(request).await)
+}
+
+pub async fn can_search_books(
+    Extension(token): Extension<AuthToken>,
+    Query(params): Query<HashMap<String, String>>,
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, ProsaError> {
+    if !token.capabilities.contains(&READ.to_string()) {
+        return Err(AuthError::Forbidden.into());
+    }
+
+    match params.get("username") {
+        None if !username_matches("", &token).await => return Err(AuthError::Forbidden.into()),
+        Some(u) if !username_matches(u, &token).await => return Err(AuthError::Forbidden.into()),
+        _ => (),
+    };
 
     Ok(next.run(request).await)
 }
@@ -86,7 +105,7 @@ pub async fn can_delete_book(
 
     let book = books::service::get_book(&pool, &book_id).await?;
 
-    if !username_matches(&book.owner_id, token).await {
+    if !username_matches(&book.owner_id, &token).await {
         return Err(BookError::BookNotFound.into());
     }
 
@@ -106,7 +125,7 @@ pub async fn can_update_book(
 
     let book = books::service::get_book(&pool, &book_id).await?;
 
-    if !username_matches(&book.owner_id, token).await {
+    if !username_matches(&book.owner_id, &token).await {
         return Err(BookError::BookNotFound.into());
     }
 

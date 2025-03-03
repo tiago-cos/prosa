@@ -3,8 +3,8 @@ import { FORBIDDEN, randomString, UNAUTHORIZED } from "../utils/common";
 import { SERVER_URL } from "../utils/common";
 import { registerUser, loginUser, createApiKey, getApiKey, getApiKeys, deleteApiKey, getPreferences, updatePreferences, INVALID_CREDENTIALS, INVALID_USERNAME_PASSWORD, USERNAME_IN_USE, USER_NOT_FOUND, API_KEY_NOT_FOUND, INVALID_CAPABILITIES, INVALID_TIMESTAMP, INVALID_PROVIDERS } from "../utils/users"
 
-describe("Register and login tests", () => {
-    test.concurrent("Register a new user", async () => {
+describe("Register", () => {
+    test.concurrent("Regular user", async () => {
         const { response: registerResponse, username, password } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -12,7 +12,7 @@ describe("Register and login tests", () => {
         expect(loginResponse.status).toBe(200);
     });
 
-    test.concurrent("Register a new admin user", async () => {
+    test.concurrent("Admin user", async () => {
         const { response: registerResponse, username, password } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse.status).toBe(200);
 
@@ -20,7 +20,25 @@ describe("Register and login tests", () => {
         expect(loginResponse.status).toBe(200);
     });
 
-    test.concurrent("Register with an invalid admin key", async () => {
+    test.concurrent("Invalid username and password", async () => {
+        const { response: registerResponse } = await registerUser("invalid username");
+        expect(registerResponse.status).toBe(400);
+        expect(registerResponse.text).toBe(INVALID_USERNAME_PASSWORD);
+
+        const { response: registerResponse2 } = await registerUser("");
+        expect(registerResponse2.status).toBe(400);
+        expect(registerResponse2.text).toBe(INVALID_USERNAME_PASSWORD);
+
+        const { response: registerResponse3 } = await registerUser(undefined, "invalid password");
+        expect(registerResponse3.status).toBe(400);
+        expect(registerResponse3.text).toBe(INVALID_USERNAME_PASSWORD);
+
+        const { response: registerResponse4 } = await registerUser(undefined, "");
+        expect(registerResponse4.status).toBe(400);
+        expect(registerResponse4.text).toBe(INVALID_USERNAME_PASSWORD);
+    });
+
+    test.concurrent("Invalid admin key", async () => {
         const adminKey = "invalid_admin_key";
 
         const { response: registerResponse } = await registerUser(undefined, undefined, adminKey);
@@ -28,17 +46,7 @@ describe("Register and login tests", () => {
         expect(registerResponse.text).toBe(INVALID_CREDENTIALS);
     });
 
-    test.concurrent("Register with an invalid username and password", async () => {
-        const { response: registerResponse } = await registerUser("invalid username");
-        expect(registerResponse.status).toBe(400);
-        expect(registerResponse.text).toBe(INVALID_USERNAME_PASSWORD);
-
-        const { response: registerResponse2 } = await registerUser(undefined, "invalid password");
-        expect(registerResponse2.status).toBe(400);
-        expect(registerResponse2.text).toBe(INVALID_USERNAME_PASSWORD);
-    });
-
-    test.concurrent("Register with an existing username", async () => {
+    test.concurrent("User conflict", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -47,22 +55,7 @@ describe("Register and login tests", () => {
         expect(registerResponse2.text).toBe(USERNAME_IN_USE);
     });
 
-    test.concurrent("Login with a non-existing username", async () => {
-        const { response: loginResponse } = await loginUser("doesnt_exist", "doesnt_exist");
-        expect(loginResponse.status).toBe(404);
-        expect(loginResponse.text).toBe(USER_NOT_FOUND);
-    });
-
-    test.concurrent("Login with invalid credentials", async () => {
-        const { response: registerResponse, username } = await registerUser();
-        expect(registerResponse.status).toBe(200);
-
-        const { response: loginResponse } = await loginUser(username, "wrong_password");
-        expect(loginResponse.status).toBe(403);
-        expect(loginResponse.text).toBe(INVALID_CREDENTIALS);
-    });
-
-    test.concurrent("Register and login with invalid request body", async () => {
+    test.concurrent("Invalid request body", async () => {
         const username = randomString(16);
         const password = randomString(16);
 
@@ -72,17 +65,36 @@ describe("Register and login tests", () => {
         });
 
         expect(registerResponse.status).toBe(422);
+    });
+});
 
-        const loginResponse = await request(SERVER_URL).post("/users/" + username).send({
-            pass: password
+describe("Login", () => {
+    test.concurrent("Non-existing user", async () => {
+        const { response: loginResponse } = await loginUser("non-existent", "non-existent");
+        expect(loginResponse.status).toBe(404);
+        expect(loginResponse.text).toBe(USER_NOT_FOUND);
+    });
+
+    test.concurrent("Invalid credentials", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const { response: loginResponse } = await loginUser(username, "wrong_password");
+        expect(loginResponse.status).toBe(403);
+        expect(loginResponse.text).toBe(INVALID_CREDENTIALS);
+    });
+
+    test.concurrent("Invalid request body", async () => {
+        const loginResponse = await request(SERVER_URL).post("/users/" + "non-existent").send({
+            pass: "password"
         });
 
         expect(loginResponse.status).toBe(422);
     });
 });
 
-describe("Api key tests", () => {
-    test.concurrent("Create a new api key without timestamp", async () => {
+describe("Create api key", () => {
+    test.concurrent("No timestamp", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -96,31 +108,136 @@ describe("Api key tests", () => {
         expect(getApiKeyResponse.body.expires_at).toBeUndefined();
     });
 
-    test.concurrent("Create a new api key with timestamp", async () => {
+    test.concurrent("With timestamp", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", { jwt: registerResponse.text });
+        const date = Date.now() + 300000;
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], date, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse.text });
         expect(getApiKeyResponse.status).toBe(200);
         expect(getApiKeyResponse.body.name).toBe("Test Key");
         expect(getApiKeyResponse.body.capabilities).toEqual(["Create", "Read"]);
-        expect(getApiKeyResponse.body.expires_at).toBe("Sun, 1 Jun 2025 12:00:00 +0000");
+        expect(getApiKeyResponse.body.expires_at).toBe(date);
     });
 
-    test.concurrent("List api keys", async () => {
+    test.concurrent("Non-existent user", async () => {
+        const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey("non-existent", "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(404);
+        expect(createApiKeyResponse.text).toBe(USER_NOT_FOUND);
+    });
+
+    test.concurrent("Invalid capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", { jwt: registerResponse.text });
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Read"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(400);
+        expect(createApiKeyResponse.text).toBe(INVALID_CAPABILITIES);
+
+        const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Wrong"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse2.status).toBe(400);
+        expect(createApiKeyResponse2.text).toBe(INVALID_CAPABILITIES);
+
+        const createApiKeyResponse3 = await createApiKey(username, "Test Key", [], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse3.status).toBe(400);
+        expect(createApiKeyResponse3.text).toBe(INVALID_CAPABILITIES);
+    });
+
+    test.concurrent("Invalid expiration", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], Date.now() - 300000, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(400);
+        expect(createApiKeyResponse.text).toBe(INVALID_TIMESTAMP);
+
+        const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Read"], 9223372036854772, { jwt: registerResponse.text });
+        expect(createApiKeyResponse2.status).toBe(400);
+        expect(createApiKeyResponse2.text).toBe(INVALID_TIMESTAMP);
+    });
+
+    test.concurrent("Different user without permission", async () => {
+        const { response: registerResponse } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const { response: registerResponse2, username } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(403);
+        expect(createApiKeyResponse.text).toBe(FORBIDDEN);
+    });
+
+    test.concurrent("Different user with permission", async () => {
+        const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse.status).toBe(200);
+
+        const { response: registerResponse2, username } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
-        const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", { jwt: registerResponse.text });
+        const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse.text });
+        expect(getApiKeyResponse.status).toBe(200);
+    });
+
+    test.concurrent("No auth", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined);
+        expect(createApiKeyResponse.status).toBe(401);
+        expect(createApiKeyResponse.text).toBe(UNAUTHORIZED);
+    });
+
+    test.concurrent("Invalid auth", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Read"], undefined, { apiKey: createApiKeyResponse.body.key });
+        expect(createApiKeyResponse2.status).toBe(403);
+        expect(createApiKeyResponse2.text).toBe(FORBIDDEN);
+    });
+
+    test.concurrent("Invalid request", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await request(SERVER_URL)
+            .post(`/users/${username}/keys`)
+            .auth(registerResponse.text, { type: "bearer" })
+            .send({
+                bad: username,
+                field: []
+            });
+
+        expect(createApiKeyResponse.status).toBe(422);
+    });
+});
+
+describe("List api keys", () => {
+    test.concurrent("Simple", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], Date.now() + 300000, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Read", "Create"], Date.now() + 300000, { jwt: registerResponse.text });
         expect(createApiKeyResponse2.status).toBe(200);
 
-        const createApiKeyResponse3 = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", { jwt: registerResponse.text });
+        const createApiKeyResponse3 = await createApiKey(username, "Test Key", ["Read", "Create"], Date.now() + 300000, { jwt: registerResponse.text });
         expect(createApiKeyResponse3.status).toBe(200);
 
         const getApiKeysResponse = await getApiKeys(username, { jwt: registerResponse.text });
@@ -139,7 +256,164 @@ describe("Api key tests", () => {
         expect(getApiKeysResponse2.body).toEqual([]);
     });
 
-    test.concurrent("Delete api key", async () => {
+    test.concurrent("Non-existent user", async () => {
+        const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse.status).toBe(200);
+
+        const getApiKeysResponse = await getApiKeys("non-existent", { jwt: registerResponse.text })
+        expect(getApiKeysResponse.status).toBe(404);
+        expect(getApiKeysResponse.text).toBe(USER_NOT_FOUND);
+    });
+
+    test.concurrent("Different user without permission", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], Date.now() + 300000, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const { response: registerResponse2 } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const getApiKeysResponse = await getApiKeys(username, { jwt: registerResponse2.text })
+        expect(getApiKeysResponse.status).toBe(403);
+        expect(getApiKeysResponse.text).toBe(FORBIDDEN);
+    });
+
+    test.concurrent("Different user with permission", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], Date.now() + 300000, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse2.status).toBe(200);
+
+        const getApiKeysResponse = await getApiKeys(username, { jwt: registerResponse2.text });
+        expect(getApiKeysResponse.status).toBe(200);
+    });
+
+    test.concurrent("No auth", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], Date.now() + 300000, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const getApiKeysResponse = await getApiKeys(username);
+        expect(getApiKeysResponse.status).toBe(401);
+        expect(getApiKeysResponse.text).toBe(UNAUTHORIZED);
+    });
+
+    test.concurrent("Wrong auth", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], Date.now() + 300000, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const getApiKeysResponse = await getApiKeys(username, { apiKey: createApiKeyResponse.body.key });
+        expect(getApiKeysResponse.status).toBe(403);
+        expect(getApiKeysResponse.text).toBe(FORBIDDEN);
+    });
+});
+
+describe("Get api key", () => {
+    test.concurrent("Simple", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const expectedResponse = {
+            name: "Test Key",
+            capabilities: ["Read"]
+        }
+
+        const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse.text });
+        expect(getApiKeyResponse.status).toBe(200);
+        expect(getApiKeyResponse.body).toEqual(expectedResponse);
+    });
+
+    test.concurrent("Non-existent api key", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const getApiKeyResponse = await getApiKey(username, "non-existent", { jwt: registerResponse.text });
+        expect(getApiKeyResponse.status).toBe(404);
+        expect(getApiKeyResponse.text).toBe(API_KEY_NOT_FOUND);
+    });
+
+    test.concurrent("Non-existent user", async () => {
+        const { response: registerResponse, username } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const getApiKeyResponse = await getApiKey("non-existent", createApiKeyResponse.body.id, { jwt: registerResponse.text });
+        expect(getApiKeyResponse.status).toBe(404);
+        expect(getApiKeyResponse.text).toBe(USER_NOT_FOUND);
+    });
+
+    test.concurrent("Different user without permission", async () => {
+        const { response: registerResponse } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const { response: registerResponse2, username } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse.text });
+        expect(getApiKeyResponse.status).toBe(403);
+        expect(getApiKeyResponse.text).toBe(FORBIDDEN);
+    });
+
+    test.concurrent("Different user with permission", async () => {
+        const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse.status).toBe(200);
+
+        const { response: registerResponse2, username } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse.text });
+        expect(getApiKeyResponse.status).toBe(200);
+    });
+
+    test.concurrent("No auth", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id);
+        expect(getApiKeyResponse.status).toBe(401);
+        expect(getApiKeyResponse.text).toBe(UNAUTHORIZED);
+    });
+
+    test.concurrent("Wrong auth", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { apiKey: createApiKeyResponse.body.key });
+        expect(getApiKeyResponse.status).toBe(403);
+        expect(getApiKeyResponse.text).toBe(FORBIDDEN);
+    });
+});
+
+describe("Delete api key", () => {
+    test.concurrent("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -157,62 +431,14 @@ describe("Api key tests", () => {
         expect(getApiKeyResponse2.text).toBe(API_KEY_NOT_FOUND);
     });
 
-    test.concurrent("Create a new api key with invalid capabilities", async () => {
-        const { response: registerResponse, username } = await registerUser();
-        expect(registerResponse.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Read"], undefined, { jwt: registerResponse.text });
-        expect(createApiKeyResponse.status).toBe(400);
-        expect(createApiKeyResponse.text).toBe(INVALID_CAPABILITIES);
-
-        const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Wrong"], undefined, { jwt: registerResponse.text });
-        expect(createApiKeyResponse2.status).toBe(400);
-        expect(createApiKeyResponse2.text).toBe(INVALID_CAPABILITIES);
-
-        const createApiKeyResponse3 = await createApiKey(username, "Test Key", [], undefined, { jwt: registerResponse.text });
-        expect(createApiKeyResponse3.status).toBe(400);
-        expect(createApiKeyResponse3.text).toBe(INVALID_CAPABILITIES);
-    });
-
-    test.concurrent("Create a new api key with an invalid expiration", async () => {
-        const { response: registerResponse, username } = await registerUser();
-        expect(registerResponse.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], "2003-10-28T12:00:00Z", { jwt: registerResponse.text });
-        expect(createApiKeyResponse.status).toBe(400);
-        expect(createApiKeyResponse.text).toBe(INVALID_TIMESTAMP);
-
-        const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Read"], "invalid timestamp", { jwt: registerResponse.text });
-        expect(createApiKeyResponse2.status).toBe(400);
-        expect(createApiKeyResponse2.text).toBe(INVALID_TIMESTAMP);
-    });
-
-    test.concurrent("Create a new api key for a non-existent user", async () => {
-        const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
-        expect(registerResponse.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey("ghost", "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
-        expect(createApiKeyResponse.status).toBe(404);
-        expect(createApiKeyResponse.text).toBe(USER_NOT_FOUND);
-    });
-
-    test.concurrent("List api keys non-existent user", async () => {
-        const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
-        expect(registerResponse.status).toBe(200);
-
-        const getApiKeysResponse = await getApiKeys("ghost", { jwt: registerResponse.text })
-        expect(getApiKeysResponse.status).toBe(404);
-        expect(getApiKeysResponse.text).toBe(USER_NOT_FOUND);
-    });
-
-    test.concurrent("Delete api key for non-existent user", async () => {
+    test.concurrent("Non-existent user", async () => {
         const { response: registerResponse, username } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse.status).toBe(200);
 
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
-        const deleteApiKeyResponse = await deleteApiKey("ghost", createApiKeyResponse.body.id, { jwt: registerResponse.text });
+        const deleteApiKeyResponse = await deleteApiKey("non-existent", createApiKeyResponse.body.id, { jwt: registerResponse.text });
         expect(deleteApiKeyResponse.status).toBe(404);
         expect(deleteApiKeyResponse.text).toBe(USER_NOT_FOUND);
 
@@ -220,172 +446,19 @@ describe("Api key tests", () => {
         expect(getApiKeyResponse2.status).toBe(200);
     });
 
-    test.concurrent("Delete a non-existent api key", async () => {
+    test.concurrent("Non-existent api key", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
-        const deleteApiKeyResponse = await deleteApiKey(username, "not found", { jwt: registerResponse.text });
+        const deleteApiKeyResponse = await deleteApiKey(username, "non-existent", { jwt: registerResponse.text });
         expect(deleteApiKeyResponse.status).toBe(404);
         expect(deleteApiKeyResponse.text).toBe(API_KEY_NOT_FOUND);
     });
 
-    test.concurrent("Get a non-existent api key", async () => {
-        const { response: registerResponse, username } = await registerUser();
-        expect(registerResponse.status).toBe(200);
-
-        const getApiKeyResponse = await getApiKey(username, "not found", { jwt: registerResponse.text });
-        expect(getApiKeyResponse.status).toBe(404);
-        expect(getApiKeyResponse.text).toBe(API_KEY_NOT_FOUND);
-    });
-
-    test.concurrent("Get an api key from a non-existent user", async () => {
-        const { response: registerResponse, username } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
-        expect(registerResponse.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
-        expect(createApiKeyResponse.status).toBe(200);
-
-        const getApiKeyResponse = await getApiKey("not found", createApiKeyResponse.body.id, { jwt: registerResponse.text });
-        expect(getApiKeyResponse.status).toBe(404);
-        expect(getApiKeyResponse.text).toBe(USER_NOT_FOUND);
-    });
-
-    test.concurrent("Create api key without auth", async () => {
-        const { response: registerResponse, username } = await registerUser();
-        expect(registerResponse.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined);
-        expect(createApiKeyResponse.status).toBe(401);
-        expect(createApiKeyResponse.text).toBe(UNAUTHORIZED);
-    });
-
-    test.concurrent("Delete api key without auth", async () => {
-        const { response: registerResponse, username } = await registerUser();
-        expect(registerResponse.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, { jwt: registerResponse.text });
-        expect(createApiKeyResponse.status).toBe(200);
-
-        const deleteApiKeyResponse = await deleteApiKey(username, createApiKeyResponse.body.id);
-        expect(deleteApiKeyResponse.status).toBe(401);
-        expect(deleteApiKeyResponse.text).toBe(UNAUTHORIZED);
-    });
-
-    test.concurrent("Create api key with api key auth without admin", async () => {
-        const { response: registerResponse, username } = await registerUser();
-        expect(registerResponse.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
-        expect(createApiKeyResponse.status).toBe(200);
-
-        const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Read"], undefined, { apiKey: createApiKeyResponse.body.key });
-        expect(createApiKeyResponse2.status).toBe(403);
-        expect(createApiKeyResponse2.text).toBe(FORBIDDEN);
-    });
-
-    test.concurrent("Delete api key with api key auth without admin", async () => {
-        const { response: registerResponse, username } = await registerUser();
-        expect(registerResponse.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, { jwt: registerResponse.text });
-        expect(createApiKeyResponse.status).toBe(200);
-
-        const deleteApiKeyResponse = await deleteApiKey(username, createApiKeyResponse.body.id, { apiKey: createApiKeyResponse.body.key });
-        expect(deleteApiKeyResponse.status).toBe(403);
-        expect(deleteApiKeyResponse.text).toBe(FORBIDDEN);
-    });
-
-    test.concurrent("Get api key with api key auth without admin", async () => {
-        const { response: registerResponse, username } = await registerUser();
-        expect(registerResponse.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
-        expect(createApiKeyResponse.status).toBe(200);
-
-        const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { apiKey: createApiKeyResponse.body.key });
-        expect(getApiKeyResponse.status).toBe(403);
-        expect(getApiKeyResponse.text).toBe(FORBIDDEN);
-    });
-
-    test.concurrent("Create api key with api key auth with admin", async () => {
-        const { response: registerResponse, username } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
-        expect(registerResponse.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
-        expect(createApiKeyResponse.status).toBe(200);
-
-        const createApiKeyResponse2 = await createApiKey(username, "Test Key", ["Read"], undefined, { apiKey: createApiKeyResponse.body.key });
-        expect(createApiKeyResponse2.status).toBe(403);
-        expect(createApiKeyResponse2.text).toBe(FORBIDDEN);
-    });
-
-    test.concurrent("Delete api key with api key auth with admin", async () => {
-        const { response: registerResponse, username } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
-        expect(registerResponse.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, { jwt: registerResponse.text });
-        expect(createApiKeyResponse.status).toBe(200);
-
-        const deleteApiKeyResponse = await deleteApiKey(username, createApiKeyResponse.body.id, { apiKey: createApiKeyResponse.body.key });
-        expect(deleteApiKeyResponse.status).toBe(403);
-        expect(deleteApiKeyResponse.text).toBe(FORBIDDEN);
-    });
-
-    test.concurrent("Get api key with api key auth with admin", async () => {
-        const { response: registerResponse, username } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
-        expect(registerResponse.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
-        expect(createApiKeyResponse.status).toBe(200);
-
-        const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { apiKey: createApiKeyResponse.body.key });
-        expect(getApiKeyResponse.status).toBe(403);
-        expect(getApiKeyResponse.text).toBe(FORBIDDEN);
-    });
-
-    test.concurrent("Get api key without auth", async () => {
-        const { response: registerResponse, username } = await registerUser();
-        expect(registerResponse.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
-        expect(createApiKeyResponse.status).toBe(200);
-
-        const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id);
-        expect(getApiKeyResponse.status).toBe(401);
-        expect(getApiKeyResponse.text).toBe(UNAUTHORIZED);
-    });
-
-    test.concurrent("Create api key for another user without admin", async () => {
-        const { response: registerResponse } = await registerUser();
-        expect(registerResponse.status).toBe(200);
-
-        const { response: registerResponse2, username } = await registerUser();
-        expect(registerResponse2.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
-        expect(createApiKeyResponse.status).toBe(403);
-        expect(createApiKeyResponse.text).toBe(FORBIDDEN);
-    });
-
-    test.concurrent("Get api key from another user without admin", async () => {
-        const { response: registerResponse } = await registerUser();
-        expect(registerResponse.status).toBe(200);
-
-        const { response: registerResponse2, username } = await registerUser();
-        expect(registerResponse2.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse2.text });
-        expect(createApiKeyResponse.status).toBe(200);
-
-        const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse.text });
-        expect(getApiKeyResponse.status).toBe(403);
-        expect(getApiKeyResponse.text).toBe(FORBIDDEN);
-    });
-
-    test.concurrent("Delete api key from another user without admin", async () => {
+    test.concurrent("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -400,7 +473,7 @@ describe("Api key tests", () => {
         expect(deleteApiKeyResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Delete api key from another user with admin", async () => {
+    test.concurrent("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -418,103 +491,33 @@ describe("Api key tests", () => {
         expect(getApiKeyResponse.text).toBe(API_KEY_NOT_FOUND);
     });
 
-    test.concurrent("Create api key for another user with admin", async () => {
-        const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
-        expect(registerResponse.status).toBe(200);
-
-        const { response: registerResponse2, username } = await registerUser();
-        expect(registerResponse2.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
-        expect(createApiKeyResponse.status).toBe(200);
-
-        const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse.text });
-        expect(getApiKeyResponse.status).toBe(200);
-    });
-
-    test.concurrent("List api keys without auth", async () => {
+    test.concurrent("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", { jwt: registerResponse.text });
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
-        const getApiKeysResponse = await getApiKeys(username);
-        expect(getApiKeysResponse.status).toBe(401);
-        expect(getApiKeysResponse.text).toBe(UNAUTHORIZED);
+        const deleteApiKeyResponse = await deleteApiKey(username, createApiKeyResponse.body.id);
+        expect(deleteApiKeyResponse.status).toBe(401);
+        expect(deleteApiKeyResponse.text).toBe(UNAUTHORIZED);
     });
 
-    test.concurrent("List api keys with api key auth with admin", async () => {
-        const { response: registerResponse, username } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
-        expect(registerResponse.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", { jwt: registerResponse.text });
-        expect(createApiKeyResponse.status).toBe(200);
-
-        const getApiKeysResponse = await getApiKeys(username, { apiKey: createApiKeyResponse.body.key });
-        expect(getApiKeysResponse.status).toBe(403);
-        expect(getApiKeysResponse.text).toBe(FORBIDDEN);
-    });
-
-    test.concurrent("List api keys with api key auth without admin", async () => {
+    test.concurrent("Wrong auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", { jwt: registerResponse.text });
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], undefined, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
-        const getApiKeysResponse = await getApiKeys(username, { apiKey: createApiKeyResponse.body.key });
-        expect(getApiKeysResponse.status).toBe(403);
-        expect(getApiKeysResponse.text).toBe(FORBIDDEN);
-    });
-
-    test.concurrent("List api keys from another user without admin", async () => {
-        const { response: registerResponse, username } = await registerUser();
-        expect(registerResponse.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", { jwt: registerResponse.text });
-        expect(createApiKeyResponse.status).toBe(200);
-
-        const { response: registerResponse2 } = await registerUser();
-        expect(registerResponse2.status).toBe(200);
-
-        const getApiKeysResponse = await getApiKeys(username, { jwt: registerResponse2.text })
-        expect(getApiKeysResponse.status).toBe(403);
-        expect(getApiKeysResponse.text).toBe(FORBIDDEN);
-    });
-
-    test.concurrent("List api keys from another user with admin", async () => {
-        const { response: registerResponse, username } = await registerUser();
-        expect(registerResponse.status).toBe(200);
-
-        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read", "Create"], "2025-06-01T12:00:00Z", { jwt: registerResponse.text });
-        expect(createApiKeyResponse.status).toBe(200);
-
-        const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
-        expect(registerResponse2.status).toBe(200);
-
-        const getApiKeysResponse = await getApiKeys(username, { jwt: registerResponse2.text });
-        expect(getApiKeysResponse.status).toBe(200);
-    });
-
-    test.concurrent("Create api key invalid request", async () => {
-        const { response: registerResponse, username } = await registerUser();
-        expect(registerResponse.status).toBe(200);
-
-        const createApiKeyResponse = await request(SERVER_URL)
-            .post(`/users/${username}/keys`)
-            .auth(registerResponse.text, { type: "bearer" })
-            .send({
-                bad: username,
-                field: []
-            });
-
-        expect(createApiKeyResponse.status).toBe(422);
+        const deleteApiKeyResponse = await deleteApiKey(username, createApiKeyResponse.body.id, { apiKey: createApiKeyResponse.body.key });
+        expect(deleteApiKeyResponse.status).toBe(403);
+        expect(deleteApiKeyResponse.text).toBe(FORBIDDEN);
     });
 });
 
-describe("User preference tests", () => {
-    test.concurrent("Get preferences", async () => {
+describe("Get preferences", () => {
+    test.concurrent("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -524,7 +527,50 @@ describe("User preference tests", () => {
         expect(getPreferencesResponse.body.metadata_providers).toEqual(["epub_metadata_extractor"]);
     });
 
-    test.concurrent("Update preferences", async () => {
+    test.concurrent("Non-existent user", async () => {
+        const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse.status).toBe(200);
+
+        const getPreferencesResponse = await getPreferences("non-existent", { jwt: registerResponse.text });
+        expect(getPreferencesResponse.status).toBe(404);
+        expect(getPreferencesResponse.text).toBe(USER_NOT_FOUND);
+    });
+
+    test.concurrent("Different user without permission", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const { response: registerResponse2 } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const getPreferencesResponse = await getPreferences(username, { jwt: registerResponse2.text });
+        expect(getPreferencesResponse.status).toBe(403);
+        expect(getPreferencesResponse.text).toBe(FORBIDDEN);
+    });
+
+    test.concurrent("Different user with permission", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse2.status).toBe(200);
+
+        const getPreferencesResponse = await getPreferences(username, { jwt: registerResponse2.text });
+        expect(getPreferencesResponse.status).toBe(200);
+    });
+
+    test.concurrent("No auth", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const getPreferencesResponse = await getPreferences(username);
+        expect(getPreferencesResponse.status).toBe(401);
+        expect(getPreferencesResponse.text).toBe(UNAUTHORIZED);
+    });
+});
+
+describe("Update preferences", () => {
+    test.concurrent("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -558,7 +604,7 @@ describe("User preference tests", () => {
         expect(getPreferencesResponse3.body.metadata_providers).toEqual([]);
     });
 
-    test.concurrent("Update preferences with invalid providers", async () => {
+    test.concurrent("Invalid providers", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -571,12 +617,12 @@ describe("User preference tests", () => {
         expect(updatePreferencesResponse.text).toBe(INVALID_PROVIDERS);
     });
 
-    test.concurrent("Update preferences non-existent user", async () => {
+    test.concurrent("Non-existent user", async () => {
         const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse.status).toBe(200);
 
         const updatePreferencesResponse = await updatePreferences(
-            "ghost",
+            "non-existent",
             ["goodreads_metadata_scraper"],
             { jwt: registerResponse.text }
         );
@@ -584,42 +630,7 @@ describe("User preference tests", () => {
         expect(updatePreferencesResponse.text).toBe(USER_NOT_FOUND);
     });
 
-    test.concurrent("Get preferences non-existent user", async () => {
-        const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
-        expect(registerResponse.status).toBe(200);
-
-        const getPreferencesResponse = await getPreferences("ghost", { jwt: registerResponse.text });
-        expect(getPreferencesResponse.status).toBe(404);
-        expect(getPreferencesResponse.text).toBe(USER_NOT_FOUND);
-    });
-
-    test.concurrent("Update preferences for another user admin", async () => {
-        const { response: registerResponse, username } = await registerUser();
-        expect(registerResponse.status).toBe(200);
-
-        const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
-        expect(registerResponse2.status).toBe(200);
-
-        const updatePreferencesResponse = await updatePreferences(
-            username,
-            ["goodreads_metadata_scraper"],
-            { jwt: registerResponse2.text }
-        );
-        expect(updatePreferencesResponse.status).toBe(200);
-    });
-
-    test.concurrent("Get preferences for another user admin", async () => {
-        const { response: registerResponse, username } = await registerUser();
-        expect(registerResponse.status).toBe(200);
-
-        const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
-        expect(registerResponse2.status).toBe(200);
-
-        const getPreferencesResponse = await getPreferences(username, { jwt: registerResponse2.text });
-        expect(getPreferencesResponse.status).toBe(200);
-    });
-
-    test.concurrent("Update preferences for another user no admin", async () => {
+    test.concurrent("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -635,28 +646,22 @@ describe("User preference tests", () => {
         expect(updatePreferencesResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Get preferences for another user no admin", async () => {
+    test.concurrent("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
-        const { response: registerResponse2 } = await registerUser();
+        const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse2.status).toBe(200);
 
-        const getPreferencesResponse = await getPreferences(username, { jwt: registerResponse2.text });
-        expect(getPreferencesResponse.status).toBe(403);
-        expect(getPreferencesResponse.text).toBe(FORBIDDEN);
+        const updatePreferencesResponse = await updatePreferences(
+            username,
+            ["goodreads_metadata_scraper"],
+            { jwt: registerResponse2.text }
+        );
+        expect(updatePreferencesResponse.status).toBe(200);
     });
 
-    test.concurrent("Get preferences no auth", async () => {
-        const { response: registerResponse, username } = await registerUser();
-        expect(registerResponse.status).toBe(200);
-
-        const getPreferencesResponse = await getPreferences(username);
-        expect(getPreferencesResponse.status).toBe(401);
-        expect(getPreferencesResponse.text).toBe(UNAUTHORIZED);
-    });
-
-    test.concurrent("Update preferences no auth", async () => {
+    test.concurrent("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -668,7 +673,7 @@ describe("User preference tests", () => {
         expect(updatePreferencesResponse.text).toBe(UNAUTHORIZED);
     });
 
-    test.concurrent("Update preferences invalid request", async () => {
+    test.concurrent("Invalid request", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 

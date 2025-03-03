@@ -1,7 +1,7 @@
 use super::handlers;
 use crate::app::{
     authentication::middleware::extract_token_middleware,
-    authorization::books::{can_create_book, can_delete_book, can_read_book},
+    authorization::books::{can_create_book, can_delete_book, can_read_book, can_search_books},
     AppState,
 };
 use axum::{
@@ -16,6 +16,9 @@ pub fn get_routes(state: AppState) -> Router {
     Router::new()
         .route("/books", post(handlers::upload_book_handler)
             .route_layer(from_fn_with_state(state.clone(), can_create_book))
+        )
+        .route("/books", get(handlers::search_books_handler)
+            .route_layer(from_fn_with_state(state.clone(), can_search_books))
         )
         .route("/books/{book_id}", get(handlers::download_book_handler) 
             .route_layer(from_fn_with_state(state.clone(), can_read_book))

@@ -49,6 +49,8 @@ tags:
     description: "Operations about book metadata."
   - name: State
     description: "Operations about book state."
+  - name: Search
+    description: "Operations about searching books."
   - name: Sync
     description: "Operations about synchronization."
   - name: Authentication
@@ -64,6 +66,7 @@ x-tagGroups:
       - Cover
       - Metadata
       - State
+      - Search
   - name: Sync
     tags:
       - Sync

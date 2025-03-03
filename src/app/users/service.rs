@@ -86,3 +86,8 @@ pub async fn update_preferences(
     }
     Ok(())
 }
+
+pub async fn user_exists(pool: &SqlitePool, username: &str) -> Result<(), ProsaError> {
+    data::get_user(pool, username).await?;
+    Ok(())
+}

@@ -58,3 +58,71 @@ post:
   security:
     - prosaToken: []
     - apiKey: []
+
+get:
+  tags:
+    - Search
+  summary: "Search for books"
+  description: |
+    Retrieve a paginated list of books that match the search criteria.
+    The user must be authenticated and have the appropriate permissions.
+    Only users with admin privileges can search without user-based filtering.
+  operationId: searchBooks
+  parameters:
+    - name: username
+      in: query
+      required: false
+      description: Book owner filter.
+      schema:
+        type: string
+      example: "john.doe"
+    - name: title
+      in: query
+      required: false
+      description: Title search query.
+      schema:
+        type: string
+      example: "The Great Gatsby"
+    - name: author
+      in: query
+      required: false
+      description: Author search query.
+      schema:
+        type: string
+      example: "Rick Riordan"
+    - name: page
+      in: query
+      required: false
+      description: The page number to retrieve.
+      schema:
+        type: integer
+        default: 1
+      example: 1
+    - name: size
+      in: query
+      required: false
+      description: Number of items per page.
+      schema:
+        type: integer
+        default: 10
+      example: 1
+
+  responses:
+    "200":
+      description: The result of the search.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/SearchResult.yaml
+    "400":
+      $ref: ../components/responses/books/InvalidPagination.yaml
+    "401":
+      $ref: ../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../components/responses/users/UserNotFound.yaml
+
+  security:
+    - prosaToken: []
+    - apiKey: []

@@ -1,12 +1,10 @@
-use super::{
-    seed::seed_database,
-    tables::{clear_tables, create_tables},
-};
+use super::tables::{clear_tables, create_tables};
 use crate::app::AppState;
 use axum::extract::FromRef;
 use sqlx::{sqlite::SqliteConnectOptions, Pool, Sqlite, SqlitePool};
 use std::sync::Arc;
 
+#[allow(dead_code)]
 pub async fn init(filename: &str) -> Pool<Sqlite> {
     let db_options = SqliteConnectOptions::new()
         .filename(filename)
@@ -19,6 +17,7 @@ pub async fn init(filename: &str) -> Pool<Sqlite> {
     pool
 }
 
+#[allow(dead_code)]
 pub async fn debug_init(filename: &str) -> Pool<Sqlite> {
     let db_options = SqliteConnectOptions::new()
         .filename(filename)
@@ -28,7 +27,6 @@ pub async fn debug_init(filename: &str) -> Pool<Sqlite> {
 
     clear_tables(&pool).await;
     create_tables(&pool).await;
-    seed_database(&pool).await;
 
     pool
 }

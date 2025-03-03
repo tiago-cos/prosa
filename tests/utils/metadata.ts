@@ -10,7 +10,7 @@ export const EXAMPLE_METADATA = {
     subtitle: "A novel by Harper Lee",
     description: "To Kill a Mockingbird is a novel by Harper Lee, published in 1960. It is a classic of modern American literature and deals with serious issues like racial injustice and moral growth.",
     publisher: "J.B. Lippincott & Co.",
-    publication_date: -299819049,
+    publication_date: -299819049000,
     isbn: "978-0-06-112008-4",
     contributors: [
         {
@@ -31,16 +31,22 @@ export const EXAMPLE_METADATA = {
     language: "English",
 };
 
-export const ALICE_METADATA = { 
+export const ALICE_METADATA = {
     contributors: [
-        { 
-            name: "Lewis Carroll", 
-            role: "Author" 
+        {
+            name: "Lewis Carroll",
+            role: "Author"
         }
-    ], 
-    isbn: "http://www.gutenberg.org/11", 
+    ],
+    genres: [
+        "Alice (Fictitious character from Carroll) -- Juvenile fiction",
+        "Children's stories",
+        "Fantasy fiction",
+        "Imaginary places -- Juvenile fiction",
+    ],
+    isbn: "http://www.gutenberg.org/11",
     language: "en",
-    publication_date: 1214524800, 
+    publication_date: 1214524800000,
     title: "Alice's Adventures in Wonderland",
 };
 

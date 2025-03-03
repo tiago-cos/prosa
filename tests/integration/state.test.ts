@@ -4,7 +4,7 @@ import { BOOK_NOT_FOUND, uploadBook } from "../utils/books"
 import { ALICE_STATE, EMPTY_STATE, getState, INVALID_LOCATION, INVALID_RATING, patchState, updateState } from "../utils/state"
 
 describe("Get state JWT", () => {
-    test.concurrent("Get state", async () => {
+    test.concurrent("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -17,7 +17,7 @@ describe("Get state JWT", () => {
         expect(downloadResponse.body).toEqual(EMPTY_STATE);
     });
 
-    test.concurrent("Get state from non-existent book", async () => {
+    test.concurrent("Non-existent book", async () => {
         const { response: registerResponse } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -26,7 +26,7 @@ describe("Get state JWT", () => {
         expect(downloadResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Get state | Different user | !admin", async () => {
+    test.concurrent("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -41,7 +41,7 @@ describe("Get state JWT", () => {
         expect(downloadResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Get state | Different user | admin", async () => {
+    test.concurrent("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -55,7 +55,7 @@ describe("Get state JWT", () => {
         expect(downloadResponse.status).toBe(200);
     });
 
-    test.concurrent("Get state no auth", async () => {
+    test.concurrent("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -69,7 +69,7 @@ describe("Get state JWT", () => {
 });
 
 describe("Get state api key", () => {
-    test.concurrent("Get state", async () => {
+    test.concurrent("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -85,7 +85,7 @@ describe("Get state api key", () => {
         expect(downloadResponse.body).toEqual(EMPTY_STATE);
     });
 
-    test.concurrent("Get state from non-existent book", async () => {
+    test.concurrent("Non-existent book", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -97,7 +97,7 @@ describe("Get state api key", () => {
         expect(downloadResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Get state | Different user | !admin", async () => {
+    test.concurrent("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -115,7 +115,7 @@ describe("Get state api key", () => {
         expect(downloadResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Get state | Different user | admin", async () => {
+    test.concurrent("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -132,7 +132,7 @@ describe("Get state api key", () => {
         expect(downloadResponse.status).toBe(200);
     });
 
-    test.concurrent("Get state wrong capabilities", async () => {
+    test.concurrent("Wrong capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -147,14 +147,14 @@ describe("Get state api key", () => {
         expect(downloadResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Get state expired api key", async () => {
+    test.concurrent("Expired api key", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
-        const timestamp = new Date(Date.now() + 2000).toISOString();
+        const timestamp = Date.now() + 2000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
@@ -168,7 +168,7 @@ describe("Get state api key", () => {
 });
 
 describe("Update state JWT", () => {
-    test.concurrent("Update state", async () => {
+    test.concurrent("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -205,7 +205,7 @@ describe("Update state JWT", () => {
         expect(downloadResponse4.body).toEqual({});
     });
 
-    test.concurrent("Update state from non-existent book", async () => {
+    test.concurrent("Non-existent book", async () => {
         const { response: registerResponse } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -214,7 +214,7 @@ describe("Update state JWT", () => {
         expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Update invalid state", async () => {
+    test.concurrent("Invalid state", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -255,7 +255,7 @@ describe("Update state JWT", () => {
         expect(updateResponse6.text).toBe(INVALID_RATING);
     });
 
-    test.concurrent("Update state | Different user | !admin", async () => {
+    test.concurrent("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -270,7 +270,7 @@ describe("Update state JWT", () => {
         expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Update state | Different user | admin", async () => {
+    test.concurrent("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -284,7 +284,7 @@ describe("Update state JWT", () => {
         expect(updateResponse.status).toBe(200);
     });
 
-    test.concurrent("Update state no auth", async () => {
+    test.concurrent("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -298,7 +298,7 @@ describe("Update state JWT", () => {
 });
 
 describe("Update state api key", () => {
-    test.concurrent("Update state", async () => {
+    test.concurrent("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -338,7 +338,7 @@ describe("Update state api key", () => {
         expect(downloadResponse4.body).toEqual({});
     });
 
-    test.concurrent("Update state from non-existent book", async () => {
+    test.concurrent("Non-existent book", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -350,7 +350,7 @@ describe("Update state api key", () => {
         expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Update invalid state", async () => {
+    test.concurrent("Invalid state", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -394,7 +394,7 @@ describe("Update state api key", () => {
         expect(updateResponse6.text).toBe(INVALID_RATING);
     });
 
-    test.concurrent("Update state | Different user | !admin", async () => {
+    test.concurrent("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -412,7 +412,7 @@ describe("Update state api key", () => {
         expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Update state | Different user | admin", async () => {
+    test.concurrent("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -429,7 +429,7 @@ describe("Update state api key", () => {
         expect(updateResponse.status).toBe(200);
     });
 
-    test.concurrent("Update state wrong capabilities", async () => {
+    test.concurrent("Wrong capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -444,14 +444,14 @@ describe("Update state api key", () => {
         expect(updateResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Update state expired api key", async () => {
+    test.concurrent("Expired api key", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
-        const timestamp = new Date(Date.now() + 2000).toISOString();
+        const timestamp = Date.now() + 2000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
@@ -465,7 +465,7 @@ describe("Update state api key", () => {
 });
 
 describe("Patch state JWT", () => {
-    test.concurrent("Patch state", async () => {
+    test.concurrent("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -500,7 +500,7 @@ describe("Patch state JWT", () => {
         expect(downloadResponse3.body).toEqual(expectedState);
     });
 
-    test.concurrent("Patch state from non-existent book", async () => {
+    test.concurrent("Non-existent book", async () => {
         const { response: registerResponse } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -509,7 +509,7 @@ describe("Patch state JWT", () => {
         expect(patchResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Patch invalid state", async () => {
+    test.concurrent("Invalid state", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -538,7 +538,7 @@ describe("Patch state JWT", () => {
         expect(patchResponse3.text).toBe(INVALID_LOCATION);
     });
 
-    test.concurrent("Patch state | Different user | !admin", async () => {
+    test.concurrent("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -553,7 +553,7 @@ describe("Patch state JWT", () => {
         expect(patchResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Patch state | Different user | admin", async () => {
+    test.concurrent("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -567,7 +567,7 @@ describe("Patch state JWT", () => {
         expect(patchResponse.status).toBe(200);
     });
 
-    test.concurrent("Patch state no auth", async () => {
+    test.concurrent("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -581,7 +581,7 @@ describe("Patch state JWT", () => {
 });
 
 describe("Patch state api key", () => {
-    test.concurrent("Patch state", async () => {
+    test.concurrent("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -619,7 +619,7 @@ describe("Patch state api key", () => {
         expect(downloadResponse3.body).toEqual(expectedState);
     });
 
-    test.concurrent("Patch state from non-existent book", async () => {
+    test.concurrent("Non-existent book", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -631,7 +631,7 @@ describe("Patch state api key", () => {
         expect(patchResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Patch invalid state", async () => {
+    test.concurrent("Invalid state", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -663,7 +663,7 @@ describe("Patch state api key", () => {
         expect(patchResponse3.text).toBe(INVALID_LOCATION);
     });
 
-    test.concurrent("Patch state | Different user | !admin", async () => {
+    test.concurrent("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -681,7 +681,7 @@ describe("Patch state api key", () => {
         expect(patchResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Patch state | Different user | admin", async () => {
+    test.concurrent("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -698,7 +698,7 @@ describe("Patch state api key", () => {
         expect(patchResponse.status).toBe(200);
     });
 
-    test.concurrent("Patch state wrong capabilities", async () => {
+    test.concurrent("Wrong capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -713,14 +713,14 @@ describe("Patch state api key", () => {
         expect(patchResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Patch state expired api key", async () => {
+    test.concurrent("Expired api key", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
-        const timestamp = new Date(Date.now() + 2000).toISOString();
+        const timestamp = Date.now() + 2000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 

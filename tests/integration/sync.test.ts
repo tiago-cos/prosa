@@ -6,7 +6,7 @@ import { EXAMPLE_METADATA, updateMetadata } from "../utils/metadata";
 import { updateCover } from "../utils/covers";
 
 describe("Sync JWT", () => {
-    test.concurrent("Simple test", async () => {
+    test.concurrent("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -87,7 +87,7 @@ describe("Sync JWT", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Delete files", async () => {
+    test.concurrent("Deleted files", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -140,7 +140,7 @@ describe("Sync JWT", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Metadata and cover", async () => {
+    test.concurrent("Changed metadata and cover", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -264,12 +264,12 @@ describe("Sync JWT", () => {
         const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse.status).toBe(200);
 
-        let syncResponse = await sync("ghost", undefined, { jwt: registerResponse.text });
+        let syncResponse = await sync("non-existent", undefined, { jwt: registerResponse.text });
         expect(syncResponse.status).toBe(404);
         expect(syncResponse.text).toBe(USER_NOT_FOUND);
     });
 
-    test.concurrent("Different user | !admin", async () => {
+    test.concurrent("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -281,7 +281,7 @@ describe("Sync JWT", () => {
         expect(syncResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Different user | admin", async () => {
+    test.concurrent("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -303,7 +303,7 @@ describe("Sync JWT", () => {
 });
 
 describe("Sync api key", () => {
-    test.concurrent("Simple test", async () => {
+    test.concurrent("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -387,7 +387,7 @@ describe("Sync api key", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Delete files", async () => {
+    test.concurrent("Deleted files", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -443,7 +443,7 @@ describe("Sync api key", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Metadata and cover", async () => {
+    test.concurrent("Changed metadata and cover", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -587,7 +587,7 @@ describe("Sync api key", () => {
         expect(syncResponse.text).toBe(USER_NOT_FOUND);
     });
 
-    test.concurrent("Different user | !admin", async () => {
+    test.concurrent("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -602,7 +602,7 @@ describe("Sync api key", () => {
         expect(syncResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Different user | admin", async () => {
+    test.concurrent("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -632,7 +632,7 @@ describe("Sync api key", () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
-        const timestamp = new Date(Date.now() + 2000).toISOString();
+        const timestamp = Date.now() + 2000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 

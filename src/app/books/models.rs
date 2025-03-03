@@ -1,5 +1,6 @@
 use axum::body::Bytes;
 use axum_typed_multipart::TryFromMultipart;
+use serde::Serialize;
 use sqlx::{
     error::{DatabaseError, ErrorKind},
     sqlite::SqliteError,
@@ -17,6 +18,9 @@ pub enum BookError {
     #[strum(message = "This book is already in your library.")]
     #[strum(props(StatusCode = "409"))]
     BookConflict,
+    #[strum(message = "The requested pagination is invalid.")]
+    #[strum(props(StatusCode = "400"))]
+    InvalidPagination,
     #[strum(message = "Internal error")]
     #[strum(props(StatusCode = "500"))]
     InternalError,
@@ -56,4 +60,13 @@ pub struct UploadBoodRequest {
     pub owner_id: String,
     #[form_data(limit = "30MiB")]
     pub epub: Bytes,
+}
+
+#[derive(Serialize)]
+pub struct PaginatedBooks {
+    pub book_ids: Vec<String>,
+    pub page_size: i64,
+    pub total_elements: i64,
+    pub total_pages: i64,
+    pub current_page: i64,
 }

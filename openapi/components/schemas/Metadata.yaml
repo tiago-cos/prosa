@@ -19,10 +19,9 @@ properties:
     description: The publisher of the book.
     example: "HarperCollins"
   publication_date:
-    type: string
-    format: date
-    description: The publication date of the book.
-    example: "1925-04-10"
+    type: number
+    description: The publication date of the book (UNIX milliseconds).
+    example: -1411462448000
   isbn:
     type: string
     description: The ISBN (International Standard Book Number) of the book.

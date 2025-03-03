@@ -150,7 +150,6 @@ pub struct LoginUserRequest {
 }
 
 pub const EPUB_PROVIDER: &str = "epub_metadata_extractor";
-pub const GOODREADS_PROVIDER: &str = "goodreads_metadata_scraper";
 
 #[derive(FromRow, Serialize, Deserialize)]
 pub struct Preferences {
@@ -161,7 +160,6 @@ pub struct Preferences {
 pub struct ApiKey {
     pub key_id: String,
     pub user_id: String,
-    pub key_hash: String,
     pub name: String,
     pub expiration: Option<DateTime<Utc>>,
     #[sqlx(skip)]
@@ -173,14 +171,14 @@ pub struct ApiKey {
 pub struct GetApiKeyResponse {
     pub name: String,
     pub capabilities: Vec<String>,
-    pub expires_at: Option<String>,
+    pub expires_at: Option<i64>,
 }
 
 #[derive(Deserialize)]
 pub struct CreateApiKeyRequest {
     pub name: String,
     pub capabilities: Vec<String>,
-    pub expires_at: Option<String>,
+    pub expires_at: Option<i64>,
 }
 
 #[derive(Serialize)]

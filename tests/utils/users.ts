@@ -12,8 +12,8 @@ export const INVALID_TIMESTAMP = "Expiration timestamp is invalid or incorrectly
 export const INVALID_PROVIDERS = "Invalid or unsupported metadata provider selection.";
 
 export async function registerUser(username?: string, password?: string, adminKey?: string) {
-    username = username || randomString(16);
-    password = password || randomString(16);
+    username = username ?? randomString(16);
+    password = password ?? randomString(16);
 
     const payload: Record<string, string> = { username, password };
     if (adminKey) {
@@ -37,7 +37,7 @@ export async function createApiKey(
     username: string,
     keyName: string,
     capabilities: string[],
-    expiresAt?: string,
+    expiresAt?: number,
     auth?: { jwt?: string; apiKey?: string }
 ) {
     let req = request(SERVER_URL).post(`/users/${username}/keys`);

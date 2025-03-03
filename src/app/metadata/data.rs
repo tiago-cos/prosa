@@ -57,7 +57,6 @@ pub async fn get_metadata(pool: &SqlitePool, metadata_id: &str) -> Result<Metada
     Ok(metadata)
 }
 
-//TODO test situations where there is no metadata except series/genre/contributors
 pub async fn add_metadata(
     pool: &SqlitePool,
     metadata_id: &str,

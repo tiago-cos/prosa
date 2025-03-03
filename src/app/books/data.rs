@@ -1,4 +1,4 @@
-use super::models::{Book, BookError};
+use super::models::{Book, BookError, PaginatedBooks};
 use sqlx::SqlitePool;
 
 pub async fn get_book(pool: &SqlitePool, book_id: &str) -> Result<Book, BookError> {
@@ -132,4 +132,101 @@ pub async fn get_books_by_epub(pool: &SqlitePool, epub_id: &str) -> Vec<Book> {
     .expect("Failed to retrieve books with given epub");
 
     books
+}
+
+pub async fn get_paginated_books(
+    pool: &SqlitePool,
+    page: i64,
+    page_size: i64,
+    user_id: Option<String>,
+    title: Option<String>,
+    author: Option<String>,
+) -> PaginatedBooks {
+    let offset = (page - 1) * page_size;
+
+    let mut bind_params: Vec<String> = Vec::new();
+
+    let mut book_query = String::from(
+        r#"
+        SELECT DISTINCT book_id
+        FROM books b
+        LEFT JOIN metadata m ON b.metadata_id = m.metadata_id
+        LEFT JOIN contributors c ON b.metadata_id = c.metadata_id
+        WHERE 1=1
+        "#,
+    );
+
+    let mut count_query = String::from(
+        r#"
+        SELECT COUNT(DISTINCT book_id)
+        FROM books b
+        LEFT JOIN metadata m ON b.metadata_id = m.metadata_id
+        LEFT JOIN contributors c ON b.metadata_id = c.metadata_id
+        WHERE 1=1
+        "#,
+    );
+
+    if let Some(user_id) = user_id {
+        let part = format!(" AND b.owner_id = ${}", bind_params.len() + 1);
+        book_query.push_str(&part);
+        count_query.push_str(&part);
+        bind_params.push(user_id);
+    }
+
+    if let Some(title) = title {
+        let part = format!(
+            " AND m.title LIKE '%' || ${} || '%' COLLATE NOCASE",
+            bind_params.len() + 1
+        );
+        book_query.push_str(&part);
+        count_query.push_str(&part);
+        bind_params.push(title);
+    }
+
+    if let Some(author) = author {
+        let part = format!(
+            " AND c.name LIKE '%' || ${} || '%' COLLATE NOCASE",
+            bind_params.len() + 1
+        );
+        book_query.push_str(&part);
+        count_query.push_str(&part);
+        bind_params.push(author);
+    }
+
+    let part = format!(
+        " ORDER BY b.book_id LIMIT ${} OFFSET ${}",
+        bind_params.len() + 1,
+        bind_params.len() + 2
+    );
+    book_query.push_str(&part);
+
+    let mut book_ids = sqlx::query_scalar(&book_query);
+    let mut total_elements = sqlx::query_scalar(&count_query);
+
+    for param in bind_params {
+        book_ids = book_ids.bind(param.clone());
+        total_elements = total_elements.bind(param);
+    }
+
+    book_ids = book_ids.bind(page_size).bind(offset);
+
+    let book_ids = book_ids
+        .fetch_all(pool)
+        .await
+        .expect("Failed to search for books");
+
+    let total_elements = total_elements
+        .fetch_one(pool)
+        .await
+        .expect("Failed to count books");
+
+    let total_pages = (total_elements + page_size - 1) / page_size;
+
+    PaginatedBooks {
+        book_ids,
+        page_size,
+        total_elements,
+        total_pages,
+        current_page: page,
+    }
 }

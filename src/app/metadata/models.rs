@@ -1,4 +1,4 @@
-use chrono::{serde::ts_seconds_option, DateTime, Utc};
+use chrono::{serde::ts_milliseconds_option, DateTime, Utc};
 use merge::Merge;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
@@ -66,7 +66,7 @@ pub struct Metadata {
     pub subtitle: Option<String>,
     pub description: Option<String>,
     pub publisher: Option<String>,
-    #[serde(default, with = "ts_seconds_option")]
+    #[serde(default, with = "ts_milliseconds_option")]
     pub publication_date: Option<DateTime<Utc>>,
     pub isbn: Option<String>,
     #[sqlx(skip)]

@@ -5,11 +5,11 @@ fullMetadata:
     subtitle: "A novel by F. Scott Fitzgerald"
     description: "The Great Gatsby is a novel by F. Scott Fitzgerald."
     publisher: "HarperCollins"
-    publication_date: "1925-04-10"
+    publication_date: -1411462448000
     isbn: "978-3-16-148410-0"
     contributors: [{ name: "F. Scott Fitzgerald", role: "Author" }]
     genres: ["Fiction", "Classics", "American Literature"]
-    series: { name: "The Great Gatsby", number: 1 }
+    series: { title: "The Great Gatsby", number: 1 }
     page_count: 208
     language: "English"
 

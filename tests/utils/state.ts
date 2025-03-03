@@ -6,14 +6,14 @@ export const INVALID_LOCATION = "The provided location is invalid.";
 
 export const EMPTY_STATE = {};
 
-export const ALICE_STATE = { 
-    location: { 
-        tag: "kobo.4.2", 
+export const ALICE_STATE = {
+    location: {
+        tag: "kobo.4.2",
         source: "OEBPS/229714655232534212_11-h-4.htm.xhtml",
-    }, 
-    statistics: { 
-        rating: 4.5, 
-    }, 
+    },
+    statistics: {
+        rating: 4.5,
+    },
 };
 
 export async function updateState(book_id: string, state: any, auth?: { jwt?: string; apiKey?: string }) {

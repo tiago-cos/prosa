@@ -26,7 +26,6 @@ impl MetadataManager {
         }
     }
 
-    //TODO when this panics, the program should still work
     pub async fn fetch_metadata(
         self: Arc<Self>,
         pool: Arc<SqlitePool>,

@@ -1,13 +1,15 @@
 use super::{
-    models::{Book, UploadBoodRequest},
+    models::{Book, BookError, UploadBoodRequest},
     service,
 };
-use crate::app::{covers, epubs, error::ProsaError, metadata, state, sync, users, AppState};
+use crate::app::{covers, epubs, error::ProsaError, metadata, state, sync, users, AppState, Pool};
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     response::IntoResponse,
+    Json,
 };
 use axum_typed_multipart::TypedMultipart;
+use std::collections::HashMap;
 
 pub async fn download_book_handler(
     State(state): State<AppState>,
@@ -81,4 +83,39 @@ pub async fn delete_book_handler(
     }
 
     Ok(())
+}
+
+pub async fn search_books_handler(
+    State(pool): State<Pool>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<impl IntoResponse, ProsaError> {
+    if let Some(user_id) = params.get("username") {
+        users::service::user_exists(&pool, &user_id).await?;
+    };
+
+    let page = params.get("page").map(|t| t.parse::<i64>());
+    let page = match page {
+        Some(Ok(p)) => Some(p),
+        None => None,
+        _ => return Err(BookError::InvalidPagination.into()),
+    };
+
+    let size = params.get("size").map(|t| t.parse::<i64>());
+    let size = match size {
+        Some(Ok(s)) => Some(s),
+        None => None,
+        _ => return Err(BookError::InvalidPagination.into()),
+    };
+
+    let books = service::search_books(
+        &pool,
+        params.get("username").map(|s| s.to_string()),
+        params.get("title").map(|s| s.to_string()),
+        params.get("author").map(|s| s.to_string()),
+        page,
+        size,
+    )
+    .await?;
+
+    Ok(Json(books))
 }
