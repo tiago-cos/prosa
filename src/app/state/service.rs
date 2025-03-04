@@ -1,6 +1,8 @@
+use crate::app::error::ProsaError;
+
 use super::{
     data,
-    models::{Location, State, StateError, Statistics},
+    models::{Location, State, StateError, Statistics, VALID_READING_STATUS},
 };
 use epub::doc::EpubDoc;
 use merge::Merge;
@@ -10,7 +12,7 @@ use uuid::Uuid;
 pub async fn initialize_state(pool: &SqlitePool) -> String {
     let initial_state = State {
         location: None,
-        statistics: None,
+        statistics: Some(Statistics { rating: None, reading_status: Some(VALID_READING_STATUS[0].to_string()) }),
     };
     let state_id = Uuid::new_v4().to_string();
 
@@ -31,7 +33,7 @@ pub async fn patch_state(
     epub_path: &str,
     epub_id: &str,
     mut state: State,
-) -> Result<(), StateError> {
+) -> Result<(), ProsaError> {
     let original = data::get_state(pool, state_id).await;
     state.merge(original);
 
@@ -47,34 +49,43 @@ pub async fn update_state(
     epub_path: &str,
     epub_id: &str,
     state: State,
-) -> Result<(), StateError> {
+) -> Result<(), ProsaError> {
     validate_state(&state, epub_path, epub_id).await?;
     data::update_state(pool, state_id, state).await;
 
     Ok(())
 }
 
-pub async fn validate_state(state: &State, epub_path: &str, epub_id: &str) -> Result<(), StateError> {
+pub async fn validate_state(state: &State, epub_path: &str, epub_id: &str) -> Result<(), ProsaError> {
     match &state.statistics {
-        Some(s) if !validate_statistics(s).await => return Err(StateError::InvalidRating),
-        _ => (),
+        Some(s) => validate_statistics(s).await?,
+        None => return Err(StateError::InvalidState.into()),
     };
 
     match &state.location {
-        Some(l) if !validate_location(l, epub_path, epub_id).await => {
-            return Err(StateError::InvalidLocation)
-        }
+        Some(l) => validate_location(l, epub_path, epub_id).await?,
         _ => (),
     };
 
     Ok(())
 }
 
-async fn validate_statistics(stats: &Statistics) -> bool {
-    return stats.rating >= Some(0.0) && stats.rating <= Some(5.0);
+async fn validate_statistics(stats: &Statistics) -> Result<(), ProsaError> {
+    match stats.rating {
+        Some(rating) if rating < 0.0 || rating > 5.0 => return Err(StateError::InvalidRating.into()),
+        _ => ()
+    };
+
+    match stats.reading_status.as_deref() {
+        None => return Err(StateError::InvalidReadingStatus.into()),
+        Some(status) if !VALID_READING_STATUS.contains(&status) => return Err(StateError::InvalidReadingStatus.into()),
+        _ => ()
+    }
+
+    Ok(())
 }
 
-async fn validate_location(location: &Location, epub_path: &str, epub_id: &str) -> bool {
+async fn validate_location(location: &Location, epub_path: &str, epub_id: &str) -> Result<(), ProsaError> {
     let epub_file = format!("{}/{}.kepub.epub", epub_path, epub_id);
     let mut doc = EpubDoc::new(epub_file).expect("Error opening epub");
     let sources: Vec<String> = doc
@@ -84,13 +95,13 @@ async fn validate_location(location: &Location, epub_path: &str, epub_id: &str) 
         .collect();
 
     let (source, tag) = match (&location.source, &location.tag) {
-        (_, None) => return false,
-        (None, _) => return false,
+        (_, None) => return Err(StateError::InvalidLocation.into()),
+        (None, _) => return Err(StateError::InvalidLocation.into()),
         (Some(source), Some(tag)) => (source, tag),
     };
 
     if !sources.contains(&source) {
-        return false;
+        return Err(StateError::InvalidLocation.into());
     }
 
     let text = doc
@@ -98,5 +109,9 @@ async fn validate_location(location: &Location, epub_path: &str, epub_id: &str) 
         .expect("Failed to get book resource");
     let tag = format!("<span class=\"koboSpan\" id=\"{}\"", tag);
 
-    return text.contains(&tag);
+    if !text.contains(&tag) {
+        return Err(StateError::InvalidLocation.into());
+    }
+
+    Ok(())
 }

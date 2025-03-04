@@ -1,0 +1,9 @@
+allOf:
+  - $ref: ./BookState.yaml
+  - type: object
+    required:
+      - statistics
+    properties:
+      statistics:
+        required:
+          - reading_status

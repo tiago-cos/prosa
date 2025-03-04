@@ -22,5 +22,10 @@ properties:
         format: float
         description: The rating of the book.
         example: 4.5
+      reading_status:
+        type: string
+        description: The current reading status of the book.
+        enum: ["Unread", "Reading", "Read"]
+        example: "Unread"
       
 additionalProperties: false

@@ -2,9 +2,9 @@ use super::models::{Location, State, Statistics};
 use sqlx::SqlitePool;
 
 pub async fn get_state(pool: &SqlitePool, state_id: &str) -> State {
-    let (tag, source, rating): (Option<String>, Option<String>, Option<f32>) = sqlx::query_as(
+    let (tag, source, rating, reading_status): (Option<String>, Option<String>, Option<f32>, String) = sqlx::query_as(
         r#"
-        SELECT tag, source, rating
+        SELECT tag, source, rating, reading_status
         FROM state
         WHERE state_id = $1
         "#,
@@ -18,26 +18,26 @@ pub async fn get_state(pool: &SqlitePool, state_id: &str) -> State {
         tag: Some(t),
         source: Some(s),
     });
-    let statistics = rating.map(|r| Statistics { rating: Some(r) });
-
-    State { location, statistics }
+    let statistics = Statistics { rating, reading_status: Some(reading_status) };
+    State { location, statistics: Some(statistics) }
 }
 
 pub async fn add_state(pool: &SqlitePool, state_id: &str, state: State) -> () {
     let (tag, source) = state.location.map(|l| (l.tag, l.source)).unwrap_or((None, None));
-
-    let rating = state.statistics.map(|s| s.rating).unwrap_or(None);
+    let statistics = state.statistics.expect("Statistics should be present");
+    let reading_status = statistics.reading_status.expect("Reading status should be present");
 
     sqlx::query(
         r#"
-        INSERT INTO state (state_id, tag, source, rating) VALUES
-        ($1, $2, $3, $4)
+        INSERT INTO state (state_id, tag, source, rating, reading_status) VALUES
+        ($1, $2, $3, $4, $5)
         "#,
     )
     .bind(state_id)
     .bind(tag)
     .bind(source)
-    .bind(rating)
+    .bind(statistics.rating)
+    .bind(reading_status.to_string())
     .execute(pool)
     .await
     .expect("Failed to add book state");
@@ -45,19 +45,20 @@ pub async fn add_state(pool: &SqlitePool, state_id: &str, state: State) -> () {
 
 pub async fn update_state(pool: &SqlitePool, state_id: &str, state: State) -> () {
     let (tag, source) = state.location.map(|l| (l.tag, l.source)).unwrap_or((None, None));
-
-    let rating = state.statistics.map(|s| s.rating).unwrap_or(None);
+    let statistics = state.statistics.expect("Statistics should be present");
+    let reading_status = statistics.reading_status.expect("Reading status should be present");
 
     sqlx::query(
         r#"
         UPDATE state
-        SET tag = $1, source = $2, rating = $3
-        WHERE state_id = $4
+        SET tag = $1, source = $2, rating = $3, reading_status = $4
+        WHERE state_id = $5
         "#,
     )
     .bind(tag)
     .bind(source)
-    .bind(rating)
+    .bind(statistics.rating)
+    .bind(reading_status)
     .bind(state_id)
     .execute(pool)
     .await

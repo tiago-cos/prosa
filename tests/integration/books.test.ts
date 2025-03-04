@@ -794,7 +794,7 @@ describe("Search books JWT", () => {
         const uploadResponse2 = await uploadBook(username2, "The_Great_Gatsby.epub", { jwt: registerResponse2.text });
         expect(uploadResponse2.status).toBe(200);
 
-        let searchResponse = await searchBooks(undefined, undefined, undefined, undefined, 100, { jwt: registerResponse.text });
+        let searchResponse = await searchBooks(undefined, undefined, undefined, undefined, 1000, { jwt: registerResponse.text });
         expect(searchResponse.status).toBe(200);
 
         expect(searchResponse.body.book_ids).toContain(uploadResponse.text);

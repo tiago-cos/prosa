@@ -1,7 +1,7 @@
 import { FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from "../utils/common";
 import { registerUser, createApiKey } from "../utils/users"
 import { BOOK_NOT_FOUND, uploadBook } from "../utils/books"
-import { ALICE_STATE, EMPTY_STATE, getState, INVALID_LOCATION, INVALID_RATING, patchState, updateState } from "../utils/state"
+import { ALICE_STATE, EMPTY_STATE, getState, INVALID_LOCATION, INVALID_RATING, INVALID_READING_STATUS, INVALID_STATE, patchState, updateState } from "../utils/state"
 
 describe("Get state JWT", () => {
     test.concurrent("Simple", async () => {
@@ -188,21 +188,21 @@ describe("Update state JWT", () => {
 
         expect(downloadResponse2.body).toEqual(ALICE_STATE);
 
-        const updateResponse2 = await updateState(uploadResponse.text, { statistics: { rating: 2.1 } }, { jwt: registerResponse.text });
+        const updateResponse2 = await updateState(uploadResponse.text, { statistics: { rating: 2.1, reading_status: "Read" } }, { jwt: registerResponse.text });
         expect(updateResponse2.status).toBe(200);
 
         const downloadResponse3 = await getState(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse3.status).toBe(200);
 
-        expect(downloadResponse3.body).toEqual({ statistics: { rating: 2.1 } });
+        expect(downloadResponse3.body).toEqual({ statistics: { rating: 2.1, reading_status: "Read" } });
 
-        const updateResponse3 = await updateState(uploadResponse.text, {}, { jwt: registerResponse.text });
+        const updateResponse3 = await updateState(uploadResponse.text, EMPTY_STATE, { jwt: registerResponse.text });
         expect(updateResponse3.status).toBe(200);
 
         const downloadResponse4 = await getState(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse4.status).toBe(200);
 
-        expect(downloadResponse4.body).toEqual({});
+        expect(downloadResponse4.body).toEqual(EMPTY_STATE);
     });
 
     test.concurrent("Non-existent book", async () => {
@@ -242,17 +242,21 @@ describe("Update state JWT", () => {
         expect(updateResponse3.status).toBe(400);
         expect(updateResponse3.text).toBe(INVALID_LOCATION);
 
-        const updateResponse4 = await updateState(uploadResponse.text, { statistics: {} }, { jwt: registerResponse.text });
+        const updateResponse4 = await updateState(uploadResponse.text, { statistics: { reading_status: "invalid"} }, { jwt: registerResponse.text });
         expect(updateResponse4.status).toBe(400);
-        expect(updateResponse4.text).toBe(INVALID_RATING);
+        expect(updateResponse4.text).toBe(INVALID_READING_STATUS);
 
-        const updateResponse5 = await updateState(uploadResponse.text, { location: { tag: "kobo.1.1" } }, { jwt: registerResponse.text });
+        const updateResponse5 = await updateState(uploadResponse.text, { statistics: {} }, { jwt: registerResponse.text });
         expect(updateResponse5.status).toBe(400);
-        expect(updateResponse5.text).toBe(INVALID_LOCATION);
+        expect(updateResponse5.text).toBe(INVALID_READING_STATUS);
 
-        const updateResponse6 = await updateState(uploadResponse.text, { location: {}, statistics: {} }, { jwt: registerResponse.text });
+        const updateResponse6 = await updateState(uploadResponse.text, { location: { tag: "kobo.1.1" }, statistics: { reading_status: "Read"} }, { jwt: registerResponse.text });
         expect(updateResponse6.status).toBe(400);
-        expect(updateResponse6.text).toBe(INVALID_RATING);
+        expect(updateResponse6.text).toBe(INVALID_LOCATION);
+
+        const updateResponse7 = await updateState(uploadResponse.text, {}, { jwt: registerResponse.text });
+        expect(updateResponse7.status).toBe(400);
+        expect(updateResponse7.text).toBe(INVALID_STATE);
     });
 
     test.concurrent("Different user without permission", async () => {
@@ -321,21 +325,21 @@ describe("Update state api key", () => {
 
         expect(downloadResponse2.body).toEqual(ALICE_STATE);
 
-        const updateResponse2 = await updateState(uploadResponse.text, { statistics: { rating: 2.1 } }, { apiKey: createApiKeyResponse.body.key });
+        const updateResponse2 = await updateState(uploadResponse.text, { statistics: { rating: 2.1, reading_status: "Read" } }, { apiKey: createApiKeyResponse.body.key });
         expect(updateResponse2.status).toBe(200);
 
         const downloadResponse3 = await getState(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse3.status).toBe(200);
 
-        expect(downloadResponse3.body).toEqual({ statistics: { rating: 2.1 } });
+        expect(downloadResponse3.body).toEqual({ statistics: { rating: 2.1, reading_status: "Read" } });
 
-        const updateResponse3 = await updateState(uploadResponse.text, {}, { apiKey: createApiKeyResponse.body.key });
+        const updateResponse3 = await updateState(uploadResponse.text, EMPTY_STATE, { apiKey: createApiKeyResponse.body.key });
         expect(updateResponse3.status).toBe(200);
 
         const downloadResponse4 = await getState(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse4.status).toBe(200);
 
-        expect(downloadResponse4.body).toEqual({});
+        expect(downloadResponse4.body).toEqual(EMPTY_STATE);
     });
 
     test.concurrent("Non-existent book", async () => {
@@ -381,17 +385,21 @@ describe("Update state api key", () => {
         expect(updateResponse3.status).toBe(400);
         expect(updateResponse3.text).toBe(INVALID_LOCATION);
 
-        const updateResponse4 = await updateState(uploadResponse.text, { statistics: {} }, { apiKey: createApiKeyResponse.body.key });
+        const updateResponse4 = await updateState(uploadResponse.text, { statistics: { reading_status: "invalid"} }, { apiKey: createApiKeyResponse.body.key });
         expect(updateResponse4.status).toBe(400);
-        expect(updateResponse4.text).toBe(INVALID_RATING);
+        expect(updateResponse4.text).toBe(INVALID_READING_STATUS);
 
-        const updateResponse5 = await updateState(uploadResponse.text, { location: { tag: "kobo.1.1" } }, { apiKey: createApiKeyResponse.body.key });
+        const updateResponse5 = await updateState(uploadResponse.text, { statistics: {} }, { apiKey: createApiKeyResponse.body.key });
         expect(updateResponse5.status).toBe(400);
-        expect(updateResponse5.text).toBe(INVALID_LOCATION);
+        expect(updateResponse5.text).toBe(INVALID_READING_STATUS);
 
-        const updateResponse6 = await updateState(uploadResponse.text, { location: {}, statistics: {} }, { apiKey: createApiKeyResponse.body.key });
+        const updateResponse6 = await updateState(uploadResponse.text, { location: { tag: "kobo.1.1" }, statistics: { reading_status: "Read"} }, { apiKey: createApiKeyResponse.body.key });
         expect(updateResponse6.status).toBe(400);
-        expect(updateResponse6.text).toBe(INVALID_RATING);
+        expect(updateResponse6.text).toBe(INVALID_LOCATION);
+
+        const updateResponse7 = await updateState(uploadResponse.text, {}, { apiKey: createApiKeyResponse.body.key });
+        expect(updateResponse7.status).toBe(400);
+        expect(updateResponse7.text).toBe(INVALID_STATE);
     });
 
     test.concurrent("Different user without permission", async () => {
@@ -483,7 +491,7 @@ describe("Patch state JWT", () => {
         const downloadResponse2 = await getState(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse2.status).toBe(200);
 
-        expect(downloadResponse2.body).toEqual({ statistics: { rating: 2.3 } });
+        expect(downloadResponse2.body).toEqual({ statistics: { rating: 2.3, reading_status: "Unread"} });
 
         const updateResponse = await updateState(uploadResponse.text, ALICE_STATE, { jwt: registerResponse.text });
         expect(updateResponse.status).toBe(200);
@@ -498,6 +506,16 @@ describe("Patch state JWT", () => {
         expect(downloadResponse3.status).toBe(200);
 
         expect(downloadResponse3.body).toEqual(expectedState);
+
+        expectedState.statistics.reading_status = "Reading";
+
+        const patchResponse3 = await patchState(uploadResponse.text, { statistics: { reading_status: "Reading" } }, { jwt: registerResponse.text });
+        expect(patchResponse3.status).toBe(200);
+
+        const downloadResponse4 = await getState(uploadResponse.text, { jwt: registerResponse.text });
+        expect(downloadResponse4.status).toBe(200);
+
+        expect(downloadResponse4.body).toEqual(expectedState);
     });
 
     test.concurrent("Non-existent book", async () => {
@@ -536,6 +554,13 @@ describe("Patch state JWT", () => {
         const patchResponse3 = await patchState(uploadResponse.text, invalid, { jwt: registerResponse.text });
         expect(patchResponse3.status).toBe(400);
         expect(patchResponse3.text).toBe(INVALID_LOCATION);
+
+        invalid = structuredClone(ALICE_STATE);
+        invalid.statistics.reading_status = "invalid";
+
+        const patchResponse4 = await patchState(uploadResponse.text, invalid, { jwt: registerResponse.text });
+        expect(patchResponse4.status).toBe(400);
+        expect(patchResponse4.text).toBe(INVALID_READING_STATUS);
     });
 
     test.concurrent("Different user without permission", async () => {
@@ -602,7 +627,7 @@ describe("Patch state api key", () => {
         const downloadResponse2 = await getState(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse2.status).toBe(200);
 
-        expect(downloadResponse2.body).toEqual({ statistics: { rating: 2.3 } });
+        expect(downloadResponse2.body).toEqual({ statistics: { rating: 2.3, reading_status: "Unread" } });
 
         const updateResponse = await updateState(uploadResponse.text, ALICE_STATE, { jwt: registerResponse.text });
         expect(updateResponse.status).toBe(200);
@@ -617,6 +642,16 @@ describe("Patch state api key", () => {
         expect(downloadResponse3.status).toBe(200);
 
         expect(downloadResponse3.body).toEqual(expectedState);
+
+        expectedState.statistics.reading_status = "Reading";
+
+        const patchResponse3 = await patchState(uploadResponse.text, { statistics: { reading_status: "Reading" } }, { apiKey: createApiKeyResponse.body.key });
+        expect(patchResponse3.status).toBe(200);
+
+        const downloadResponse4 = await getState(uploadResponse.text, { jwt: registerResponse.text });
+        expect(downloadResponse4.status).toBe(200);
+
+        expect(downloadResponse4.body).toEqual(expectedState);
     });
 
     test.concurrent("Non-existent book", async () => {
@@ -661,6 +696,13 @@ describe("Patch state api key", () => {
         const patchResponse3 = await patchState(uploadResponse.text, invalid, { apiKey: createApiKeyResponse.body.key });
         expect(patchResponse3.status).toBe(400);
         expect(patchResponse3.text).toBe(INVALID_LOCATION);
+
+        invalid = structuredClone(ALICE_STATE);
+        invalid.statistics.reading_status = "invalid";
+
+        const patchResponse4 = await patchState(uploadResponse.text, invalid, { apiKey: createApiKeyResponse.body.key });
+        expect(patchResponse4.status).toBe(400);
+        expect(patchResponse4.text).toBe(INVALID_READING_STATUS);
     });
 
     test.concurrent("Different user without permission", async () => {

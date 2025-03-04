@@ -2,8 +2,9 @@ import { FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from "../utils/common"
 import { createApiKey, registerUser, USER_NOT_FOUND } from "../utils/users"
 import { deleteBook, uploadBook } from "../utils/books"
 import { INVALID_TIMESTAMP, sync } from "../utils/sync"
-import { EXAMPLE_METADATA, updateMetadata } from "../utils/metadata";
+import { EXAMPLE_METADATA, patchMetadata, updateMetadata } from "../utils/metadata";
 import { updateCover } from "../utils/covers";
+import { ALICE_STATE, patchState, updateState } from "../utils/state";
 
 describe("Sync JWT", () => {
     test.concurrent("Simple", async () => {
@@ -23,6 +24,7 @@ describe("Sync JWT", () => {
             file: [uploadResponse.text],
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
+            state: [uploadResponse.text],
             deleted: []
         }
 
@@ -37,6 +39,7 @@ describe("Sync JWT", () => {
             file: [],
             metadata: [],
             cover: [],
+            state: [],
             deleted: []
         }
 
@@ -55,6 +58,7 @@ describe("Sync JWT", () => {
             file: [uploadResponse2.text],
             metadata: [uploadResponse2.text],
             cover: [uploadResponse2.text],
+            state: [uploadResponse2.text],
             deleted: []
         }
 
@@ -67,6 +71,7 @@ describe("Sync JWT", () => {
             file: [uploadResponse.text, uploadResponse2.text],
             metadata: [uploadResponse.text, uploadResponse2.text],
             cover: [uploadResponse.text, uploadResponse2.text],
+            state: [uploadResponse.text, uploadResponse2.text],
             deleted: []
         }
 
@@ -81,6 +86,7 @@ describe("Sync JWT", () => {
             file: [],
             metadata: [],
             cover: [],
+            state: [],
             deleted: []
         }
 
@@ -101,6 +107,7 @@ describe("Sync JWT", () => {
             file: [uploadResponse.text],
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
+            state: [uploadResponse.text],
             deleted: [] as string[]
         }
 
@@ -116,6 +123,7 @@ describe("Sync JWT", () => {
             file: [],
             metadata: [],
             cover: [],
+            state: [],
             deleted: [uploadResponse.text],
         }
 
@@ -134,13 +142,14 @@ describe("Sync JWT", () => {
             file: [uploadResponse2.text, uploadResponse3.text],
             metadata: [uploadResponse2.text, uploadResponse3.text],
             cover: [uploadResponse2.text, uploadResponse3.text],
+            state: [uploadResponse2.text, uploadResponse3.text],
             deleted: [uploadResponse.text],
         }
 
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Changed metadata and cover", async () => {
+    test.concurrent("Changed metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -154,6 +163,7 @@ describe("Sync JWT", () => {
             file: [uploadResponse.text],
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
+            state: [uploadResponse.text],
             deleted: [] as string[]
         }
 
@@ -164,7 +174,7 @@ describe("Sync JWT", () => {
 
         let now = Date.now();
 
-        const metadataResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA, { jwt: registerResponse.text });
+        let metadataResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA, { jwt: registerResponse.text });
         expect(metadataResponse.status).toBe(200);
 
         syncResponse = await sync(username, now, { jwt: registerResponse.text });
@@ -174,10 +184,55 @@ describe("Sync JWT", () => {
             file: [],
             metadata: [uploadResponse.text],
             cover: [],
+            state: [],
             deleted: []
         }
 
         expect(syncResponse.body).toEqual(expectedResponse);
+
+        now = Date.now();
+
+        metadataResponse = await patchMetadata(uploadResponse.text, { title: "title test" }, { jwt: registerResponse.text });
+        expect(metadataResponse.status).toBe(200);
+
+        syncResponse = await sync(username, now, { jwt: registerResponse.text });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [],
+            metadata: [uploadResponse.text],
+            cover: [],
+            state: [],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+    });
+
+    test.concurrent("Changed cover", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        let syncResponse = await sync(username, undefined, { jwt: registerResponse.text });
+        expect(syncResponse.status).toBe(200);
+
+        let expectedResponse = {
+            file: [uploadResponse.text],
+            metadata: [uploadResponse.text],
+            cover: [uploadResponse.text],
+            state: [uploadResponse.text],
+            deleted: [] as string[]
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        // Wait for cover and metadata to be extracted
+        await wait(0.5);
+
+        let now = Date.now();
 
         const coverResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { jwt: registerResponse.text });
         expect(coverResponse.status).toBe(200);
@@ -187,8 +242,9 @@ describe("Sync JWT", () => {
 
         expectedResponse = {
             file: [],
-            metadata: [uploadResponse.text],
+            metadata: [],
             cover: [uploadResponse.text],
+            state: [],
             deleted: []
         }
 
@@ -207,7 +263,68 @@ describe("Sync JWT", () => {
             file: [uploadResponse2.text],
             metadata: [uploadResponse2.text],
             cover: [uploadResponse2.text],
+            state: [uploadResponse2.text],
             deleted: [uploadResponse.text]
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+    });
+
+    test.concurrent("Changed state", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        let syncResponse = await sync(username, undefined, { jwt: registerResponse.text });
+        expect(syncResponse.status).toBe(200);
+
+        let expectedResponse = {
+            file: [uploadResponse.text],
+            metadata: [uploadResponse.text],
+            cover: [uploadResponse.text],
+            state: [uploadResponse.text],
+            deleted: [] as string[]
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        // Wait for cover and metadata to be extracted
+        await wait(0.5);
+
+        let now = Date.now();
+
+        let stateResponse = await updateState(uploadResponse.text, ALICE_STATE, { jwt: registerResponse.text });
+        expect(stateResponse.status).toBe(200);
+
+        syncResponse = await sync(username, now, { jwt: registerResponse.text });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [],
+            metadata: [],
+            cover: [],
+            state: [uploadResponse.text],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        now = Date.now();
+
+        stateResponse = await patchState(uploadResponse.text, {statistics: {reading_status: "Read"}}, { jwt: registerResponse.text });
+        expect(stateResponse.status).toBe(200);
+
+        syncResponse = await sync(username, now, { jwt: registerResponse.text });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [],
+            metadata: [],
+            cover: [],
+            state: [uploadResponse.text],
+            deleted: []
         }
 
         expect(syncResponse.body).toEqual(expectedResponse);
@@ -233,6 +350,7 @@ describe("Sync JWT", () => {
             file: [uploadResponse.text],
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
+            state: [uploadResponse.text],
             deleted: []
         }
 
@@ -245,6 +363,7 @@ describe("Sync JWT", () => {
             file: [uploadResponse2.text],
             metadata: [uploadResponse2.text],
             cover: [uploadResponse2.text],
+            state: [uploadResponse2.text],
             deleted: []
         }
 
@@ -323,6 +442,7 @@ describe("Sync api key", () => {
             file: [uploadResponse.text],
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
+            state: [uploadResponse.text],
             deleted: []
         }
 
@@ -337,6 +457,7 @@ describe("Sync api key", () => {
             file: [],
             metadata: [],
             cover: [],
+            state: [],
             deleted: []
         }
 
@@ -355,6 +476,7 @@ describe("Sync api key", () => {
             file: [uploadResponse2.text],
             metadata: [uploadResponse2.text],
             cover: [uploadResponse2.text],
+            state: [uploadResponse2.text],
             deleted: []
         }
 
@@ -367,6 +489,7 @@ describe("Sync api key", () => {
             file: [uploadResponse.text, uploadResponse2.text],
             metadata: [uploadResponse.text, uploadResponse2.text],
             cover: [uploadResponse.text, uploadResponse2.text],
+            state: [uploadResponse.text, uploadResponse2.text],
             deleted: []
         }
 
@@ -381,6 +504,7 @@ describe("Sync api key", () => {
             file: [],
             metadata: [],
             cover: [],
+            state: [],
             deleted: []
         }
 
@@ -404,6 +528,7 @@ describe("Sync api key", () => {
             file: [uploadResponse.text],
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
+            state: [uploadResponse.text],
             deleted: [] as string[]
         }
 
@@ -419,6 +544,7 @@ describe("Sync api key", () => {
             file: [],
             metadata: [],
             cover: [],
+            state: [],
             deleted: [uploadResponse.text],
         }
 
@@ -437,13 +563,14 @@ describe("Sync api key", () => {
             file: [uploadResponse2.text, uploadResponse3.text],
             metadata: [uploadResponse2.text, uploadResponse3.text],
             cover: [uploadResponse2.text, uploadResponse3.text],
+            state: [uploadResponse2.text, uploadResponse3.text],
             deleted: [uploadResponse.text],
         }
 
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Changed metadata and cover", async () => {
+    test.concurrent("Changed metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -460,6 +587,7 @@ describe("Sync api key", () => {
             file: [uploadResponse.text],
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
+            state: [uploadResponse.text],
             deleted: [] as string[]
         }
 
@@ -480,10 +608,58 @@ describe("Sync api key", () => {
             file: [],
             metadata: [uploadResponse.text],
             cover: [],
+            state: [],
             deleted: []
         }
 
         expect(syncResponse.body).toEqual(expectedResponse);
+
+        now = Date.now();
+
+        syncResponse = await patchMetadata(uploadResponse.text, { title: "title test" }, { jwt: registerResponse.text });
+        expect(metadataResponse.status).toBe(200);
+
+        syncResponse = await sync(username, now, { apiKey: createApiKeyResponse.body.key });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [],
+            metadata: [uploadResponse.text],
+            cover: [],
+            state: [],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+    });
+
+    test.concurrent("Changed cover", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        let syncResponse = await sync(username, undefined, { apiKey: createApiKeyResponse.body.key });
+        expect(syncResponse.status).toBe(200);
+
+        let expectedResponse = {
+            file: [uploadResponse.text],
+            metadata: [uploadResponse.text],
+            cover: [uploadResponse.text],
+            state: [uploadResponse.text],
+            deleted: [] as string[]
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        // Wait for cover and metadata to be extracted
+        await wait(0.5);
+
+        let now = Date.now();
 
         const coverResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { jwt: registerResponse.text });
         expect(coverResponse.status).toBe(200);
@@ -493,8 +669,9 @@ describe("Sync api key", () => {
 
         expectedResponse = {
             file: [],
-            metadata: [uploadResponse.text],
+            metadata: [],
             cover: [uploadResponse.text],
+            state: [],
             deleted: []
         }
 
@@ -513,7 +690,71 @@ describe("Sync api key", () => {
             file: [uploadResponse2.text],
             metadata: [uploadResponse2.text],
             cover: [uploadResponse2.text],
+            state: [uploadResponse2.text],
             deleted: [uploadResponse.text]
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+    });
+
+    test.concurrent("Changed state", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        let syncResponse = await sync(username, undefined, { apiKey: createApiKeyResponse.body.key });
+        expect(syncResponse.status).toBe(200);
+
+        let expectedResponse = {
+            file: [uploadResponse.text],
+            metadata: [uploadResponse.text],
+            cover: [uploadResponse.text],
+            state: [uploadResponse.text],
+            deleted: [] as string[]
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        // Wait for cover and metadata to be extracted
+        await wait(0.5);
+
+        let now = Date.now();
+
+        let stateResponse = await updateState(uploadResponse.text, ALICE_STATE, { jwt: registerResponse.text });
+        expect(stateResponse.status).toBe(200);
+
+        syncResponse = await sync(username, now, { apiKey: createApiKeyResponse.body.key });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [],
+            metadata: [],
+            cover: [],
+            state: [uploadResponse.text],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        now = Date.now();
+
+        stateResponse = await patchState(uploadResponse.text, {statistics: {reading_status: "Read"}}, { jwt: registerResponse.text });
+        expect(stateResponse.status).toBe(200);
+
+        syncResponse = await sync(username, now, { apiKey: createApiKeyResponse.body.key });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [],
+            metadata: [],
+            cover: [],
+            state: [uploadResponse.text],
+            deleted: []
         }
 
         expect(syncResponse.body).toEqual(expectedResponse);
@@ -545,6 +786,7 @@ describe("Sync api key", () => {
             file: [uploadResponse.text],
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
+            state: [uploadResponse.text],
             deleted: []
         }
 
@@ -557,6 +799,7 @@ describe("Sync api key", () => {
             file: [uploadResponse2.text],
             metadata: [uploadResponse2.text],
             cover: [uploadResponse2.text],
+            state: [uploadResponse2.text],
             deleted: []
         }
 

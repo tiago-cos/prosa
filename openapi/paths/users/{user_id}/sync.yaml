@@ -8,6 +8,7 @@ get:
     - `file`: Newly added books.  
     - `metadata`: Books with updated metadata.  
     - `cover`: Books with updated covers.  
+    - `state`: Books with updated state.
     - `deleted`: Books that have been removed.
   operationId: sync
   parameters:

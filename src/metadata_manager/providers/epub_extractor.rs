@@ -20,7 +20,6 @@ impl EpubExtractor {
     }
 }
 
-//TODO extract genres with "subject"
 #[async_trait]
 impl MetadataProvider for EpubExtractor {
     async fn fetch_metadata(&mut self, epub_data: &Vec<u8>) -> (Option<Metadata>, Option<Vec<u8>>) {

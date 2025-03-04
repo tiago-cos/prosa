@@ -3,8 +3,10 @@ import { SERVER_URL } from "./common";
 
 export const INVALID_RATING = "The provided rating is invalid.";
 export const INVALID_LOCATION = "The provided location is invalid.";
+export const INVALID_READING_STATUS = "The provided reading status is invalid.";
+export const INVALID_STATE = "The provided state is invalid.";
 
-export const EMPTY_STATE = {};
+export const EMPTY_STATE = { statistics: { reading_status: "Unread" } };
 
 export const ALICE_STATE = {
     location: {
@@ -13,6 +15,7 @@ export const ALICE_STATE = {
     },
     statistics: {
         rating: 4.5,
+        reading_status: "Reading",
     },
 };
 

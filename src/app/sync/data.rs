@@ -5,14 +5,15 @@ use sqlx::SqlitePool;
 pub async fn add_sync_timestamps(pool: &SqlitePool, sync_id: &str, sync: Sync) -> () {
     sqlx::query(
         r#"
-        INSERT INTO sync (sync_id, file, metadata, cover, deleted)
-        VALUES ($1, $2, $3, $4, $5);
+        INSERT INTO sync (sync_id, file, metadata, cover, state, deleted)
+        VALUES ($1, $2, $3, $4, $5, $6);
         "#,
     )
     .bind(sync_id)
     .bind(sync.file)
     .bind(sync.metadata)
     .bind(sync.cover)
+    .bind(sync.state)
     .bind(sync.deleted)
     .execute(pool)
     .await
@@ -22,7 +23,7 @@ pub async fn add_sync_timestamps(pool: &SqlitePool, sync_id: &str, sync: Sync) -
 pub async fn get_sync_timestamps(pool: &SqlitePool, sync_id: &str) -> Sync {
     let sync: Sync = sqlx::query_as(
         r#"
-        SELECT file, metadata, cover, deleted
+        SELECT file, metadata, cover, state, deleted
         FROM sync
         WHERE sync_id = $1
         "#,
@@ -39,13 +40,14 @@ pub async fn update_sync_timestamps(pool: &SqlitePool, sync_id: &str, sync: Sync
     sqlx::query(
         r#"
         UPDATE sync
-        SET file = $1, metadata = $2, cover = $3, deleted = $4
-        WHERE sync_id = $5
+        SET file = $1, metadata = $2, cover = $3, state = $4, deleted = $5
+        WHERE sync_id = $6
         "#,
     )
     .bind(sync.file)
     .bind(sync.metadata)
     .bind(sync.cover)
+    .bind(sync.state)
     .bind(sync.deleted)
     .bind(sync_id)
     .execute(pool)
@@ -99,6 +101,21 @@ pub async fn get_unsynced(pool: &SqlitePool, owner_id: &str, since: DateTime<Utc
     .await
     .expect("Failed to get books with unsynced covers");
 
+    let state: Vec<String> = sqlx::query_scalar(
+        r#"
+        SELECT books.book_id
+        FROM books
+        JOIN sync ON books.sync_id = sync.sync_id
+        WHERE books.owner_id = $1
+        AND sync.state > $2
+        "#,
+    )
+    .bind(owner_id)
+    .bind(since)
+    .fetch_all(pool)
+    .await
+    .expect("Failed to get books with unsynced state");
+
     let deleted: Vec<String> = sqlx::query_scalar(
         r#"
         SELECT deleted_books.book_id
@@ -118,6 +135,7 @@ pub async fn get_unsynced(pool: &SqlitePool, owner_id: &str, since: DateTime<Utc
         file,
         metadata,
         cover,
+        state,
         deleted,
     }
 }

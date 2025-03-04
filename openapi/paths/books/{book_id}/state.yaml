@@ -15,7 +15,7 @@ get:
       content:
         application/json:
           schema:
-            $ref: ../../../components/schemas/BookState.yaml
+            $ref: ../../../components/schemas/RequiredBookState.yaml
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
     "403":
@@ -44,8 +44,7 @@ put:
     content:
       application/json:
         schema:
-          $ref: ../../../components/schemas/BookState.yaml
-          minProperties: 1
+          $ref: ../../../components/schemas/RequiredBookState.yaml
 
   responses:
     "200":

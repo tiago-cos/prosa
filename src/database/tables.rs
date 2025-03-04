@@ -116,7 +116,8 @@ pub async fn create_tables(pool: &SqlitePool) {
             state_id TEXT PRIMARY KEY NOT NULL,
             tag TEXT,
             source TEXT,
-            rating REAL
+            rating REAL,
+            reading_status TEXT NOT NULL CHECK(reading_status IN ('Unread','Reading','Read'))
         );
 
         CREATE TABLE IF NOT EXISTS sync (
@@ -124,6 +125,7 @@ pub async fn create_tables(pool: &SqlitePool) {
             file DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             metadata DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             cover DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            state DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             deleted DATETIME
         );
         "#,

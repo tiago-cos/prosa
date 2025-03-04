@@ -1,5 +1,5 @@
 use super::{models, service};
-use crate::app::{books, error::ProsaError, AppState, Pool};
+use crate::app::{books, error::ProsaError, sync, AppState, Pool};
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
@@ -31,6 +31,8 @@ pub async fn patch_state_handler(
     )
     .await?;
 
+    sync::service::update_state_timestamp(&app_state.pool, &book.sync_id).await;
+
     Ok(())
 }
 
@@ -48,6 +50,8 @@ pub async fn update_state_handler(
         state,
     )
     .await?;
+
+    sync::service::update_state_timestamp(&app_state.pool, &book.sync_id).await;
 
     Ok(())
 }
