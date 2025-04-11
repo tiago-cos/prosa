@@ -61,6 +61,7 @@ pub struct Series {
 
 #[skip_serializing_none]
 #[derive(FromRow, Merge, Serialize, Deserialize)]
+#[merge(strategy = merge::option::overwrite_none)]
 pub struct Metadata {
     pub title: Option<String>,
     pub subtitle: Option<String>,
