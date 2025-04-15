@@ -1,19 +1,22 @@
 use super::{models::SyncError, service};
-use crate::app::{error::ProsaError, Pool};
+use crate::app::{authentication::models::AuthToken, error::ProsaError, Pool};
 use axum::{
-    extract::{Path, Query, State},
-    response::IntoResponse,
-    Json,
+    extract::{Query, State}, response::IntoResponse, Extension, Json
 };
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;
 
 pub async fn get_unsynced_handler(
     State(pool): State<Pool>,
-    Path(user_id): Path<String>,
     Query(params): Query<HashMap<String, String>>,
+    Extension(token): Extension<AuthToken>,
 ) -> Result<impl IntoResponse, ProsaError> {
     let since = params.get("since").map(|t| t.parse::<i64>());
+
+    let user_id = match params.get("user_id") {
+        Some(id) => id,
+        None => token.role.get_user(),
+    };
 
     let since = match since {
         Some(Ok(t)) => DateTime::<Utc>::from_timestamp_millis(t),

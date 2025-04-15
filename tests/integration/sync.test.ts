@@ -93,6 +93,92 @@ describe("Sync JWT", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
+    test.concurrent("Simple implicit users", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover and metadata to be extracted
+        await wait(0.5);
+
+        let syncResponse = await sync(undefined, undefined, { jwt: registerResponse.text });
+        expect(syncResponse.status).toBe(200);
+
+        let expectedResponse = {
+            file: [uploadResponse.text],
+            metadata: [uploadResponse.text],
+            cover: [uploadResponse.text],
+            state: [uploadResponse.text],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        let now = Date.now();
+
+        syncResponse = await sync(undefined, now, { jwt: registerResponse.text });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [],
+            metadata: [],
+            cover: [],
+            state: [],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        const uploadResponse2 = await uploadBook(username, "The_Wonderful_Wizard_of_Oz.epub", { jwt: registerResponse.text });
+        expect(uploadResponse2.status).toBe(200);
+
+        // Wait for cover and metadata to be extracted
+        await wait(0.5);
+
+        syncResponse = await sync(undefined, now, { jwt: registerResponse.text });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [uploadResponse2.text],
+            metadata: [uploadResponse2.text],
+            cover: [uploadResponse2.text],
+            state: [uploadResponse2.text],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        syncResponse = await sync(undefined, undefined, { jwt: registerResponse.text });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [uploadResponse.text, uploadResponse2.text],
+            metadata: [uploadResponse.text, uploadResponse2.text],
+            cover: [uploadResponse.text, uploadResponse2.text],
+            state: [uploadResponse.text, uploadResponse2.text],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        now = Date.now();
+
+        syncResponse = await sync(undefined, now, { jwt: registerResponse.text });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [],
+            metadata: [],
+            cover: [],
+            state: [],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+    });
+
     test.concurrent("Deleted files", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
@@ -370,6 +456,46 @@ describe("Sync JWT", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
+    test.concurrent("Different implicit users", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const { response: registerResponse2, username: username2 } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const uploadResponse2 = await uploadBook(username2, "The_Wonderful_Wizard_of_Oz.epub", { jwt: registerResponse2.text });
+        expect(uploadResponse2.status).toBe(200);
+
+        let syncResponse = await sync(undefined, undefined, { jwt: registerResponse.text });
+        expect(syncResponse.status).toBe(200);
+
+        let expectedResponse = {
+            file: [uploadResponse.text],
+            metadata: [uploadResponse.text],
+            cover: [uploadResponse.text],
+            state: [uploadResponse.text],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        syncResponse = await sync(undefined, undefined, { jwt: registerResponse2.text });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [uploadResponse2.text],
+            metadata: [uploadResponse2.text],
+            cover: [uploadResponse2.text],
+            state: [uploadResponse2.text],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+    });
+
     test.concurrent("Invalid timestamp", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
@@ -498,6 +624,95 @@ describe("Sync api key", () => {
         now = Date.now();
 
         syncResponse = await sync(username, now, { apiKey: createApiKeyResponse.body.key });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [],
+            metadata: [],
+            cover: [],
+            state: [],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+    });
+
+    test.concurrent("Simple implicit users", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for cover and metadata to be extracted
+        await wait(0.5);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        let syncResponse = await sync(undefined, undefined, { apiKey: createApiKeyResponse.body.key });
+        expect(syncResponse.status).toBe(200);
+
+        let expectedResponse = {
+            file: [uploadResponse.text],
+            metadata: [uploadResponse.text],
+            cover: [uploadResponse.text],
+            state: [uploadResponse.text],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        let now = Date.now();
+
+        syncResponse = await sync(undefined, now, { apiKey: createApiKeyResponse.body.key });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [],
+            metadata: [],
+            cover: [],
+            state: [],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        const uploadResponse2 = await uploadBook(username, "The_Wonderful_Wizard_of_Oz.epub", { jwt: registerResponse.text });
+        expect(uploadResponse2.status).toBe(200);
+
+        // Wait for cover and metadata to be extracted
+        await wait(0.5);
+
+        syncResponse = await sync(undefined, now, { apiKey: createApiKeyResponse.body.key });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [uploadResponse2.text],
+            metadata: [uploadResponse2.text],
+            cover: [uploadResponse2.text],
+            state: [uploadResponse2.text],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        syncResponse = await sync(undefined, undefined, { apiKey: createApiKeyResponse.body.key });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [uploadResponse.text, uploadResponse2.text],
+            metadata: [uploadResponse.text, uploadResponse2.text],
+            cover: [uploadResponse.text, uploadResponse2.text],
+            state: [uploadResponse.text, uploadResponse2.text],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        now = Date.now();
+
+        syncResponse = await sync(undefined, now, { apiKey: createApiKeyResponse.body.key });
         expect(syncResponse.status).toBe(200);
 
         expectedResponse = {
@@ -793,6 +1008,52 @@ describe("Sync api key", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
 
         syncResponse = await sync(username2, undefined, { apiKey: createApiKeyResponse2.body.key });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [uploadResponse2.text],
+            metadata: [uploadResponse2.text],
+            cover: [uploadResponse2.text],
+            state: [uploadResponse2.text],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+    });
+
+    test.concurrent("Different implicit users", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const { response: registerResponse2, username: username2 } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse2 = await createApiKey(username2, "Test Key", ["Read"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse2.status).toBe(200);
+
+        const uploadResponse2 = await uploadBook(username2, "The_Wonderful_Wizard_of_Oz.epub", { jwt: registerResponse2.text });
+        expect(uploadResponse2.status).toBe(200);
+
+        let syncResponse = await sync(undefined, undefined, { apiKey: createApiKeyResponse.body.key });
+        expect(syncResponse.status).toBe(200);
+
+        let expectedResponse = {
+            file: [uploadResponse.text],
+            metadata: [uploadResponse.text],
+            cover: [uploadResponse.text],
+            state: [uploadResponse.text],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        syncResponse = await sync(undefined, undefined, { apiKey: createApiKeyResponse2.body.key });
         expect(syncResponse.status).toBe(200);
 
         expectedResponse = {

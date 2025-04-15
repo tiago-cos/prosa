@@ -10,8 +10,19 @@ get:
     - `cover`: Books with updated covers.  
     - `state`: Books with updated state.
     - `deleted`: Books that have been removed.
+
+    If no user is specified, the user will be extracted from the authentication process.
   operationId: sync
   parameters:
+    - name: user_id
+      in: query
+      description: Optional user ID for sync. If not provided, it will be extracted from the authentication process.
+      required: false
+      schema:
+        type: string
+        format: uuid
+        example: d98354c3-376a-4bb3-9aa6-53583f89cf5e
+
     - name: since
       in: query
       description: The UNIX timestamp (milliseconds) of the last sync. If empty, assumes first sync.
@@ -27,15 +38,15 @@ get:
       content:
         application/json:
           schema:
-            $ref: ../../../components/schemas/Sync.yaml
+            $ref: ../components/schemas/Sync.yaml
     "400":
-      $ref: ../../../components/responses/sync/InvalidTimestamp.yaml
+      $ref: ../components/responses/sync/InvalidTimestamp.yaml
     "401":
-      $ref: ../../../components/responses/Unauthorized.yaml
+      $ref: ../components/responses/Unauthorized.yaml
     "403":
-      $ref: ../../../components/responses/Forbidden.yaml
+      $ref: ../components/responses/Forbidden.yaml
     "404":
-      $ref: ../../../components/responses/users/UserNotFound.yaml
+      $ref: ../components/responses/users/UserNotFound.yaml
 
   security:
     - prosaToken: []

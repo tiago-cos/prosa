@@ -7,7 +7,7 @@ use axum::{middleware::from_fn_with_state, routing::get, Router};
 #[rustfmt::skip]
 pub fn get_routes(state: AppState) -> Router {
     Router::new()
-        .route("/users/{user_id}/sync", get(handlers::get_unsynced_handler)
+        .route("/sync", get(handlers::get_unsynced_handler)
             .route_layer(from_fn_with_state(state.clone(), can_sync))
         )
         .layer(from_fn_with_state(state.clone(), extract_token_middleware))

@@ -56,6 +56,14 @@ pub enum AuthRole {
     User(String),
 }
 
+impl AuthRole {
+    pub fn get_user(&self) -> &str {
+        match self {
+            AuthRole::User(s) | AuthRole::Admin(s) => s,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, PartialEq)]
 pub enum AuthType {
     JWT,

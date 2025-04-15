@@ -102,8 +102,8 @@ paths:
     $ref: "paths/users/{user_id}/keys.yaml"
   /users/{user_id}/keys/{key_id}:
     $ref: "paths/users/{user_id}/keys/{key_id}.yaml"
-  /users/{user_id}/sync:
-    $ref: "paths/users/{user_id}/sync.yaml"
+  /sync:
+    $ref: "paths/sync.yaml"
 
 components:
   securitySchemes:

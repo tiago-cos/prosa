@@ -1,16 +1,17 @@
+use std::collections::HashMap;
 use crate::app::{
     authentication::models::{AuthError, AuthRole, AuthToken, READ},
     error::ProsaError,
 };
 use axum::{
-    extract::{Path, Request},
+    extract::{Query, Request},
     middleware::Next,
     response::IntoResponse,
     Extension,
 };
 
-async fn username_matches(username: &str, token: AuthToken) -> bool {
-    let user_id = match token.role {
+async fn username_matches(username: &str, token: &AuthToken) -> bool {
+    let user_id = match &token.role {
         AuthRole::Admin(_) => return true,
         AuthRole::User(id) => id,
     };
@@ -20,7 +21,7 @@ async fn username_matches(username: &str, token: AuthToken) -> bool {
 
 pub async fn can_sync(
     Extension(token): Extension<AuthToken>,
-    Path(user_id): Path<String>,
+    Query(params): Query<HashMap<String, String>>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -28,9 +29,8 @@ pub async fn can_sync(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !username_matches(&user_id, token).await {
-        return Err(AuthError::Forbidden.into());
-    }
-
-    Ok(next.run(request).await)
+    match params.get("user_id") {
+        Some(id) if !username_matches(&id, &token).await => return Err(AuthError::Forbidden.into()),
+        _ => return Ok(next.run(request).await),
+    };
 }
