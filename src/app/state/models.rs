@@ -19,7 +19,7 @@ pub enum StateError {
     InvalidState,
 }
 
-pub const VALID_READING_STATUS: [&str; 3]= ["Unread", "Reading", "Read"];
+pub const VALID_READING_STATUS: [&str; 3] = ["Unread", "Reading", "Read"];
 
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Merge)]

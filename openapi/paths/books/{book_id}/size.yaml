@@ -1,0 +1,29 @@
+get:
+  tags:
+    - File
+  summary: "Get book file size"
+  description: |
+    Retrieve the size of a specific book file, in bytes.
+    The user must be authenticated and have the appropriate permissions.
+  operationId: getBookSize
+  parameters:
+    - $ref: ../../../components/parameters/book_id.yaml
+
+  responses:
+    "200":
+      description: The book file size in bytes.
+      content:
+        application/json:
+          schema:
+            type: integer
+            example: 3478234
+    "401":
+      $ref: ../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../../components/responses/books/BookNotFound.yaml
+
+  security:
+    - prosaToken: []
+    - apiKey: []

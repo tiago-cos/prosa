@@ -1,12 +1,11 @@
-use crate::app::{error::ProsaError, users};
-use chrono::{DateTime, Utc};
-use sqlx::SqlitePool;
-use uuid::Uuid;
-
 use super::{
     data,
     models::{Sync, Unsynced},
 };
+use crate::app::{error::ProsaError, users};
+use chrono::{DateTime, Utc};
+use sqlx::SqlitePool;
+use uuid::Uuid;
 
 pub async fn initialize_sync(pool: &SqlitePool) -> String {
     let now = Utc::now();

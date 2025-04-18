@@ -2,30 +2,39 @@ use super::models::{Location, State, Statistics};
 use sqlx::SqlitePool;
 
 pub async fn get_state(pool: &SqlitePool, state_id: &str) -> State {
-    let (tag, source, rating, reading_status): (Option<String>, Option<String>, Option<f32>, String) = sqlx::query_as(
-        r#"
-        SELECT tag, source, rating, reading_status
-        FROM state
-        WHERE state_id = $1
-        "#,
-    )
-    .bind(state_id)
-    .fetch_one(pool)
-    .await
-    .expect("Failed to get book state");
+    let (tag, source, rating, reading_status): (Option<String>, Option<String>, Option<f32>, String) =
+        sqlx::query_as(
+            r#"
+            SELECT tag, source, rating, reading_status
+            FROM state
+            WHERE state_id = $1
+            "#,
+        )
+        .bind(state_id)
+        .fetch_one(pool)
+        .await
+        .expect("Failed to get book state");
 
     let location = tag.zip(source).map(|(t, s)| Location {
         tag: Some(t),
         source: Some(s),
     });
-    let statistics = Statistics { rating, reading_status: Some(reading_status) };
-    State { location, statistics: Some(statistics) }
+    let statistics = Statistics {
+        rating,
+        reading_status: Some(reading_status),
+    };
+    State {
+        location,
+        statistics: Some(statistics),
+    }
 }
 
 pub async fn add_state(pool: &SqlitePool, state_id: &str, state: State) -> () {
     let (tag, source) = state.location.map(|l| (l.tag, l.source)).unwrap_or((None, None));
     let statistics = state.statistics.expect("Statistics should be present");
-    let reading_status = statistics.reading_status.expect("Reading status should be present");
+    let reading_status = statistics
+        .reading_status
+        .expect("Reading status should be present");
 
     sqlx::query(
         r#"
@@ -46,7 +55,9 @@ pub async fn add_state(pool: &SqlitePool, state_id: &str, state: State) -> () {
 pub async fn update_state(pool: &SqlitePool, state_id: &str, state: State) -> () {
     let (tag, source) = state.location.map(|l| (l.tag, l.source)).unwrap_or((None, None));
     let statistics = state.statistics.expect("Statistics should be present");
-    let reading_status = statistics.reading_status.expect("Reading status should be present");
+    let reading_status = statistics
+        .reading_status
+        .expect("Reading status should be present");
 
     sqlx::query(
         r#"

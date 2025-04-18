@@ -12,7 +12,10 @@ use uuid::Uuid;
 pub async fn initialize_state(pool: &SqlitePool) -> String {
     let initial_state = State {
         location: None,
-        statistics: Some(Statistics { rating: None, reading_status: Some(VALID_READING_STATUS[0].to_string()) }),
+        statistics: Some(Statistics {
+            rating: None,
+            reading_status: Some(VALID_READING_STATUS[0].to_string()),
+        }),
     };
     let state_id = Uuid::new_v4().to_string();
 
@@ -73,13 +76,15 @@ pub async fn validate_state(state: &State, epub_path: &str, epub_id: &str) -> Re
 async fn validate_statistics(stats: &Statistics) -> Result<(), ProsaError> {
     match stats.rating {
         Some(rating) if rating < 0.0 || rating > 5.0 => return Err(StateError::InvalidRating.into()),
-        _ => ()
+        _ => (),
     };
 
     match stats.reading_status.as_deref() {
         None => return Err(StateError::InvalidReadingStatus.into()),
-        Some(status) if !VALID_READING_STATUS.contains(&status) => return Err(StateError::InvalidReadingStatus.into()),
-        _ => ()
+        Some(status) if !VALID_READING_STATUS.contains(&status) => {
+            return Err(StateError::InvalidReadingStatus.into())
+        }
+        _ => (),
     }
 
     Ok(())

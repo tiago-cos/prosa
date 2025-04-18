@@ -6,7 +6,7 @@ use epub::doc::EpubDoc;
 use sha2::{Digest, Sha256};
 use sqlx::SqlitePool;
 use tokio::{
-    fs::{remove_file, File},
+    fs::{self, remove_file, File},
     io::{AsyncReadExt, AsyncWriteExt},
     process::Command,
 };
@@ -65,6 +65,14 @@ async fn convert_to_kepub(kepubify_path: &str, epub_path: &str, epub_file: &str)
     }
 
     remove_file(epub_file).await.expect("Failed to convert to kepub");
+}
+
+pub async fn get_file_size(epub_path: &str, epub_id: &str) -> u32 {
+    let epub_file = format!("{}/{}.kepub.epub", epub_path, epub_id);
+    let metadata = fs::metadata(epub_file)
+        .await
+        .expect("Failed to get file metadata");
+    metadata.len().try_into().expect("Failed to get file size")
 }
 
 pub async fn read_epub(epub_path: &str, epub_id: &str) -> Result<Vec<u8>, EpubError> {

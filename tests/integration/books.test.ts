@@ -1,6 +1,6 @@
 import { BOOK_DIR, FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from "../utils/common";
 import { registerUser, createApiKey, USER_NOT_FOUND } from "../utils/users"
-import { BOOK_CONFLICT, BOOK_NOT_FOUND, deleteBook, downloadBook, INVALID_BOOK, INVALID_PAGINATION, searchBooks, uploadBook } from "../utils/books"
+import { BOOK_CONFLICT, BOOK_NOT_FOUND, deleteBook, downloadBook, getBookSize, INVALID_BOOK, INVALID_PAGINATION, searchBooks, uploadBook } from "../utils/books"
 import path from "path";
 import fs from "fs";
 import { getMetadata } from "../utils/metadata";
@@ -1098,5 +1098,169 @@ describe("Search books api key", () => {
         const searchResponse = await searchBooks(username, undefined, undefined, undefined, undefined, { apiKey: createApiKeyResponse.body.key });
         expect(searchResponse.status).toBe(401);
         expect(searchResponse.text).toEqual(INVALID_API_KEY);
+    });
+});
+
+describe("Get book size JWT", () => {
+    test("Simple", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const sizeResponse = await getBookSize(uploadResponse.text, { jwt: registerResponse.text });
+        expect(sizeResponse.status).toBe(200);
+
+        expect(sizeResponse.body).toBe(145272);
+    });
+
+    test("Non-existent book", async () => {
+        const { response: registerResponse } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const sizeResponse = await getBookSize("non-existent", { jwt: registerResponse.text });
+        expect(sizeResponse.status).toBe(404);
+        expect(sizeResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test("Different user without permission", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const { response: registerResponse2 } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const sizeResponse = await getBookSize(uploadResponse.text, { jwt: registerResponse2.text });
+        expect(sizeResponse.status).toBe(404);
+        expect(sizeResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test("Different user with permission", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse2.status).toBe(200);
+
+        const sizeResponse = await getBookSize(uploadResponse.text, { jwt: registerResponse2.text });
+        expect(sizeResponse.status).toBe(200);
+    });
+
+    test("No auth", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const sizeResponse = await getBookSize(uploadResponse.text);
+        expect(sizeResponse.status).toBe(401);
+        expect(sizeResponse.text).toBe(UNAUTHORIZED);
+    });
+});
+
+describe("Get book size api key", () => {
+    test("Simple", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const sizeResponse = await getBookSize(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(sizeResponse.status).toBe(200);
+
+        expect(sizeResponse.body).toBe(145272);
+    });
+
+    test("Non-existent book", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const sizeResponse = await getBookSize("non-existent", { apiKey: createApiKeyResponse.body.key });
+        expect(sizeResponse.status).toBe(404);
+        expect(sizeResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test("Different user without permission", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const { response: registerResponse2, username: username2 } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Read"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const sizeResponse = await getBookSize(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(sizeResponse.status).toBe(404);
+        expect(sizeResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test("Different user with permission", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const { response: registerResponse2, username: username2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Read"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const sizeResponse = await getBookSize(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(sizeResponse.status).toBe(200);
+    });
+
+    test("Wrong capabilities", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Create"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const sizeResponse = await getBookSize(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(sizeResponse.status).toBe(403);
+        expect(sizeResponse.text).toBe(FORBIDDEN);
+    });
+
+    test("Expired key", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const timestamp = Date.now() + 2000;
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], timestamp, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        // Wait for the key to expire
+        await wait(2.5);
+
+        const downloadResponse = await getBookSize(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+        expect(downloadResponse.status).toBe(401);
+        expect(downloadResponse.text).toBe(INVALID_API_KEY);
     });
 });

@@ -21,6 +21,16 @@ pub async fn download_book_handler(
     Ok(epub)
 }
 
+pub async fn book_size_handler(
+    State(state): State<AppState>,
+    Path(book_id): Path<String>,
+) -> Result<impl IntoResponse, ProsaError> {
+    let book = service::get_book(&state.pool, &book_id).await?;
+    let file_size = epubs::service::get_file_size(&state.config.book_storage.epub_path, &book.epub_id).await;
+
+    Ok(Json(file_size))
+}
+
 pub async fn upload_book_handler(
     State(state): State<AppState>,
     TypedMultipart(data): TypedMultipart<UploadBoodRequest>,

@@ -1,7 +1,9 @@
 use super::{models::SyncError, service};
 use crate::app::{authentication::models::AuthToken, error::ProsaError, Pool};
 use axum::{
-    extract::{Query, State}, response::IntoResponse, Extension, Json
+    extract::{Query, State},
+    response::IntoResponse,
+    Extension, Json,
 };
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;

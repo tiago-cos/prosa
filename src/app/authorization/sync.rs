@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use crate::app::{
     authentication::models::{AuthError, AuthRole, AuthToken, READ},
     error::ProsaError,
@@ -9,6 +8,7 @@ use axum::{
     response::IntoResponse,
     Extension,
 };
+use std::collections::HashMap;
 
 async fn username_matches(username: &str, token: &AuthToken) -> bool {
     let user_id = match &token.role {
