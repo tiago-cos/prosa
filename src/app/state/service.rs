@@ -99,22 +99,26 @@ async fn validate_location(location: &Location, epub_path: &str, epub_id: &str) 
         .filter_map(|r| r.1 .0.to_str().map(|s| s.to_string()))
         .collect();
 
-    let (source, tag) = match (&location.source, &location.tag) {
-        (_, None) => return Err(StateError::InvalidLocation.into()),
-        (None, _) => return Err(StateError::InvalidLocation.into()),
-        (Some(source), Some(tag)) => (source, tag),
+    let source = match &location.source {
+        None => return Err(StateError::InvalidLocation.into()),
+        Some(s) => s,
     };
 
     if !sources.contains(&source) {
         return Err(StateError::InvalidLocation.into());
     }
 
+    let tag = match &location.tag {
+        None => return Ok(()),
+        Some(t) => t,
+    };
+
     let text = doc
         .get_resource_str_by_path(source)
         .expect("Failed to get book resource");
     let tag = format!("<span class=\"koboSpan\" id=\"{}\"", tag);
 
-    if !text.contains(&tag) {
+    if source != "titlepage.xhtml" && source != "cover.xhtml" && !text.contains(&tag) {
         return Err(StateError::InvalidLocation.into());
     }
 

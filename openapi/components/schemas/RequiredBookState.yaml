@@ -7,3 +7,6 @@ allOf:
       statistics:
         required:
           - reading_status
+      location:
+        required:
+          - source
