@@ -1,9 +1,8 @@
-use crate::app::error::ProsaError;
-
 use super::{
     data,
     models::{Location, State, StateError, Statistics, VALID_READING_STATUS},
 };
+use crate::app::error::ProsaError;
 use epub::doc::EpubDoc;
 use merge::Merge;
 use sqlx::SqlitePool;

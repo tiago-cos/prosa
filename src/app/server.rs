@@ -1,4 +1,4 @@
-use super::{books, covers, metadata, state, sync, users};
+use super::{annotations, books, covers, metadata, state, sync, users};
 use crate::{config::Configuration, metadata_manager};
 use axum::Router;
 use sqlx::SqlitePool;
@@ -29,7 +29,8 @@ pub async fn run(config: Configuration, pool: SqlitePool) {
         .merge(covers::routes::get_routes(state.clone()))
         .merge(state::routes::get_routes(state.clone()))
         .merge(sync::routes::get_routes(state.clone()))
-        .merge(books::routes::get_routes(state.clone()));
+        .merge(books::routes::get_routes(state.clone()))
+        .merge(annotations::routes::get_routes(state.clone()));
 
     let listener = TcpListener::bind(host).await.unwrap();
     axum::serve(listener, app).await.unwrap();

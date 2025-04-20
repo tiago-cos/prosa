@@ -16,6 +16,7 @@ pub async fn initialize_sync(pool: &SqlitePool) -> String {
         metadata: now,
         cover: now,
         state: now,
+        annotations: now,
         deleted: None,
     };
 
@@ -51,6 +52,12 @@ pub async fn update_cover_timestamp(pool: &SqlitePool, sync_id: &str) -> () {
 pub async fn update_state_timestamp(pool: &SqlitePool, sync_id: &str) -> () {
     let mut sync = data::get_sync_timestamps(pool, sync_id).await;
     sync.state = Utc::now();
+    data::update_sync_timestamps(pool, sync_id, sync).await;
+}
+
+pub async fn update_annotations_timestamp(pool: &SqlitePool, sync_id: &str) -> () {
+    let mut sync = data::get_sync_timestamps(pool, sync_id).await;
+    sync.annotations = Utc::now();
     data::update_sync_timestamps(pool, sync_id, sync).await;
 }
 

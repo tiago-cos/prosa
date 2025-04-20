@@ -1,3 +1,4 @@
+mod annotations;
 mod authentication;
 mod authorization;
 pub mod books;

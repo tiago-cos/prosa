@@ -38,7 +38,7 @@ pub async fn create_tables(pool: &SqlitePool) {
     .execute(pool)
     .await
     .expect("Failed to create user tables");
-
+    //TODO don't forget to check if annotations are deleted when books are deleted in tests
     // Book tables
     sqlx::query(
         r#"
@@ -120,12 +120,25 @@ pub async fn create_tables(pool: &SqlitePool) {
             reading_status TEXT NOT NULL CHECK(reading_status IN ('Unread','Reading','Read'))
         );
 
+        CREATE TABLE IF NOT EXISTS annotations (
+            annotation_id TEXT PRIMARY KEY NOT NULL,
+            book_id TEXT NOT NULL,
+            source TEXT NOT NULL,
+            start_tag TEXT NOT NULL,
+            end_tag TEXT NOT NULL,
+            start_char INTEGER NOT NULL,
+            end_char INTEGER NOT NULL,
+            note TEXT,
+            FOREIGN KEY(book_id) REFERENCES books(book_id) ON DELETE CASCADE
+        );
+
         CREATE TABLE IF NOT EXISTS sync (
             sync_id TEXT PRIMARY KEY NOT NULL,
             file DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             metadata DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             cover DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             state DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            annotations DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
             deleted DATETIME
         );
         "#,

@@ -16,6 +16,7 @@ pub struct Sync {
     pub metadata: DateTime<Utc>,
     pub cover: DateTime<Utc>,
     pub state: DateTime<Utc>,
+    pub annotations: DateTime<Utc>,
     pub deleted: Option<DateTime<Utc>>,
 }
 
@@ -25,5 +26,6 @@ pub struct Unsynced {
     pub metadata: Vec<String>,
     pub cover: Vec<String>,
     pub state: Vec<String>,
+    pub annotations: Vec<String>,
     pub deleted: Vec<String>,
 }

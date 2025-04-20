@@ -1,0 +1,73 @@
+use super::{
+    models::{NewAnnotationRequest, PatchAnnotationRequest},
+    service,
+};
+use crate::app::{books, error::ProsaError, sync, AppState, Pool};
+use axum::{
+    extract::{Path, State},
+    response::IntoResponse,
+    Json,
+};
+
+pub async fn add_annotation_handler(
+    State(state): State<AppState>,
+    Path(book_id): Path<String>,
+    Json(annotation): Json<NewAnnotationRequest>,
+) -> Result<impl IntoResponse, ProsaError> {
+    let book = books::service::get_book(&state.pool, &book_id).await?;
+    let annotation_id = service::add_annotation(
+        &state.pool,
+        &book_id,
+        annotation,
+        &state.config.book_storage.epub_path,
+        &book.epub_id,
+    )
+    .await?;
+
+    sync::service::update_annotations_timestamp(&state.pool, &book.sync_id).await;
+
+    Ok(annotation_id)
+}
+
+pub async fn get_annotation_handler(
+    State(pool): State<Pool>,
+    Path((_, annotation_id)): Path<(String, String)>,
+) -> Result<impl IntoResponse, ProsaError> {
+    let annotation = service::get_annotation(&pool, &annotation_id).await?;
+
+    Ok(Json(annotation))
+}
+
+pub async fn list_annotation_handler(
+    State(pool): State<Pool>,
+    Path(book_id): Path<String>,
+) -> Result<impl IntoResponse, ProsaError> {
+    let annotations = service::get_annotations(&pool, &book_id).await;
+
+    Ok(Json(annotations))
+}
+
+pub async fn delete_annotation_handler(
+    State(pool): State<Pool>,
+    Path((book_id, annotation_id)): Path<(String, String)>,
+) -> Result<impl IntoResponse, ProsaError> {
+    let book = books::service::get_book(&pool, &book_id).await?;
+    service::delete_annotation(&pool, &annotation_id).await?;
+
+    sync::service::update_annotations_timestamp(&pool, &book.sync_id).await;
+
+    Ok(())
+}
+
+pub async fn patch_annotation_handler(
+    State(pool): State<Pool>,
+    Path((book_id, annotation_id)): Path<(String, String)>,
+    Json(request): Json<PatchAnnotationRequest>,
+) -> Result<impl IntoResponse, ProsaError> {
+    let book = books::service::get_book(&pool, &book_id).await?;
+    service::patch_annotation(&pool, &annotation_id, request.note).await?;
+
+    sync::service::update_annotations_timestamp(&pool, &book.sync_id).await;
+
+    Ok(())
+}
