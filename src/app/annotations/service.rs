@@ -70,8 +70,49 @@ async fn validate_annotation(annotation: &NewAnnotationRequest, epub_path: &str,
         .get_resource_str_by_path(&annotation.source)
         .expect("Failed to get book resource");
 
-    let start_tag = format!("<span class=\"koboSpan\" id=\"{}\"", annotation.start_tag);
-    let end_tag = format!("<span class=\"koboSpan\" id=\"{}\"", annotation.end_tag);
+    let start_tag = format!("<span class=\"koboSpan\" id=\"{}\">", annotation.start_tag);
+    let end_tag = format!("<span class=\"koboSpan\" id=\"{}\">", annotation.end_tag);
 
-    text.contains(&start_tag) && text.contains(&end_tag)
+    let (start_location, end_location) = match (text.find(&start_tag), text.find(&end_tag)) {
+        (Some(start), Some(end)) => (start, end),
+        _ => return false,
+    };
+
+    if !validate_tags(&annotation.start_tag, &annotation.end_tag).await {
+        return false;
+    }
+
+    let (start_length, end_length) = match (
+        get_tag_length(start_location, &start_tag, &text).await,
+        get_tag_length(end_location, &end_tag, &text).await,
+    ) {
+        (Some(sl), Some(el)) => (sl, el),
+        _ => return false,
+    };
+
+    let start_length: u32 = start_length.try_into().expect("Failed to convert length");
+    let end_length: u32 = end_length.try_into().expect("Failed to convert length");
+
+    annotation.start_char < start_length && annotation.end_char < end_length
+}
+
+async fn get_tag_length(position: usize, tag: &str, text: &str) -> Option<usize> {
+    let start = position + tag.len();
+    let end = text[start..].find("</span>")? + start;
+    Some(text[start..end].chars().count())
+}
+
+async fn validate_tags(start: &str, end: &str) -> bool {
+    let parse = |tag: &str| -> Option<(u32, u32)> {
+        let raw = tag.strip_prefix("kobo.")?;
+        let mut it = raw.split('.');
+        let hi = it.next()?.parse().ok()?;
+        let lo = it.next()?.parse().ok()?;
+        if it.next().is_some() {
+            return None;
+        }
+        Some((hi, lo))
+    };
+
+    parse(start).zip(parse(end)).map_or(false, |(s, e)| s <= e)
 }

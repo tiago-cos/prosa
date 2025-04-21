@@ -129,7 +129,8 @@ pub async fn create_tables(pool: &SqlitePool) {
             start_char INTEGER NOT NULL,
             end_char INTEGER NOT NULL,
             note TEXT,
-            FOREIGN KEY(book_id) REFERENCES books(book_id) ON DELETE CASCADE
+            FOREIGN KEY(book_id) REFERENCES books(book_id) ON DELETE CASCADE,
+            UNIQUE (book_id, source, start_tag, end_tag, start_char, end_char)
         );
 
         CREATE TABLE IF NOT EXISTS sync (
