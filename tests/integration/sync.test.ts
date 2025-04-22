@@ -5,6 +5,7 @@ import { INVALID_TIMESTAMP, sync } from "../utils/sync"
 import { EXAMPLE_METADATA, patchMetadata, updateMetadata } from "../utils/metadata";
 import { updateCover } from "../utils/covers";
 import { ALICE_STATE, patchState, updateState } from "../utils/state";
+import { addAnnotation, ALICE_NOTE, deleteAnnotation, patchAnnotation } from "../utils/annotations";
 
 describe("Sync JWT", () => {
     test.concurrent("Simple", async () => {
@@ -25,6 +26,7 @@ describe("Sync JWT", () => {
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
             state: [uploadResponse.text],
+            annotations: [uploadResponse.text],
             deleted: []
         }
 
@@ -40,6 +42,7 @@ describe("Sync JWT", () => {
             metadata: [],
             cover: [],
             state: [],
+            annotations: [],
             deleted: []
         }
 
@@ -59,6 +62,7 @@ describe("Sync JWT", () => {
             metadata: [uploadResponse2.text],
             cover: [uploadResponse2.text],
             state: [uploadResponse2.text],
+            annotations: [uploadResponse2.text],
             deleted: []
         }
 
@@ -72,6 +76,7 @@ describe("Sync JWT", () => {
             metadata: [uploadResponse.text, uploadResponse2.text],
             cover: [uploadResponse.text, uploadResponse2.text],
             state: [uploadResponse.text, uploadResponse2.text],
+            annotations: [uploadResponse.text, uploadResponse2.text],
             deleted: []
         }
 
@@ -87,13 +92,14 @@ describe("Sync JWT", () => {
             metadata: [],
             cover: [],
             state: [],
+            annotations: [],
             deleted: []
         }
 
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Simple implicit users", async () => {
+    test.concurrent("Implicit users", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -111,6 +117,7 @@ describe("Sync JWT", () => {
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
             state: [uploadResponse.text],
+            annotations: [uploadResponse.text],
             deleted: []
         }
 
@@ -126,6 +133,7 @@ describe("Sync JWT", () => {
             metadata: [],
             cover: [],
             state: [],
+            annotations: [],
             deleted: []
         }
 
@@ -145,6 +153,7 @@ describe("Sync JWT", () => {
             metadata: [uploadResponse2.text],
             cover: [uploadResponse2.text],
             state: [uploadResponse2.text],
+            annotations: [uploadResponse2.text],
             deleted: []
         }
 
@@ -158,6 +167,7 @@ describe("Sync JWT", () => {
             metadata: [uploadResponse.text, uploadResponse2.text],
             cover: [uploadResponse.text, uploadResponse2.text],
             state: [uploadResponse.text, uploadResponse2.text],
+            annotations: [uploadResponse.text, uploadResponse2.text],
             deleted: []
         }
 
@@ -173,6 +183,7 @@ describe("Sync JWT", () => {
             metadata: [],
             cover: [],
             state: [],
+            annotations: [],
             deleted: []
         }
 
@@ -194,6 +205,7 @@ describe("Sync JWT", () => {
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
             state: [uploadResponse.text],
+            annotations: [uploadResponse.text],
             deleted: [] as string[]
         }
 
@@ -210,6 +222,7 @@ describe("Sync JWT", () => {
             metadata: [],
             cover: [],
             state: [],
+            annotations: [],
             deleted: [uploadResponse.text],
         }
 
@@ -229,6 +242,7 @@ describe("Sync JWT", () => {
             metadata: [uploadResponse2.text, uploadResponse3.text],
             cover: [uploadResponse2.text, uploadResponse3.text],
             state: [uploadResponse2.text, uploadResponse3.text],
+            annotations: [uploadResponse2.text, uploadResponse3.text],
             deleted: [uploadResponse.text],
         }
 
@@ -250,6 +264,7 @@ describe("Sync JWT", () => {
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
             state: [uploadResponse.text],
+            annotations: [uploadResponse.text],
             deleted: [] as string[]
         }
 
@@ -271,6 +286,7 @@ describe("Sync JWT", () => {
             metadata: [uploadResponse.text],
             cover: [],
             state: [],
+            annotations: [],
             deleted: []
         }
 
@@ -289,6 +305,7 @@ describe("Sync JWT", () => {
             metadata: [uploadResponse.text],
             cover: [],
             state: [],
+            annotations: [],
             deleted: []
         }
 
@@ -310,6 +327,7 @@ describe("Sync JWT", () => {
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
             state: [uploadResponse.text],
+            annotations: [uploadResponse.text],
             deleted: [] as string[]
         }
 
@@ -331,6 +349,7 @@ describe("Sync JWT", () => {
             metadata: [],
             cover: [uploadResponse.text],
             state: [],
+            annotations: [],
             deleted: []
         }
 
@@ -350,6 +369,7 @@ describe("Sync JWT", () => {
             metadata: [uploadResponse2.text],
             cover: [uploadResponse2.text],
             state: [uploadResponse2.text],
+            annotations: [uploadResponse2.text],
             deleted: [uploadResponse.text]
         }
 
@@ -371,6 +391,7 @@ describe("Sync JWT", () => {
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
             state: [uploadResponse.text],
+            annotations: [uploadResponse.text],
             deleted: [] as string[]
         }
 
@@ -392,6 +413,7 @@ describe("Sync JWT", () => {
             metadata: [],
             cover: [],
             state: [uploadResponse.text],
+            annotations: [],
             deleted: []
         }
 
@@ -410,6 +432,89 @@ describe("Sync JWT", () => {
             metadata: [],
             cover: [],
             state: [uploadResponse.text],
+            annotations: [],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+    });
+
+    test.concurrent("Changed annotations", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        let syncResponse = await sync(username, undefined, { jwt: registerResponse.text });
+        expect(syncResponse.status).toBe(200);
+
+        let expectedResponse = {
+            file: [uploadResponse.text],
+            metadata: [uploadResponse.text],
+            cover: [uploadResponse.text],
+            state: [uploadResponse.text],
+            annotations: [uploadResponse.text],
+            deleted: [] as string[]
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        // Wait for cover and metadata to be extracted
+        await wait(0.5);
+
+        let now = Date.now();
+
+        const addAnnotationResponse = await addAnnotation(uploadResponse.text, ALICE_NOTE, { jwt: registerResponse.text });
+        expect(addAnnotationResponse.status).toBe(200);
+
+        syncResponse = await sync(username, now, { jwt: registerResponse.text });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [],
+            metadata: [],
+            cover: [],
+            state: [],
+            annotations: [uploadResponse.text],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        now = Date.now();
+
+        let annotationResponse = await patchAnnotation(uploadResponse.text, addAnnotationResponse.text, "note", { jwt: registerResponse.text });
+        expect(annotationResponse.status).toBe(200);
+
+        syncResponse = await sync(username, now, { jwt: registerResponse.text });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [],
+            metadata: [],
+            cover: [],
+            state: [],
+            annotations: [uploadResponse.text],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        now = Date.now();
+
+        annotationResponse = await deleteAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse.text });
+        expect(annotationResponse.status).toBe(200);
+
+        syncResponse = await sync(username, now, { jwt: registerResponse.text });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [],
+            metadata: [],
+            cover: [],
+            state: [],
+            annotations: [uploadResponse.text],
             deleted: []
         }
 
@@ -437,6 +542,7 @@ describe("Sync JWT", () => {
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
             state: [uploadResponse.text],
+            annotations: [uploadResponse.text],
             deleted: []
         }
 
@@ -450,6 +556,7 @@ describe("Sync JWT", () => {
             metadata: [uploadResponse2.text],
             cover: [uploadResponse2.text],
             state: [uploadResponse2.text],
+            annotations: [uploadResponse2.text],
             deleted: []
         }
 
@@ -477,6 +584,7 @@ describe("Sync JWT", () => {
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
             state: [uploadResponse.text],
+            annotations: [uploadResponse.text],
             deleted: []
         }
 
@@ -490,6 +598,7 @@ describe("Sync JWT", () => {
             metadata: [uploadResponse2.text],
             cover: [uploadResponse2.text],
             state: [uploadResponse2.text],
+            annotations: [uploadResponse2.text],
             deleted: []
         }
 
@@ -569,6 +678,7 @@ describe("Sync api key", () => {
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
             state: [uploadResponse.text],
+            annotations: [uploadResponse.text],
             deleted: []
         }
 
@@ -584,6 +694,7 @@ describe("Sync api key", () => {
             metadata: [],
             cover: [],
             state: [],
+            annotations: [],
             deleted: []
         }
 
@@ -603,6 +714,7 @@ describe("Sync api key", () => {
             metadata: [uploadResponse2.text],
             cover: [uploadResponse2.text],
             state: [uploadResponse2.text],
+            annotations: [uploadResponse2.text],
             deleted: []
         }
 
@@ -616,6 +728,7 @@ describe("Sync api key", () => {
             metadata: [uploadResponse.text, uploadResponse2.text],
             cover: [uploadResponse.text, uploadResponse2.text],
             state: [uploadResponse.text, uploadResponse2.text],
+            annotations: [uploadResponse.text, uploadResponse2.text],
             deleted: []
         }
 
@@ -631,13 +744,14 @@ describe("Sync api key", () => {
             metadata: [],
             cover: [],
             state: [],
+            annotations: [],
             deleted: []
         }
 
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Simple implicit users", async () => {
+    test.concurrent("Implicit users", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -658,6 +772,7 @@ describe("Sync api key", () => {
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
             state: [uploadResponse.text],
+            annotations: [uploadResponse.text],
             deleted: []
         }
 
@@ -673,6 +788,7 @@ describe("Sync api key", () => {
             metadata: [],
             cover: [],
             state: [],
+            annotations: [],
             deleted: []
         }
 
@@ -692,6 +808,7 @@ describe("Sync api key", () => {
             metadata: [uploadResponse2.text],
             cover: [uploadResponse2.text],
             state: [uploadResponse2.text],
+            annotations: [uploadResponse2.text],
             deleted: []
         }
 
@@ -705,6 +822,7 @@ describe("Sync api key", () => {
             metadata: [uploadResponse.text, uploadResponse2.text],
             cover: [uploadResponse.text, uploadResponse2.text],
             state: [uploadResponse.text, uploadResponse2.text],
+            annotations: [uploadResponse.text, uploadResponse2.text],
             deleted: []
         }
 
@@ -720,6 +838,7 @@ describe("Sync api key", () => {
             metadata: [],
             cover: [],
             state: [],
+            annotations: [],
             deleted: []
         }
 
@@ -744,6 +863,7 @@ describe("Sync api key", () => {
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
             state: [uploadResponse.text],
+            annotations: [uploadResponse.text],
             deleted: [] as string[]
         }
 
@@ -760,6 +880,7 @@ describe("Sync api key", () => {
             metadata: [],
             cover: [],
             state: [],
+            annotations: [],
             deleted: [uploadResponse.text],
         }
 
@@ -779,6 +900,7 @@ describe("Sync api key", () => {
             metadata: [uploadResponse2.text, uploadResponse3.text],
             cover: [uploadResponse2.text, uploadResponse3.text],
             state: [uploadResponse2.text, uploadResponse3.text],
+            annotations: [uploadResponse2.text, uploadResponse3.text],
             deleted: [uploadResponse.text],
         }
 
@@ -803,6 +925,7 @@ describe("Sync api key", () => {
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
             state: [uploadResponse.text],
+            annotations: [uploadResponse.text],
             deleted: [] as string[]
         }
 
@@ -824,6 +947,7 @@ describe("Sync api key", () => {
             metadata: [uploadResponse.text],
             cover: [],
             state: [],
+            annotations: [],
             deleted: []
         }
 
@@ -842,6 +966,7 @@ describe("Sync api key", () => {
             metadata: [uploadResponse.text],
             cover: [],
             state: [],
+            annotations: [],
             deleted: []
         }
 
@@ -866,6 +991,7 @@ describe("Sync api key", () => {
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
             state: [uploadResponse.text],
+            annotations: [uploadResponse.text],
             deleted: [] as string[]
         }
 
@@ -887,6 +1013,7 @@ describe("Sync api key", () => {
             metadata: [],
             cover: [uploadResponse.text],
             state: [],
+            annotations: [],
             deleted: []
         }
 
@@ -906,6 +1033,7 @@ describe("Sync api key", () => {
             metadata: [uploadResponse2.text],
             cover: [uploadResponse2.text],
             state: [uploadResponse2.text],
+            annotations: [uploadResponse2.text],
             deleted: [uploadResponse.text]
         }
 
@@ -930,6 +1058,7 @@ describe("Sync api key", () => {
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
             state: [uploadResponse.text],
+            annotations: [uploadResponse.text],
             deleted: [] as string[]
         }
 
@@ -951,6 +1080,7 @@ describe("Sync api key", () => {
             metadata: [],
             cover: [],
             state: [uploadResponse.text],
+            annotations: [],
             deleted: []
         }
 
@@ -969,6 +1099,92 @@ describe("Sync api key", () => {
             metadata: [],
             cover: [],
             state: [uploadResponse.text],
+            annotations: [],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+    });
+
+    test.concurrent("Changed annotations", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        let syncResponse = await sync(username, undefined, { apiKey: createApiKeyResponse.body.key });
+        expect(syncResponse.status).toBe(200);
+
+        let expectedResponse = {
+            file: [uploadResponse.text],
+            metadata: [uploadResponse.text],
+            cover: [uploadResponse.text],
+            state: [uploadResponse.text],
+            annotations: [uploadResponse.text],
+            deleted: [] as string[]
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        // Wait for cover and metadata to be extracted
+        await wait(0.5);
+
+        let now = Date.now();
+
+        const addAnnotationResponse = await addAnnotation(uploadResponse.text, ALICE_NOTE, { jwt: registerResponse.text });
+        expect(addAnnotationResponse.status).toBe(200);
+
+        syncResponse = await sync(username, now, { apiKey: createApiKeyResponse.body.key });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [],
+            metadata: [],
+            cover: [],
+            state: [],
+            annotations: [uploadResponse.text],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        now = Date.now();
+
+        let annotationResponse = await patchAnnotation(uploadResponse.text, addAnnotationResponse.text, "note", { jwt: registerResponse.text });
+        expect(annotationResponse.status).toBe(200);
+
+        syncResponse = await sync(username, now, { apiKey: createApiKeyResponse.body.key });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [],
+            metadata: [],
+            cover: [],
+            state: [],
+            annotations: [uploadResponse.text],
+            deleted: []
+        }
+
+        expect(syncResponse.body).toEqual(expectedResponse);
+
+        now = Date.now();
+
+        annotationResponse = await deleteAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse.text });
+        expect(annotationResponse.status).toBe(200);
+
+        syncResponse = await sync(username, now, { apiKey: createApiKeyResponse.body.key });
+        expect(syncResponse.status).toBe(200);
+
+        expectedResponse = {
+            file: [],
+            metadata: [],
+            cover: [],
+            state: [],
+            annotations: [uploadResponse.text],
             deleted: []
         }
 
@@ -1002,6 +1218,7 @@ describe("Sync api key", () => {
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
             state: [uploadResponse.text],
+            annotations: [uploadResponse.text],
             deleted: []
         }
 
@@ -1015,6 +1232,7 @@ describe("Sync api key", () => {
             metadata: [uploadResponse2.text],
             cover: [uploadResponse2.text],
             state: [uploadResponse2.text],
+            annotations: [uploadResponse2.text],
             deleted: []
         }
 
@@ -1048,6 +1266,7 @@ describe("Sync api key", () => {
             metadata: [uploadResponse.text],
             cover: [uploadResponse.text],
             state: [uploadResponse.text],
+            annotations: [uploadResponse.text],
             deleted: []
         }
 
@@ -1061,6 +1280,7 @@ describe("Sync api key", () => {
             metadata: [uploadResponse2.text],
             cover: [uploadResponse2.text],
             state: [uploadResponse2.text],
+            annotations: [uploadResponse2.text],
             deleted: []
         }
 

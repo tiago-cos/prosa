@@ -38,7 +38,7 @@ pub async fn create_tables(pool: &SqlitePool) {
     .execute(pool)
     .await
     .expect("Failed to create user tables");
-    //TODO don't forget to check if annotations are deleted when books are deleted in tests
+
     // Book tables
     sqlx::query(
         r#"

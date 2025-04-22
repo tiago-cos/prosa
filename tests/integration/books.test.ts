@@ -5,6 +5,7 @@ import path from "path";
 import fs from "fs";
 import { getMetadata } from "../utils/metadata";
 import { getCover } from "../utils/covers";
+import { addAnnotation, ALICE_NOTE, getAnnotation } from "../utils/annotations";
 
 describe("Upload book JWT", () => {
     test("Simple", async () => {
@@ -387,15 +388,18 @@ describe("Delete book JWT", () => {
         expect(downloadResponse2.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Check metadata and cover", async () => {
+    test.concurrent("Check metadata, cover and annotations", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
-        const uploadResponse = await uploadBook(username, "The_Wonderful_Wizard_of_Oz.epub", { jwt: registerResponse.text });
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
         const downloadResponse = await downloadBook(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse.status).toBe(200);
+
+        const addAnnotationResponse = await addAnnotation(uploadResponse.text, ALICE_NOTE, { jwt: registerResponse.text });
+        expect(addAnnotationResponse.status).toBe(200);
 
         // Wait for metadata and cover to be extracted
         await wait(0.5);
@@ -405,6 +409,9 @@ describe("Delete book JWT", () => {
 
         const coverResponse = await getCover(uploadResponse.text, { jwt: registerResponse.text });
         expect(coverResponse.status).toBe(200);
+
+        const annotationResponse = await getAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse.text });
+        expect(annotationResponse.status).toBe(200);
 
         const deleteResponse = await deleteBook(uploadResponse.text, { jwt: registerResponse.text });
         expect(deleteResponse.status).toBe(200);
@@ -420,6 +427,10 @@ describe("Delete book JWT", () => {
         const coverResponse2 = await getCover(uploadResponse.text, { jwt: registerResponse.text });
         expect(coverResponse2.status).toBe(404);
         expect(downloadResponse2.text).toBe(BOOK_NOT_FOUND);
+
+        const annotationResponse2 = await getAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse.text });
+        expect(annotationResponse2.status).toBe(404);
+        expect(annotationResponse2.text).toBe(BOOK_NOT_FOUND);
     });
 
     test.concurrent("Non-existent book", async () => {
