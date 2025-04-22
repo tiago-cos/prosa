@@ -1,0 +1,12 @@
+allOf:
+  - $ref: ./AnnotationRequest.yaml
+  - type: object
+    description: Request payload for creating a new annotation on a book.
+    properties:
+      annotation_id:
+        type: string
+        format: uuid
+        description: The unique identifier of the annotation.
+        example: "d2e5466f-3b8d-4f22-a24a-3b519f8ed281"
+    required: 
+      - annotation_id

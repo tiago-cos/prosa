@@ -47,6 +47,8 @@ tags:
     description: "Operations about book covers."
   - name: Metadata
     description: "Operations about book metadata."
+  - name: Annotations
+    description: "Operations about book annotations."
   - name: State
     description: "Operations about book state."
   - name: Search
@@ -65,6 +67,7 @@ x-tagGroups:
       - File
       - Cover
       - Metadata
+      - Annotations
       - State
       - Search
   - name: Sync
@@ -92,6 +95,10 @@ paths:
     $ref: "paths/books/{book_id}/cover.yaml"
   /books/{book_id}/metadata:
     $ref: "paths/books/{book_id}/metadata.yaml"
+  /books/{book_id}/annotations:
+    $ref: "paths/books/{book_id}/annotations.yaml"
+  /books/{book_id}/annotations/{annotation_id}:
+    $ref: "paths/books/{book_id}/annotations/{annotation_id}.yaml"
   /books/{book_id}/state:
     $ref: "paths/books/{book_id}/state.yaml"
   /users:

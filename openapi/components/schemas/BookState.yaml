@@ -7,11 +7,11 @@ properties:
     properties:
       tag: 
         type: string
-        description: The XHTML tag of the location.
+        description: The `id` attribute of the XHTML tag of the current location.
         example: "kobo.41.1"
       source:
         type: string
-        description: The file where the tag can be found.
+        description: The path or name of the XHTML file inside the EPUB where the tag is located.
         example: "OEBPS/text/9780063021440_Chapter_3.xhtml"
   statistics:
     type: object

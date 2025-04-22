@@ -1,0 +1,7 @@
+name: annotation_id
+in: path
+required: true
+schema:
+  type: string
+  format: uuid
+description: The unique ID of the annotation to retrieve or modify.

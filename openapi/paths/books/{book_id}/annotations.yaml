@@ -1,0 +1,76 @@
+post:
+  tags:
+    - Annotations
+  summary: "Add book annotation"
+  description: |
+    Add an annotation to a specific book in the user's library.
+    The user must be authenticated and have the appropriate permissions.
+  operationId: addBookAnnotation
+  parameters:
+    - $ref: ../../../components/parameters/book_id.yaml
+
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../../../components/schemas/AnnotationRequest.yaml
+
+  responses:
+    "200":
+      description: The annotation was uploaded successfully.
+      content:
+        text/plain:
+          schema:
+            type: string
+            description: The unique ID of the uploaded annotation.
+          examples:
+            success:
+              summary: Example response for a successful upload
+              value: "b0f027db-12d8-4c3a-b8ad-d7d3cfcf91ce"
+    "400":
+      $ref: ../../../components/responses/annotations/InvalidAnnotation.yaml
+    "401":
+      $ref: ../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../../components/responses/books/BookNotFound.yaml
+    "409":
+      $ref: ../../../components/responses/annotations/AnnotationConflict.yaml
+
+  security:
+    - prosaToken: []
+    - apiKey: []
+
+get:
+  tags:
+    - Annotations
+  summary: "List book annotations"
+  description: |
+    List all annotations for a specific book owned by the user.
+    The user must be authenticated and have the appropriate permissions.
+  operationId: listBookAnnotations
+  parameters:
+    - $ref: ../../../components/parameters/book_id.yaml
+
+  responses:
+    "200":
+      description: The list of annotation IDs was retrieved successfully.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              type: string
+              format: uuid
+    "401":
+      $ref: ../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../../components/responses/books/BookNotFound.yaml
+
+  security:
+    - prosaToken: []
+    - apiKey: []

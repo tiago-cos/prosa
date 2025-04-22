@@ -1,0 +1,100 @@
+get:
+  tags:
+    - Annotations
+  summary: "Get book annotation"
+  description: |
+    Retrieve a specific annotation for a book owned by the user.
+    The user must be authenticated and have the appropriate permissions.
+  operationId: getBookAnnotation
+  parameters:
+    - $ref: ../../../../components/parameters/book_id.yaml
+    - $ref: ../../../../components/parameters/annotation_id.yaml
+
+  responses:
+    "200":
+      description: The book annotation was retrieved successfully.
+      content:
+        application/json:
+          schema:
+            $ref: ../../../../components/schemas/Annotation.yaml
+    "401":
+      $ref: ../../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../../components/responses/Forbidden.yaml
+    "404":
+      description: The requested book or annotation was not found or cannot be accessed.
+
+  security:
+    - prosaToken: []
+    - apiKey: []
+
+delete:
+  tags:
+    - Annotations
+  summary: "Delete book annotation"
+  description: |
+    Delete a specific annotation from a book owned by the user.
+    The user must be authenticated and have the appropriate permissions.
+  operationId: deleteBookAnnotation
+  parameters:
+    - $ref: ../../../../components/parameters/book_id.yaml
+    - $ref: ../../../../components/parameters/annotation_id.yaml
+
+  responses:
+    "200":
+      description: The book annotation was deleted successfully.
+    "401":
+      $ref: ../../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../../components/responses/Forbidden.yaml
+    "404":
+      description: The requested book or annotation was not found or cannot be accessed.
+
+  security:
+    - prosaToken: []
+    - apiKey: []
+
+
+patch:
+  tags:
+    - Annotations
+  summary: "Patch book annotation"
+  description: |
+    Update the note of a specific annotation for a book owned by the user.
+    If the note is an empty string, the existing note will be deleted.
+    The user must be authenticated and have the appropriate permissions.
+  operationId: patchBookAnnotation
+  parameters:
+    - $ref: ../../../../components/parameters/book_id.yaml
+    - $ref: ../../../../components/parameters/annotation_id.yaml
+
+  requestBody:
+    required: true
+    description: The new note to associate with the annotation.
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            note:
+              type: string
+              description: The updated note content. An empty string will remove the existing note.
+              example: "This section explains a key concept."
+          required:
+            - note
+          additionalProperties: false
+
+
+  responses:
+    "200":
+      description: The book annotation note was updated successfully.
+    "401":
+      $ref: ../../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../../components/responses/Forbidden.yaml
+    "404":
+      description: The requested book or annotation was not found or cannot be accessed.
+
+  security:
+    - prosaToken: []
+    - apiKey: []

@@ -1,0 +1,36 @@
+type: object
+description: Represents an annotation added by a user to a specific section of an EPUB book.
+properties:
+  source:
+    type: string
+    description: The path or name of the XHTML file inside the EPUB where the annotation is located.
+    example: "OEBPS/chapter-1.htm.xhtml"
+  start_tag:
+    type: string
+    description: The `id` attribute of the XHTML tag where the annotation begins.
+    example: "kobo.74.3"
+  end_tag:
+    type: string
+    description: The `id` attribute of the XHTML tag where the annotation ends.
+    example: "kobo.74.5"
+  start_char:
+    type: integer
+    format: int32
+    description: The character offset within the `start_tag` element where the annotation starts.
+    example: 15
+  end_char:
+    type: integer
+    format: int32
+    description: The character offset within the `end_tag` element where the annotation ends.
+    example: 42
+  note:
+    type: string
+    nullable: true
+    description: An optional user-provided note attached to the annotation.
+    example: "Important point about the plot."
+required:
+  - source
+  - start_tag
+  - end_tag
+  - start_char
+  - end_char
