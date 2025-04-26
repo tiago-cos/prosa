@@ -117,7 +117,7 @@ async fn validate_location(location: &Location, epub_path: &str, epub_id: &str) 
         .expect("Failed to get book resource");
     let tag = format!("<span class=\"koboSpan\" id=\"{}\">", tag);
 
-    if source != "titlepage.xhtml" && source != "cover.xhtml" && !text.contains(&tag) {
+    if !text.contains(&tag) {
         return Err(StateError::InvalidLocation.into());
     }
 
