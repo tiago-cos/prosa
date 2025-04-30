@@ -10,3 +10,4 @@ allOf:
       location:
         required:
           - source
+          - tag
