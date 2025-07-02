@@ -1,7 +1,9 @@
 use super::fetcher::MetadataFetcher;
 use crate::{
     app::{
-        books, covers, epubs,
+        books,
+        concurrency::manager::BookLockManager,
+        covers, epubs,
         metadata::{self, models::Metadata},
         sync,
     },
@@ -29,6 +31,7 @@ impl MetadataManager {
     pub async fn fetch_metadata(
         self: Arc<Self>,
         pool: Arc<SqlitePool>,
+        lock_manager: Arc<BookLockManager>,
         book_id: String,
         providers: Vec<String>,
     ) -> () {
@@ -46,6 +49,9 @@ impl MetadataManager {
             .fetch_metadata(epub_data, providers)
             .await;
 
+        let lock = lock_manager.get_lock(&book_id).await;
+        let _guard = lock.write().await;
+
         match (book.metadata_id, metadata) {
             (_, None) => (),
             (Some(_), Some(metadata)) => handle_metadata_update(&pool, &book_id, metadata).await,
@@ -54,8 +60,8 @@ impl MetadataManager {
 
         match (book.cover_id, image) {
             (_, None) => (),
-            (Some(_), Some(image)) => handle_cover_update(&pool, &book_id, &self.cover_path, image).await,
-            (None, Some(image)) => handle_cover_create(&pool, &book_id, &self.cover_path, image).await,
+            (Some(_), Some(image)) => handle_cover_update(&pool, &book_id, &self.cover_path, image, &lock_manager).await,
+            (None, Some(image)) => handle_cover_create(&pool, &book_id, &self.cover_path, image, &lock_manager).await,
         };
     }
 }
@@ -73,6 +79,7 @@ async fn handle_metadata_update(pool: &SqlitePool, book_id: &str, metadata: Meta
     sync::service::update_metadata_timestamp(&pool, &book.sync_id).await;
 }
 
+//TODO in kobont, dont forget to update the book file size endpoint
 async fn handle_metadata_create(pool: &SqlitePool, book_id: &str, metadata: Metadata) -> () {
     let mut book = books::service::get_book(&pool, &book_id)
         .await
@@ -91,14 +98,20 @@ async fn handle_metadata_create(pool: &SqlitePool, book_id: &str, metadata: Meta
     sync::service::update_metadata_timestamp(&pool, &sync_id).await;
 }
 
-async fn handle_cover_update(pool: &SqlitePool, book_id: &str, cover_path: &str, cover: Vec<u8>) -> () {
+async fn handle_cover_update(
+    pool: &SqlitePool,
+    book_id: &str,
+    cover_path: &str,
+    cover: Vec<u8>,
+    lock_manager: &BookLockManager,
+) -> () {
     let mut book = books::service::get_book(&pool, &book_id)
         .await
         .expect("Failed to get book");
     let sync_id = book.sync_id.clone();
 
     let old_cover_id = book.cover_id.expect("Failed to retrieve old cover id");
-    let new_cover_id = covers::service::write_cover(pool, &cover_path, &cover)
+    let new_cover_id = covers::service::write_cover(pool, &cover_path, &cover, lock_manager)
         .await
         .expect("Failed to write cover");
 
@@ -116,13 +129,19 @@ async fn handle_cover_update(pool: &SqlitePool, book_id: &str, cover_path: &str,
     sync::service::update_cover_timestamp(&pool, &sync_id).await;
 }
 
-async fn handle_cover_create(pool: &SqlitePool, book_id: &str, cover_path: &str, cover: Vec<u8>) -> () {
+async fn handle_cover_create(
+    pool: &SqlitePool,
+    book_id: &str,
+    cover_path: &str,
+    cover: Vec<u8>,
+    lock_manager: &BookLockManager,
+) -> () {
     let mut book = books::service::get_book(&pool, &book_id)
         .await
         .expect("Failed to get book");
     let sync_id = book.sync_id.clone();
 
-    let cover_id = covers::service::write_cover(pool, &cover_path, &cover)
+    let cover_id = covers::service::write_cover(pool, &cover_path, &cover, lock_manager)
         .await
         .expect("Failed to write cover");
 

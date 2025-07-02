@@ -19,7 +19,7 @@ post:
           format: binary
 
   responses:
-    "200":
+    "204":
       description: The book cover was added successfully.
     "400":
       $ref: ../../../components/responses/covers/InvalidCover.yaml
@@ -87,7 +87,7 @@ put:
           format: binary
 
   responses:
-    "200":
+    "204":
       description: The book metadata was updated successfully.
     "400":
       $ref: ../../../components/responses/covers/InvalidCover.yaml
@@ -114,7 +114,7 @@ delete:
     - $ref: ../../../components/parameters/book_id.yaml
 
   responses:
-    "200":
+    "204":
       description: The book cover was deleted successfully.
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml

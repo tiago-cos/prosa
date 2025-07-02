@@ -1,4 +1,5 @@
 use super::{data, models::CoverError};
+use crate::app::concurrency::manager::BookLockManager;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use image::ImageFormat;
 use sha2::{Digest, Sha256};
@@ -13,12 +14,17 @@ pub async fn write_cover(
     pool: &SqlitePool,
     cover_path: &str,
     cover_data: &Vec<u8>,
+    lock_manager: &BookLockManager,
 ) -> Result<String, CoverError> {
     if !is_valid_image(cover_data).await {
         return Err(CoverError::InvalidCover);
     }
 
     let hash = BASE64_STANDARD.encode(Sha256::digest(cover_data));
+
+    let lock = lock_manager.get_lock(&hash).await;
+    let _guard = lock.write().await;
+
     if let Some(cover_id) = data::get_cover_by_hash(pool, &hash).await {
         return Ok(cover_id);
     }

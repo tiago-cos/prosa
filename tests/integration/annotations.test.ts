@@ -732,7 +732,7 @@ describe("Delete annotation JWT", () => {
         expect(getAnnotationResponse.status).toBe(200);
 
         const deleteAnnotationResponse = await deleteAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse.text });
-        expect(deleteAnnotationResponse.status).toBe(200);
+        expect(deleteAnnotationResponse.status).toBe(204);
 
         getAnnotationResponse = await getAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse.text });
         expect(getAnnotationResponse.status).toBe(404);
@@ -792,7 +792,7 @@ describe("Delete annotation JWT", () => {
         expect(registerResponse2.status).toBe(200);
 
         const deleteAnnotationResponse = await deleteAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse2.text });
-        expect(deleteAnnotationResponse.status).toBe(200);
+        expect(deleteAnnotationResponse.status).toBe(204);
     });
 
     test.concurrent("No auth", async () => {
@@ -833,7 +833,7 @@ describe("Delete annotation api key", () => {
         expect(getAnnotationResponse.body).toEqual(expectedResponse);
 
         const deleteAnnotationResponse = await deleteAnnotation(uploadResponse.text, addAnnotationResponse.text, { apiKey: createApiKeyResponse.body.key });
-        expect(deleteAnnotationResponse.status).toBe(200);
+        expect(deleteAnnotationResponse.status).toBe(204);
 
         getAnnotationResponse = await getAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse.text });
         expect(getAnnotationResponse.status).toBe(404);
@@ -905,7 +905,7 @@ describe("Delete annotation api key", () => {
         expect(createApiKeyResponse.status).toBe(200);
 
         const deleteAnnotationResponse = await deleteAnnotation(uploadResponse.text, addAnnotationResponse.text, { apiKey: createApiKeyResponse.body.key });
-        expect(deleteAnnotationResponse.status).toBe(200);
+        expect(deleteAnnotationResponse.status).toBe(204);
     });
 
     test.concurrent("Wrong capabilities", async () => {
@@ -970,7 +970,7 @@ describe("Patch annotation JWT", () => {
         expectedResponse["note"] = "New note";
 
         let patchAnnotationResponse = await patchAnnotation(uploadResponse.text, addAnnotationResponse.text, "New note", { jwt: registerResponse.text });
-        expect(patchAnnotationResponse.status).toBe(200);
+        expect(patchAnnotationResponse.status).toBe(204);
         
         getAnnotationResponse = await getAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse.text });
         expect(getAnnotationResponse.status).toBe(200);
@@ -979,7 +979,7 @@ describe("Patch annotation JWT", () => {
         delete expectedResponse.note;
 
         patchAnnotationResponse = await patchAnnotation(uploadResponse.text, addAnnotationResponse.text, "", { jwt: registerResponse.text });
-        expect(patchAnnotationResponse.status).toBe(200);
+        expect(patchAnnotationResponse.status).toBe(204);
 
         getAnnotationResponse = await getAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse.text });
         expect(getAnnotationResponse.status).toBe(200);
@@ -1039,7 +1039,7 @@ describe("Patch annotation JWT", () => {
         expect(registerResponse2.status).toBe(200);
 
         const patchAnnotationResponse = await patchAnnotation(uploadResponse.text, addAnnotationResponse.text, "note", { jwt: registerResponse2.text });
-        expect(patchAnnotationResponse.status).toBe(200);
+        expect(patchAnnotationResponse.status).toBe(204);
     });
 
     test.concurrent("No auth", async () => {
@@ -1082,7 +1082,7 @@ describe("Delete annotation api key", () => {
         expectedResponse["note"] = "New note";
 
         let patchAnnotationResponse = await patchAnnotation(uploadResponse.text, addAnnotationResponse.text, "New note", { apiKey: createApiKeyResponse.body.key });
-        expect(patchAnnotationResponse.status).toBe(200);
+        expect(patchAnnotationResponse.status).toBe(204);
         
         getAnnotationResponse = await getAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse.text });
         expect(getAnnotationResponse.status).toBe(200);
@@ -1091,7 +1091,7 @@ describe("Delete annotation api key", () => {
         delete expectedResponse.note;
 
         patchAnnotationResponse = await patchAnnotation(uploadResponse.text, addAnnotationResponse.text, "", { apiKey: createApiKeyResponse.body.key });
-        expect(patchAnnotationResponse.status).toBe(200);
+        expect(patchAnnotationResponse.status).toBe(204);
 
         getAnnotationResponse = await getAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse.text });
         expect(getAnnotationResponse.status).toBe(200);
@@ -1163,7 +1163,7 @@ describe("Delete annotation api key", () => {
         expect(createApiKeyResponse.status).toBe(200);
 
         const patchAnnotationResponse = await patchAnnotation(uploadResponse.text, addAnnotationResponse.text, "note", { apiKey: createApiKeyResponse.body.key });
-        expect(patchAnnotationResponse.status).toBe(200);
+        expect(patchAnnotationResponse.status).toBe(204);
     });
 
     test.concurrent("Wrong capabilities", async () => {

@@ -424,7 +424,7 @@ describe("Delete api key", () => {
         expect(getApiKeyResponse.status).toBe(200);
 
         const deleteApiKeyResponse = await deleteApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse.text });
-        expect(deleteApiKeyResponse.status).toBe(200);
+        expect(deleteApiKeyResponse.status).toBe(204);
 
         const getApiKeyResponse2 = await getApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse.text });
         expect(getApiKeyResponse2.status).toBe(404);
@@ -484,7 +484,7 @@ describe("Delete api key", () => {
         expect(registerResponse2.status).toBe(200);
 
         const deleteApiKeyResponse = await deleteApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse2.text });
-        expect(deleteApiKeyResponse.status).toBe(200);
+        expect(deleteApiKeyResponse.status).toBe(204);
 
         const getApiKeyResponse = await getApiKey(username, createApiKeyResponse.body.id, { jwt: registerResponse2.text });
         expect(getApiKeyResponse.status).toBe(404);
@@ -584,7 +584,7 @@ describe("Update preferences", () => {
             ["goodreads_metadata_scraper", "epub_metadata_extractor"],
             { jwt: registerResponse.text }
         );
-        expect(updatePreferencesResponse.status).toBe(200);
+        expect(updatePreferencesResponse.status).toBe(204);
 
         const getPreferencesResponse2 = await getPreferences(username, { jwt: registerResponse.text });
         expect(getPreferencesResponse2.status).toBe(200);
@@ -596,7 +596,7 @@ describe("Update preferences", () => {
             [],
             { jwt: registerResponse.text }
         );
-        expect(updatePreferencesResponse2.status).toBe(200);
+        expect(updatePreferencesResponse2.status).toBe(204);
 
         const getPreferencesResponse3 = await getPreferences(username, { jwt: registerResponse.text });
         expect(getPreferencesResponse3.status).toBe(200);
@@ -658,7 +658,7 @@ describe("Update preferences", () => {
             ["goodreads_metadata_scraper"],
             { jwt: registerResponse2.text }
         );
-        expect(updatePreferencesResponse.status).toBe(200);
+        expect(updatePreferencesResponse.status).toBe(204);
     });
 
     test.concurrent("No auth", async () => {

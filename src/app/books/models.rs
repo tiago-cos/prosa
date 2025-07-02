@@ -70,3 +70,9 @@ pub struct PaginatedBooks {
     pub total_pages: i64,
     pub current_page: i64,
 }
+
+#[derive(Serialize)]
+pub struct BookFileMetadata {
+    pub owner_id: String,
+    pub file_size: u32,
+}

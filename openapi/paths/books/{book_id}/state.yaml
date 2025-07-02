@@ -47,7 +47,7 @@ put:
           $ref: ../../../components/schemas/RequiredBookState.yaml
 
   responses:
-    "200":
+    "204":
       description: The book state was updated successfully.
     "400":
       description: The provided book state is invalid.
@@ -83,7 +83,7 @@ patch:
           minProperties: 1
 
   responses:
-    "200":
+    "204":
       description: The book state was patched successfully.
     "400":
       description: The provided book state is invalid.

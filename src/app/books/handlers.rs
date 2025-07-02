@@ -2,9 +2,13 @@ use super::{
     models::{Book, BookError, UploadBoodRequest},
     service,
 };
-use crate::app::{covers, epubs, error::ProsaError, metadata, state, sync, users, AppState, Pool};
+use crate::app::{
+    books::models::BookFileMetadata, covers, epubs, error::ProsaError, metadata, state, sync, users,
+    AppState, Pool,
+};
 use axum::{
     extract::{Path, Query, State},
+    http::StatusCode,
     response::IntoResponse,
     Json,
 };
@@ -15,31 +19,43 @@ pub async fn download_book_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<impl IntoResponse, ProsaError> {
+    let lock = state.lock_manager.get_lock(&book_id).await;
+    let _guard = lock.read().await;
+
     let book = service::get_book(&state.pool, &book_id).await?;
     let epub = epubs::service::read_epub(&state.config.book_storage.epub_path, &book.epub_id).await?;
 
     Ok(epub)
 }
 
-pub async fn book_size_handler(
+pub async fn get_book_file_metadata_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<impl IntoResponse, ProsaError> {
+    let lock = state.lock_manager.get_lock(&book_id).await;
+    let _guard = lock.read().await;
+
     let book = service::get_book(&state.pool, &book_id).await?;
     let file_size = epubs::service::get_file_size(&state.config.book_storage.epub_path, &book.epub_id).await;
 
-    Ok(Json(file_size))
+    Ok(Json(BookFileMetadata {
+        owner_id: book.owner_id,
+        file_size,
+    }))
 }
 
 pub async fn upload_book_handler(
     State(state): State<AppState>,
     TypedMultipart(data): TypedMultipart<UploadBoodRequest>,
 ) -> Result<impl IntoResponse, ProsaError> {
+    let preferences = users::service::get_preferences(&state.pool, &data.owner_id).await?;
+
     let epub_id = epubs::service::write_epub(
         &state.pool,
         &state.config.kepubify.path,
         &state.config.book_storage.epub_path,
         &data.epub.to_vec(),
+        &state.lock_manager,
     )
     .await?;
     let state_id = state::service::initialize_state(&state.pool).await;
@@ -54,11 +70,11 @@ pub async fn upload_book_handler(
         sync_id,
     };
 
-    let preferences = users::service::get_preferences(&state.pool, &data.owner_id).await?;
     let book_id = service::add_book(&state.pool, book).await?;
 
     tokio::spawn(state.metadata_manager.fetch_metadata(
         state.pool,
+        state.lock_manager,
         book_id.clone(),
         preferences.metadata_providers,
     ));
@@ -70,6 +86,9 @@ pub async fn delete_book_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<impl IntoResponse, ProsaError> {
+    let lock = state.lock_manager.get_lock(&book_id).await;
+    let _guard = lock.write().await;
+
     let book = service::get_book(&state.pool, &book_id).await?;
     service::delete_book(&state.pool, &book_id).await?;
 
@@ -84,7 +103,7 @@ pub async fn delete_book_handler(
     }
 
     let cover_id = match book.cover_id {
-        None => return Ok(()),
+        None => return Ok((StatusCode::NO_CONTENT, ())),
         Some(cover_id) => cover_id,
     };
 
@@ -92,7 +111,10 @@ pub async fn delete_book_handler(
         covers::service::delete_cover(&state.pool, &state.config.book_storage.cover_path, &cover_id).await?;
     }
 
-    Ok(())
+    drop(_guard);
+    state.lock_manager.delete_lock(&book_id).await;
+
+    Ok((StatusCode::NO_CONTENT, ()))
 }
 
 pub async fn search_books_handler(

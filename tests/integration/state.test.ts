@@ -181,7 +181,7 @@ describe("Update state JWT", () => {
         expect(downloadResponse.body).toEqual(EMPTY_STATE);
 
         const updateResponse = await updateState(uploadResponse.text, ALICE_STATE, { jwt: registerResponse.text });
-        expect(updateResponse.status).toBe(200);
+        expect(updateResponse.status).toBe(204);
 
         const downloadResponse2 = await getState(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse2.status).toBe(200);
@@ -189,7 +189,7 @@ describe("Update state JWT", () => {
         expect(downloadResponse2.body).toEqual(ALICE_STATE);
 
         const updateResponse2 = await updateState(uploadResponse.text, { statistics: { rating: 2.1, reading_status: "Read" } }, { jwt: registerResponse.text });
-        expect(updateResponse2.status).toBe(200);
+        expect(updateResponse2.status).toBe(204);
 
         const downloadResponse3 = await getState(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse3.status).toBe(200);
@@ -197,7 +197,7 @@ describe("Update state JWT", () => {
         expect(downloadResponse3.body).toEqual({ statistics: { rating: 2.1, reading_status: "Read" } });
 
         const updateResponse3 = await updateState(uploadResponse.text, EMPTY_STATE, { jwt: registerResponse.text });
-        expect(updateResponse3.status).toBe(200);
+        expect(updateResponse3.status).toBe(204);
 
         const downloadResponse4 = await getState(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse4.status).toBe(200);
@@ -285,7 +285,7 @@ describe("Update state JWT", () => {
         expect(registerResponse2.status).toBe(200);
 
         const updateResponse = await updateState(uploadResponse.text, ALICE_STATE, { jwt: registerResponse2.text });
-        expect(updateResponse.status).toBe(200);
+        expect(updateResponse.status).toBe(204);
     });
 
     test.concurrent("No auth", async () => {
@@ -318,7 +318,7 @@ describe("Update state api key", () => {
         expect(createApiKeyResponse.status).toBe(200);
 
         const updateResponse = await updateState(uploadResponse.text, ALICE_STATE, { apiKey: createApiKeyResponse.body.key });
-        expect(updateResponse.status).toBe(200);
+        expect(updateResponse.status).toBe(204);
 
         const downloadResponse2 = await getState(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse2.status).toBe(200);
@@ -326,7 +326,7 @@ describe("Update state api key", () => {
         expect(downloadResponse2.body).toEqual(ALICE_STATE);
 
         const updateResponse2 = await updateState(uploadResponse.text, { statistics: { rating: 2.1, reading_status: "Read" } }, { apiKey: createApiKeyResponse.body.key });
-        expect(updateResponse2.status).toBe(200);
+        expect(updateResponse2.status).toBe(204);
 
         const downloadResponse3 = await getState(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse3.status).toBe(200);
@@ -334,7 +334,7 @@ describe("Update state api key", () => {
         expect(downloadResponse3.body).toEqual({ statistics: { rating: 2.1, reading_status: "Read" } });
 
         const updateResponse3 = await updateState(uploadResponse.text, EMPTY_STATE, { apiKey: createApiKeyResponse.body.key });
-        expect(updateResponse3.status).toBe(200);
+        expect(updateResponse3.status).toBe(204);
 
         const downloadResponse4 = await getState(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse4.status).toBe(200);
@@ -434,7 +434,7 @@ describe("Update state api key", () => {
         expect(createApiKeyResponse.status).toBe(200);
 
         const updateResponse = await updateState(uploadResponse.text, ALICE_STATE, { apiKey: createApiKeyResponse.body.key });
-        expect(updateResponse.status).toBe(200);
+        expect(updateResponse.status).toBe(204);
     });
 
     test.concurrent("Wrong capabilities", async () => {
@@ -486,7 +486,7 @@ describe("Patch state JWT", () => {
         expect(downloadResponse.body).toEqual(EMPTY_STATE);
 
         const patchResponse = await patchState(uploadResponse.text, { statistics: { rating: 2.3 } }, { jwt: registerResponse.text });
-        expect(patchResponse.status).toBe(200);
+        expect(patchResponse.status).toBe(204);
 
         const downloadResponse2 = await getState(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse2.status).toBe(200);
@@ -494,13 +494,13 @@ describe("Patch state JWT", () => {
         expect(downloadResponse2.body).toEqual({ statistics: { rating: 2.3, reading_status: "Unread"} });
 
         const updateResponse = await updateState(uploadResponse.text, ALICE_STATE, { jwt: registerResponse.text });
-        expect(updateResponse.status).toBe(200);
+        expect(updateResponse.status).toBe(204);
 
         let expectedState = structuredClone(ALICE_STATE);
         expectedState.statistics.rating = 2.3;
 
         const patchResponse2 = await patchState(uploadResponse.text, { statistics: { rating: 2.3 } }, { jwt: registerResponse.text });
-        expect(patchResponse2.status).toBe(200);
+        expect(patchResponse2.status).toBe(204);
 
         const downloadResponse3 = await getState(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse3.status).toBe(200);
@@ -510,7 +510,7 @@ describe("Patch state JWT", () => {
         expectedState.statistics.reading_status = "Reading";
 
         const patchResponse3 = await patchState(uploadResponse.text, { statistics: { reading_status: "Reading" } }, { jwt: registerResponse.text });
-        expect(patchResponse3.status).toBe(200);
+        expect(patchResponse3.status).toBe(204);
 
         const downloadResponse4 = await getState(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse4.status).toBe(200);
@@ -589,7 +589,7 @@ describe("Patch state JWT", () => {
         expect(registerResponse2.status).toBe(200);
 
         const patchResponse = await patchState(uploadResponse.text, ALICE_STATE, { jwt: registerResponse2.text });
-        expect(patchResponse.status).toBe(200);
+        expect(patchResponse.status).toBe(204);
     });
 
     test.concurrent("No auth", async () => {
@@ -622,7 +622,7 @@ describe("Patch state api key", () => {
         expect(createApiKeyResponse.status).toBe(200);
 
         const patchResponse = await patchState(uploadResponse.text, { statistics: { rating: 2.3 } }, { apiKey: createApiKeyResponse.body.key });
-        expect(patchResponse.status).toBe(200);
+        expect(patchResponse.status).toBe(204);
 
         const downloadResponse2 = await getState(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse2.status).toBe(200);
@@ -630,13 +630,13 @@ describe("Patch state api key", () => {
         expect(downloadResponse2.body).toEqual({ statistics: { rating: 2.3, reading_status: "Unread" } });
 
         const updateResponse = await updateState(uploadResponse.text, ALICE_STATE, { jwt: registerResponse.text });
-        expect(updateResponse.status).toBe(200);
+        expect(updateResponse.status).toBe(204);
 
         let expectedState = structuredClone(ALICE_STATE);
         expectedState.statistics.rating = 2.3;
 
         const patchResponse2 = await patchState(uploadResponse.text, { statistics: { rating: 2.3 } }, { apiKey: createApiKeyResponse.body.key });
-        expect(patchResponse2.status).toBe(200);
+        expect(patchResponse2.status).toBe(204);
 
         const downloadResponse3 = await getState(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse3.status).toBe(200);
@@ -646,7 +646,7 @@ describe("Patch state api key", () => {
         expectedState.statistics.reading_status = "Reading";
 
         const patchResponse3 = await patchState(uploadResponse.text, { statistics: { reading_status: "Reading" } }, { apiKey: createApiKeyResponse.body.key });
-        expect(patchResponse3.status).toBe(200);
+        expect(patchResponse3.status).toBe(204);
 
         const downloadResponse4 = await getState(uploadResponse.text, { jwt: registerResponse.text });
         expect(downloadResponse4.status).toBe(200);
@@ -737,7 +737,7 @@ describe("Patch state api key", () => {
         expect(createApiKeyResponse.status).toBe(200);
 
         const patchResponse = await patchState(uploadResponse.text, ALICE_STATE, { apiKey: createApiKeyResponse.body.key });
-        expect(patchResponse.status).toBe(200);
+        expect(patchResponse.status).toBe(204);
     });
 
     test.concurrent("Wrong capabilities", async () => {

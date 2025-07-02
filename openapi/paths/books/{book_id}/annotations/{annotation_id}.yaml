@@ -41,7 +41,7 @@ delete:
     - $ref: ../../../../components/parameters/annotation_id.yaml
 
   responses:
-    "200":
+    "204":
       description: The book annotation was deleted successfully.
     "401":
       $ref: ../../../../components/responses/Unauthorized.yaml
@@ -86,7 +86,7 @@ patch:
 
 
   responses:
-    "200":
+    "204":
       description: The book annotation note was updated successfully.
     "401":
       $ref: ../../../../components/responses/Unauthorized.yaml

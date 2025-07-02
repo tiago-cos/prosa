@@ -119,3 +119,5 @@ async fn validate_location(location: &Location, epub_path: &str, epub_id: &str) 
 
     Ok(())
 }
+
+//TODO add cache for valid locations/images/epubs (basically anything that reads a file) so that we don't always have to read file

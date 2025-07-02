@@ -212,7 +212,7 @@ describe("Sync JWT", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
 
         const deleteResponse = await deleteBook(uploadResponse.text, { jwt: registerResponse.text });
-        expect(deleteResponse.status).toBe(200);
+        expect(deleteResponse.status).toBe(204);
 
         syncResponse = await sync(username, undefined, { jwt: registerResponse.text });
         expect(syncResponse.status).toBe(200);
@@ -276,7 +276,7 @@ describe("Sync JWT", () => {
         let now = Date.now();
 
         let metadataResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA, { jwt: registerResponse.text });
-        expect(metadataResponse.status).toBe(200);
+        expect(metadataResponse.status).toBe(204);
 
         syncResponse = await sync(username, now, { jwt: registerResponse.text });
         expect(syncResponse.status).toBe(200);
@@ -295,7 +295,7 @@ describe("Sync JWT", () => {
         now = Date.now();
 
         metadataResponse = await patchMetadata(uploadResponse.text, { title: "title test" }, { jwt: registerResponse.text });
-        expect(metadataResponse.status).toBe(200);
+        expect(metadataResponse.status).toBe(204);
 
         syncResponse = await sync(username, now, { jwt: registerResponse.text });
         expect(syncResponse.status).toBe(200);
@@ -339,7 +339,7 @@ describe("Sync JWT", () => {
         let now = Date.now();
 
         const coverResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { jwt: registerResponse.text });
-        expect(coverResponse.status).toBe(200);
+        expect(coverResponse.status).toBe(204);
 
         syncResponse = await sync(username, now, { jwt: registerResponse.text });
         expect(syncResponse.status).toBe(200);
@@ -356,7 +356,7 @@ describe("Sync JWT", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
 
         const deleteResponse = await deleteBook(uploadResponse.text, { jwt: registerResponse.text });
-        expect(deleteResponse.status).toBe(200);
+        expect(deleteResponse.status).toBe(204);
 
         const uploadResponse2 = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
         expect(uploadResponse2.status).toBe(200);
@@ -403,7 +403,7 @@ describe("Sync JWT", () => {
         let now = Date.now();
 
         let stateResponse = await updateState(uploadResponse.text, ALICE_STATE, { jwt: registerResponse.text });
-        expect(stateResponse.status).toBe(200);
+        expect(stateResponse.status).toBe(204);
 
         syncResponse = await sync(username, now, { jwt: registerResponse.text });
         expect(syncResponse.status).toBe(200);
@@ -422,7 +422,7 @@ describe("Sync JWT", () => {
         now = Date.now();
 
         stateResponse = await patchState(uploadResponse.text, {statistics: {reading_status: "Read"}}, { jwt: registerResponse.text });
-        expect(stateResponse.status).toBe(200);
+        expect(stateResponse.status).toBe(204);
 
         syncResponse = await sync(username, now, { jwt: registerResponse.text });
         expect(syncResponse.status).toBe(200);
@@ -485,7 +485,7 @@ describe("Sync JWT", () => {
         now = Date.now();
 
         let annotationResponse = await patchAnnotation(uploadResponse.text, addAnnotationResponse.text, "note", { jwt: registerResponse.text });
-        expect(annotationResponse.status).toBe(200);
+        expect(annotationResponse.status).toBe(204);
 
         syncResponse = await sync(username, now, { jwt: registerResponse.text });
         expect(syncResponse.status).toBe(200);
@@ -504,7 +504,7 @@ describe("Sync JWT", () => {
         now = Date.now();
 
         annotationResponse = await deleteAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse.text });
-        expect(annotationResponse.status).toBe(200);
+        expect(annotationResponse.status).toBe(204);
 
         syncResponse = await sync(username, now, { jwt: registerResponse.text });
         expect(syncResponse.status).toBe(200);
@@ -870,7 +870,7 @@ describe("Sync api key", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
 
         const deleteResponse = await deleteBook(uploadResponse.text, { jwt: registerResponse.text });
-        expect(deleteResponse.status).toBe(200);
+        expect(deleteResponse.status).toBe(204);
 
         syncResponse = await sync(username, undefined, { apiKey: createApiKeyResponse.body.key });
         expect(syncResponse.status).toBe(200);
@@ -937,7 +937,7 @@ describe("Sync api key", () => {
         let now = Date.now();
 
         const metadataResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA, { jwt: registerResponse.text });
-        expect(metadataResponse.status).toBe(200);
+        expect(metadataResponse.status).toBe(204);
 
         syncResponse = await sync(username, now, { apiKey: createApiKeyResponse.body.key });
         expect(syncResponse.status).toBe(200);
@@ -956,7 +956,7 @@ describe("Sync api key", () => {
         now = Date.now();
 
         syncResponse = await patchMetadata(uploadResponse.text, { title: "title test" }, { jwt: registerResponse.text });
-        expect(metadataResponse.status).toBe(200);
+        expect(metadataResponse.status).toBe(204);
 
         syncResponse = await sync(username, now, { apiKey: createApiKeyResponse.body.key });
         expect(syncResponse.status).toBe(200);
@@ -1003,7 +1003,7 @@ describe("Sync api key", () => {
         let now = Date.now();
 
         const coverResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { jwt: registerResponse.text });
-        expect(coverResponse.status).toBe(200);
+        expect(coverResponse.status).toBe(204);
 
         syncResponse = await sync(username, now, { apiKey: createApiKeyResponse.body.key });
         expect(syncResponse.status).toBe(200);
@@ -1020,7 +1020,7 @@ describe("Sync api key", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
 
         const deleteResponse = await deleteBook(uploadResponse.text, { jwt: registerResponse.text });
-        expect(deleteResponse.status).toBe(200);
+        expect(deleteResponse.status).toBe(204);
 
         const uploadResponse2 = await uploadBook(username, "The_Great_Gatsby.epub", { jwt: registerResponse.text });
         expect(uploadResponse2.status).toBe(200);
@@ -1070,7 +1070,7 @@ describe("Sync api key", () => {
         let now = Date.now();
 
         let stateResponse = await updateState(uploadResponse.text, ALICE_STATE, { jwt: registerResponse.text });
-        expect(stateResponse.status).toBe(200);
+        expect(stateResponse.status).toBe(204);
 
         syncResponse = await sync(username, now, { apiKey: createApiKeyResponse.body.key });
         expect(syncResponse.status).toBe(200);
@@ -1089,7 +1089,7 @@ describe("Sync api key", () => {
         now = Date.now();
 
         stateResponse = await patchState(uploadResponse.text, {statistics: {reading_status: "Read"}}, { jwt: registerResponse.text });
-        expect(stateResponse.status).toBe(200);
+        expect(stateResponse.status).toBe(204);
 
         syncResponse = await sync(username, now, { apiKey: createApiKeyResponse.body.key });
         expect(syncResponse.status).toBe(200);
@@ -1155,7 +1155,7 @@ describe("Sync api key", () => {
         now = Date.now();
 
         let annotationResponse = await patchAnnotation(uploadResponse.text, addAnnotationResponse.text, "note", { jwt: registerResponse.text });
-        expect(annotationResponse.status).toBe(200);
+        expect(annotationResponse.status).toBe(204);
 
         syncResponse = await sync(username, now, { apiKey: createApiKeyResponse.body.key });
         expect(syncResponse.status).toBe(200);
@@ -1174,7 +1174,7 @@ describe("Sync api key", () => {
         now = Date.now();
 
         annotationResponse = await deleteAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse.text });
-        expect(annotationResponse.status).toBe(200);
+        expect(annotationResponse.status).toBe(204);
 
         syncResponse = await sync(username, now, { apiKey: createApiKeyResponse.body.key });
         expect(syncResponse.status).toBe(200);

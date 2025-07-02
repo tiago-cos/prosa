@@ -26,7 +26,7 @@ pub fn get_routes(state: AppState) -> Router {
         .route("/books/{book_id}", delete(handlers::delete_book_handler) 
             .route_layer(from_fn_with_state(state.clone(), can_delete_book))
         )
-        .route("/books/{book_id}/size", get(handlers::book_size_handler) 
+        .route("/books/{book_id}/file-metadata", get(handlers::get_book_file_metadata_handler) 
             .route_layer(from_fn_with_state(state.clone(), can_read_book))
         )
         .layer(from_fn_with_state(state.clone(), extract_token_middleware))

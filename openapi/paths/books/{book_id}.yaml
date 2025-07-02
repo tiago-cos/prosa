@@ -40,7 +40,7 @@ delete:
     - $ref: ../../components/parameters/book_id.yaml
 
   responses:
-    "200":
+    "204":
       description: The book was deleted successfully.
     "401":
       $ref: ../../components/responses/Unauthorized.yaml

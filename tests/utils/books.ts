@@ -29,9 +29,9 @@ export async function downloadBook(book_id: string, auth?: { jwt?: string; apiKe
     return req.send();
 }
 
-export async function getBookSize(book_id: string, auth?: { jwt?: string; apiKey?: string }) {
+export async function getBookFileMetadata(book_id: string, auth?: { jwt?: string; apiKey?: string }) {
     let req = request(SERVER_URL)
-        .get(`/books/${book_id}/size`);
+        .get(`/books/${book_id}/file-metadata`);
 
     if (auth?.jwt) req = req.auth(auth.jwt, { type: "bearer" });
     if (auth?.apiKey) req = req.set("api-key", auth.apiKey);

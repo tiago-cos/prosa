@@ -15,8 +15,7 @@ pub async fn get_state(pool: &SqlitePool, state_id: &str) -> State {
         .await
         .expect("Failed to get book state");
 
-    let location = (tag.is_some() || source.is_some())
-        .then_some(Location { tag, source });
+    let location = (tag.is_some() && source.is_some()).then_some(Location { tag, source });
     let statistics = Statistics {
         rating,
         reading_status: Some(reading_status),

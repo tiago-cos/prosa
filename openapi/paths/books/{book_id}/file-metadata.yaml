@@ -1,22 +1,21 @@
 get:
   tags:
     - File
-  summary: "Get book file size"
+  summary: "Get book file metadata"
   description: |
-    Retrieve the size of a specific book file, in bytes.
+    Retrieve metadata for a specific book file, including its owner, size, and creation timestamp.
     The user must be authenticated and have the appropriate permissions.
-  operationId: getBookSize
+  operationId: getBookFileMetadata
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml
 
   responses:
     "200":
-      description: The book file size in bytes.
+      description: The book file metadata.
       content:
         application/json:
           schema:
-            type: integer
-            example: 3478234
+            $ref: ../../../components/schemas/BookFileMetadata.yaml
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
     "403":

@@ -1,0 +1,15 @@
+type: object
+description: Contains EPUB specific metadata.
+additionalProperties: false
+required:
+  - owner_id
+  - file_size
+properties:
+  owner_id:
+    type: string
+    description: The ID of the user who owns the book file.
+    example: "user_123"
+  file_size:
+    type: integer
+    description: The size of the book file in bytes.
+    example: 3478234

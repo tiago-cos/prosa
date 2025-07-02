@@ -45,7 +45,7 @@ put:
           $ref: ../../../components/schemas/Preferences.yaml
 
   responses:
-    "200":
+    "204":
       description: Preferences updated successfully.
     "400":
       $ref: ../../../components/responses/users/InvalidProviders.yaml

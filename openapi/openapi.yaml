@@ -87,8 +87,8 @@ servers:
 paths:
   /books:
     $ref: "paths/books.yaml"
-  /books/{book_id}/size:
-    $ref: "paths/books/{book_id}/size.yaml"
+  /books/{book_id}/file-metadata:
+    $ref: "paths/books/{book_id}/file-metadata.yaml"
   /books/{book_id}:
     $ref: "paths/books/{book_id}.yaml"
   /books/{book_id}/cover:

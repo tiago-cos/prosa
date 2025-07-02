@@ -8,6 +8,7 @@ use super::{
 use crate::app::{authentication, error::ProsaError, AppState, Pool};
 use axum::{
     extract::{Path, State},
+    http::StatusCode,
     response::IntoResponse,
     Json,
 };
@@ -118,7 +119,7 @@ pub async fn revoke_api_key_handler(
 ) -> Result<impl IntoResponse, ProsaError> {
     service::revoke_api_key(&pool, &username, &key_id).await?;
 
-    Ok(())
+    Ok((StatusCode::NO_CONTENT, ()))
 }
 
 pub async fn get_preferences_handler(
@@ -137,5 +138,5 @@ pub async fn update_preferences_handler(
 ) -> Result<impl IntoResponse, ProsaError> {
     service::update_preferences(&pool, &username, body.metadata_providers.clone()).await?;
 
-    Ok(())
+    Ok((StatusCode::NO_CONTENT, ()))
 }

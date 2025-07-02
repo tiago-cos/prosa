@@ -1,10 +1,10 @@
-use std::io::Cursor;
-
 use super::{data, models::EpubError};
+use crate::app::concurrency::manager::BookLockManager;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use epub::doc::EpubDoc;
 use sha2::{Digest, Sha256};
 use sqlx::SqlitePool;
+use std::io::Cursor;
 use tokio::{
     fs::{self, remove_file, File},
     io::{AsyncReadExt, AsyncWriteExt},
@@ -17,12 +17,17 @@ pub async fn write_epub(
     kepubify_path: &str,
     epub_path: &str,
     epub_data: &Vec<u8>,
+    lock_manager: &BookLockManager,
 ) -> Result<String, EpubError> {
     if !is_valid_epub(epub_data).await {
         return Err(EpubError::InvalidEpub);
     }
 
     let hash = BASE64_STANDARD.encode(Sha256::digest(epub_data));
+
+    let lock = lock_manager.get_lock(&hash).await;
+    let _guard = lock.write().await;
+
     if let Some(epub_id) = data::get_epub_by_hash(pool, &hash).await {
         return Ok(epub_id);
     }

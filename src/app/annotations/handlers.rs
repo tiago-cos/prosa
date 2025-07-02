@@ -5,6 +5,7 @@ use super::{
 use crate::app::{books, error::ProsaError, sync, AppState, Pool};
 use axum::{
     extract::{Path, State},
+    http::StatusCode,
     response::IntoResponse,
     Json,
 };
@@ -31,8 +32,9 @@ pub async fn add_annotation_handler(
 
 pub async fn get_annotation_handler(
     State(pool): State<Pool>,
-    Path((_, annotation_id)): Path<(String, String)>,
+    Path((book_id, annotation_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ProsaError> {
+    books::service::get_book(&pool, &book_id).await?;
     let annotation = service::get_annotation(&pool, &annotation_id).await?;
 
     Ok(Json(annotation))
@@ -42,6 +44,7 @@ pub async fn list_annotation_handler(
     State(pool): State<Pool>,
     Path(book_id): Path<String>,
 ) -> Result<impl IntoResponse, ProsaError> {
+    books::service::get_book(&pool, &book_id).await?;
     let annotations = service::get_annotations(&pool, &book_id).await;
 
     Ok(Json(annotations))
@@ -56,7 +59,7 @@ pub async fn delete_annotation_handler(
 
     sync::service::update_annotations_timestamp(&pool, &book.sync_id).await;
 
-    Ok(())
+    Ok((StatusCode::NO_CONTENT, ()))
 }
 
 pub async fn patch_annotation_handler(
@@ -69,5 +72,5 @@ pub async fn patch_annotation_handler(
 
     sync::service::update_annotations_timestamp(&pool, &book.sync_id).await;
 
-    Ok(())
+    Ok((StatusCode::NO_CONTENT, ()))
 }
