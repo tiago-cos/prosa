@@ -5,6 +5,7 @@ use super::{
 use crate::app::{
     authentication::{self, service::hash_secret},
     error::ProsaError,
+    users::models::ApiKeyError,
 };
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use chrono::{DateTime, Utc};
@@ -42,6 +43,10 @@ pub async fn create_api_key(
     expiration: Option<DateTime<Utc>>,
     capabilities: Vec<String>,
 ) -> Result<(String, String), ProsaError> {
+    if capabilities.is_empty() {
+        return Err(ApiKeyError::InvalidCapabilities.into());
+    }
+
     let key_id = Uuid::new_v4().to_string();
     let (key, hash) = authentication::service::generate_api_key().await;
 

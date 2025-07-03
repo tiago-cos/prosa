@@ -1,9 +1,10 @@
 use super::{data, models::CoverError};
-use crate::app::concurrency::manager::BookLockManager;
+use crate::app::{concurrency::manager::BookLockManager, ImageCache};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use image::ImageFormat;
 use sha2::{Digest, Sha256};
 use sqlx::SqlitePool;
+use std::sync::Arc;
 use tokio::{
     fs::{remove_file, File},
     io::{AsyncReadExt, AsyncWriteExt},
@@ -15,6 +16,7 @@ pub async fn write_cover(
     cover_path: &str,
     cover_data: &Vec<u8>,
     lock_manager: &BookLockManager,
+    image_cache: &ImageCache,
 ) -> Result<String, CoverError> {
     if !is_valid_image(cover_data).await {
         return Err(CoverError::InvalidCover);
@@ -43,10 +45,23 @@ pub async fn write_cover(
 
     data::add_cover(pool, &cover_id, &hash).await;
 
+    let cache_key = format!("images:{}", cover_id);
+    image_cache.insert(cache_key, Arc::new(cover_data.to_vec()));
+
     Ok(cover_id)
 }
 
-pub async fn read_cover(cover_path: &str, cover_id: &str) -> Result<Vec<u8>, CoverError> {
+pub async fn read_cover(
+    cover_path: &str,
+    cover_id: &str,
+    image_cache: &ImageCache,
+) -> Result<Vec<u8>, CoverError> {
+    let cache_key = format!("images:{}", cover_id);
+    match image_cache.get(&cache_key) {
+        Some(image) => return Ok(image.to_vec()),
+        None => (),
+    };
+
     let cover_file = format!("{}/{}.jpeg", cover_path, cover_id);
 
     let mut file = File::open(cover_file).await?;
@@ -59,11 +74,19 @@ pub async fn read_cover(cover_path: &str, cover_id: &str) -> Result<Vec<u8>, Cov
     Ok(buffer)
 }
 
-pub async fn delete_cover(pool: &SqlitePool, cover_path: &str, cover_id: &str) -> Result<(), CoverError> {
+pub async fn delete_cover(
+    pool: &SqlitePool,
+    cover_path: &str,
+    cover_id: &str,
+    image_cache: &ImageCache,
+) -> Result<(), CoverError> {
     let cover_file = format!("{}/{}.jpeg", cover_path, cover_id);
     remove_file(cover_file).await?;
 
     data::delete_cover(pool, &cover_id).await?;
+
+    let cache_key = format!("images:{}", cover_id);
+    image_cache.remove(&cache_key);
 
     Ok(())
 }

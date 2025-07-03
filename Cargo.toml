@@ -7,24 +7,25 @@ publish = false
 [dependencies]
 argon2 = { version = "0.5.3", features = ["std"] }
 async-trait = "0.1.88"
-axum = { version = "0.8.3", features = ["multipart"] }
-axum_typed_multipart = "0.15.1"
+axum = { version = "0.8.4", features = ["multipart"] }
+axum_typed_multipart = "0.16.3"
 base64 = "0.22.1"
-chrono = { version = "0.4.40", features = ["serde"] }
+chrono = { version = "0.4.41", features = ["serde"] }
 config = "0.15.11"
-epub = "2.1.2"
+epub = "2.1.4"
 goodreads-metadata-scraper = "0.2.1"
 image = "0.25.6"
 jsonwebtoken = { version = "9.3.1", default-features = false }
 merge = "0.2.0"
+quick_cache = "0.6.14"
 regex = "1.11.1"
 serde = "1.0.219"
 serde_json = "1.0.140"
-serde_with = "3.12.0"
-sha2 = "0.10.8"
-sqlx = { version = "0.8.3", features = ["runtime-tokio", "sqlite", "chrono"] }
+serde_with = "3.14.0"
+sha2 = "0.10.9"
+sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite", "chrono"] }
 strum = "0.27.1"
 strum_macros = "0.27.1"
-tokio = { version = "1.44.2", features = ["full"] }
-ureq = "3.0.10"
-uuid = { version = "1.16.0", features = ["v4"] }
+tokio = { version = "1.46.0", features = ["full"] }
+ureq = "3.0.12"
+uuid = { version = "1.17.0", features = ["v4"] }

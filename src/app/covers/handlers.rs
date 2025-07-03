@@ -22,7 +22,7 @@ pub async fn get_cover_handler(
         Some(id) => id,
     };
 
-    let cover = service::read_cover(cover_path, &cover_id).await?;
+    let cover = service::read_cover(cover_path, &cover_id, &state.cache.image_cache).await?;
 
     Ok(cover)
 }
@@ -41,7 +41,14 @@ pub async fn add_cover_handler(
 
     let cover_id = match book.cover_id {
         None => {
-            service::write_cover(&state.pool, cover_path, &cover_data.to_vec(), &state.lock_manager).await?
+            service::write_cover(
+                &state.pool,
+                cover_path,
+                &cover_data.to_vec(),
+                &state.lock_manager,
+                &state.cache.image_cache,
+            )
+            .await?
         }
         Some(_) => return Err(CoverError::CoverConflict.into()),
     };
@@ -74,7 +81,7 @@ pub async fn delete_cover_handler(
     books::service::update_book(&state.pool, &book_id, book).await?;
 
     if !books::service::cover_is_in_use(&state.pool, &cover_id).await {
-        service::delete_cover(&state.pool, cover_path, &cover_id).await?;
+        service::delete_cover(&state.pool, cover_path, &cover_id, &state.cache.image_cache).await?;
     }
 
     sync::service::update_cover_timestamp(&state.pool, &sync_id).await;
@@ -99,13 +106,19 @@ pub async fn update_cover_handler(
         Some(id) => id,
     };
 
-    let new_cover_id =
-        service::write_cover(&state.pool, cover_path, &cover_data.to_vec(), &state.lock_manager).await?;
+    let new_cover_id = service::write_cover(
+        &state.pool,
+        cover_path,
+        &cover_data.to_vec(),
+        &state.lock_manager,
+        &state.cache.image_cache,
+    )
+    .await?;
     book.cover_id = Some(new_cover_id);
     books::service::update_book(&state.pool, &book_id, book).await?;
 
     if !books::service::cover_is_in_use(&state.pool, &old_cover_id).await {
-        service::delete_cover(&state.pool, cover_path, &old_cover_id).await?;
+        service::delete_cover(&state.pool, cover_path, &old_cover_id, &state.cache.image_cache).await?;
     }
 
     sync::service::update_cover_timestamp(&state.pool, &sync_id).await;

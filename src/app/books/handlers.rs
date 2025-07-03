@@ -75,6 +75,7 @@ pub async fn upload_book_handler(
     tokio::spawn(state.metadata_manager.fetch_metadata(
         state.pool,
         state.lock_manager,
+        state.cache.image_cache,
         book_id.clone(),
         preferences.metadata_providers,
     ));
@@ -108,7 +109,13 @@ pub async fn delete_book_handler(
     };
 
     if !service::cover_is_in_use(&state.pool, &cover_id).await {
-        covers::service::delete_cover(&state.pool, &state.config.book_storage.cover_path, &cover_id).await?;
+        covers::service::delete_cover(
+            &state.pool,
+            &state.config.book_storage.cover_path,
+            &cover_id,
+            &state.cache.image_cache,
+        )
+        .await?;
     }
 
     drop(_guard);

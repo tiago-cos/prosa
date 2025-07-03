@@ -5,7 +5,7 @@ use crate::{
         concurrency::manager::BookLockManager,
         covers, epubs,
         metadata::{self, models::Metadata},
-        sync,
+        sync, ImageCache,
     },
     config::Configuration,
 };
@@ -32,6 +32,7 @@ impl MetadataManager {
         self: Arc<Self>,
         pool: Arc<SqlitePool>,
         lock_manager: Arc<BookLockManager>,
+        image_cache: Arc<ImageCache>,
         book_id: String,
         providers: Vec<String>,
     ) -> () {
@@ -60,8 +61,28 @@ impl MetadataManager {
 
         match (book.cover_id, image) {
             (_, None) => (),
-            (Some(_), Some(image)) => handle_cover_update(&pool, &book_id, &self.cover_path, image, &lock_manager).await,
-            (None, Some(image)) => handle_cover_create(&pool, &book_id, &self.cover_path, image, &lock_manager).await,
+            (Some(_), Some(image)) => {
+                handle_cover_update(
+                    &pool,
+                    &book_id,
+                    &self.cover_path,
+                    image,
+                    &lock_manager,
+                    &image_cache,
+                )
+                .await
+            }
+            (None, Some(image)) => {
+                handle_cover_create(
+                    &pool,
+                    &book_id,
+                    &self.cover_path,
+                    image,
+                    &lock_manager,
+                    &image_cache,
+                )
+                .await
+            }
         };
     }
 }
@@ -104,6 +125,7 @@ async fn handle_cover_update(
     cover_path: &str,
     cover: Vec<u8>,
     lock_manager: &BookLockManager,
+    image_cache: &ImageCache,
 ) -> () {
     let mut book = books::service::get_book(&pool, &book_id)
         .await
@@ -111,7 +133,7 @@ async fn handle_cover_update(
     let sync_id = book.sync_id.clone();
 
     let old_cover_id = book.cover_id.expect("Failed to retrieve old cover id");
-    let new_cover_id = covers::service::write_cover(pool, &cover_path, &cover, lock_manager)
+    let new_cover_id = covers::service::write_cover(pool, &cover_path, &cover, lock_manager, image_cache)
         .await
         .expect("Failed to write cover");
 
@@ -121,7 +143,7 @@ async fn handle_cover_update(
         .expect("Failed to update book");
 
     if !books::service::cover_is_in_use(&pool, &old_cover_id).await {
-        covers::service::delete_cover(&pool, cover_path, &old_cover_id)
+        covers::service::delete_cover(&pool, cover_path, &old_cover_id, image_cache)
             .await
             .expect("Failed to delete unused cover");
     }
@@ -135,13 +157,14 @@ async fn handle_cover_create(
     cover_path: &str,
     cover: Vec<u8>,
     lock_manager: &BookLockManager,
+    image_cache: &ImageCache,
 ) -> () {
     let mut book = books::service::get_book(&pool, &book_id)
         .await
         .expect("Failed to get book");
     let sync_id = book.sync_id.clone();
 
-    let cover_id = covers::service::write_cover(pool, &cover_path, &cover, lock_manager)
+    let cover_id = covers::service::write_cover(pool, &cover_path, &cover, lock_manager, image_cache)
         .await
         .expect("Failed to write cover");
 
