@@ -26,7 +26,6 @@ pub struct AppState {
 
 #[derive(Clone)]
 pub struct AppCache {
-    // For each book, cache sources. For each source in each book, cache tags. For each tags in each source, cache length
     pub image_cache: Arc<ImageCache>,
     pub source_cache: Arc<SourceCache>,
     pub tag_cache: Arc<TagCache>,
@@ -35,9 +34,9 @@ pub struct AppCache {
 
 pub async fn run(config: Configuration, pool: SqlitePool) {
     let image_cache = Arc::new(Cache::new(50));
-    let source_cache = Arc::new(Cache::new(1000000));
-    let tag_cache = Arc::new(Cache::new(1000000));
-    let tag_length_cache = Arc::new(Cache::new(1000000));
+    let source_cache = Arc::new(Cache::new(100000));
+    let tag_cache = Arc::new(Cache::new(100000));
+    let tag_length_cache = Arc::new(Cache::new(100000));
 
     let cache = AppCache {
         image_cache,

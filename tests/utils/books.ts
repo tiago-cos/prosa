@@ -1,5 +1,6 @@
 import request from "supertest";
 import path from "path";
+import fs from "fs";
 import { BOOK_DIR } from "./common";
 import { SERVER_URL } from "./common";
 
@@ -8,7 +9,21 @@ export const BOOK_NOT_FOUND = "The requested book does not exist or is not acces
 export const INVALID_BOOK = "The provided EPUB data is invalid.";
 export const INVALID_PAGINATION = "The requested pagination is invalid.";
 
+const bookCache: Record<string, Buffer> = {};
+
+function preloadFiles() {
+    for (const filename of fs.readdirSync(BOOK_DIR)) {
+        const fullPath = path.join(BOOK_DIR, filename);
+        bookCache[filename] = fs.readFileSync(fullPath);
+    }
+}
+
+preloadFiles();
+
 export async function uploadBook(owner_id: string, epub_name: string, auth?: { jwt?: string; apiKey?: string }) {
+    const epubBuffer = bookCache[epub_name];
+    if (!epubBuffer) throw new Error(`EPUB file not preloaded: ${epub_name}`);
+
     let req = request(SERVER_URL)
         .post(`/books`)
         .field("owner_id", owner_id);
@@ -16,7 +31,7 @@ export async function uploadBook(owner_id: string, epub_name: string, auth?: { j
     if (auth?.jwt) req = req.auth(auth.jwt, { type: "bearer" });
     if (auth?.apiKey) req = req.set("api-key", auth.apiKey);
 
-    return req.attach("epub", path.join(BOOK_DIR, epub_name));
+    return req.attach("epub", epubBuffer);
 }
 
 export async function downloadBook(book_id: string, auth?: { jwt?: string; apiKey?: string }) {

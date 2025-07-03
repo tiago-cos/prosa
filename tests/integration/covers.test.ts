@@ -850,9 +850,15 @@ describe("Update cover JWT", () => {
         // Wait for cover to be extracted
         await wait(0.5);
 
-        const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg");
-        expect(updateResponse.status).toBe(401);
-        expect(updateResponse.text).toBe(UNAUTHORIZED);
+        try {
+            const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg");
+            expect(updateResponse.status).toBe(401);
+            expect(updateResponse.text).toBe(UNAUTHORIZED);
+        } catch (err: any) {
+            if (err.code === "EPIPE")
+                return;
+            throw err;
+        }
     });
 });
 

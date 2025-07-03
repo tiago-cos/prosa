@@ -34,6 +34,8 @@ pub async fn patch_state_handler(
         &book.state_id,
         &app_state.config.book_storage.epub_path,
         &book.epub_id,
+        &app_state.cache.source_cache,
+        &app_state.cache.tag_cache,
         state,
     )
     .await?;
@@ -57,6 +59,8 @@ pub async fn update_state_handler(
         &book.state_id,
         &app_state.config.book_storage.epub_path,
         &book.epub_id,
+        &app_state.cache.source_cache,
+        &app_state.cache.tag_cache,
         state,
     )
     .await?;
