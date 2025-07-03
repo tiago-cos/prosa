@@ -22,6 +22,9 @@ pub async fn add_annotation_handler(
         annotation,
         &state.config.book_storage.epub_path,
         &book.epub_id,
+        &state.cache.source_cache,
+        &state.cache.tag_cache,
+        &state.cache.tag_length_cache,
     )
     .await?;
 

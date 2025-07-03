@@ -13,7 +13,7 @@ pub type LockManager = Arc<BookLockManager>;
 pub type ImageCache = Cache<String, Arc<Vec<u8>>>;
 pub type SourceCache = Cache<String, Arc<HashSet<String>>>;
 pub type TagCache = Cache<String, Arc<HashSet<String>>>;
-pub type TagLengthCache = Cache<String, i32>;
+pub type TagLengthCache = Cache<String, u32>;
 
 #[derive(Clone)]
 pub struct AppState {
