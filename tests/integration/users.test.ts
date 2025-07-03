@@ -4,7 +4,7 @@ import { SERVER_URL } from "../utils/common";
 import { registerUser, loginUser, createApiKey, getApiKey, getApiKeys, deleteApiKey, getPreferences, updatePreferences, INVALID_CREDENTIALS, INVALID_USERNAME_PASSWORD, USERNAME_IN_USE, USER_NOT_FOUND, API_KEY_NOT_FOUND, INVALID_CAPABILITIES, INVALID_TIMESTAMP, INVALID_PROVIDERS } from "../utils/users"
 
 describe("Register", () => {
-    test.concurrent("Regular user", async () => {
+    test("Regular user", async () => {
         const { response: registerResponse, username, password } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -12,7 +12,7 @@ describe("Register", () => {
         expect(loginResponse.status).toBe(200);
     });
 
-    test.concurrent("Admin user", async () => {
+    test("Admin user", async () => {
         const { response: registerResponse, username, password } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse.status).toBe(200);
 
@@ -20,7 +20,7 @@ describe("Register", () => {
         expect(loginResponse.status).toBe(200);
     });
 
-    test.concurrent("Invalid username and password", async () => {
+    test("Invalid username and password", async () => {
         const { response: registerResponse } = await registerUser("invalid username");
         expect(registerResponse.status).toBe(400);
         expect(registerResponse.text).toBe(INVALID_USERNAME_PASSWORD);
@@ -38,7 +38,7 @@ describe("Register", () => {
         expect(registerResponse4.text).toBe(INVALID_USERNAME_PASSWORD);
     });
 
-    test.concurrent("Invalid admin key", async () => {
+    test("Invalid admin key", async () => {
         const adminKey = "invalid_admin_key";
 
         const { response: registerResponse } = await registerUser(undefined, undefined, adminKey);
@@ -46,7 +46,7 @@ describe("Register", () => {
         expect(registerResponse.text).toBe(INVALID_CREDENTIALS);
     });
 
-    test.concurrent("User conflict", async () => {
+    test("User conflict", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -55,7 +55,7 @@ describe("Register", () => {
         expect(registerResponse2.text).toBe(USERNAME_IN_USE);
     });
 
-    test.concurrent("Invalid request body", async () => {
+    test("Invalid request body", async () => {
         const username = randomString(16);
         const password = randomString(16);
 
@@ -69,13 +69,13 @@ describe("Register", () => {
 });
 
 describe("Login", () => {
-    test.concurrent("Non-existing user", async () => {
+    test("Non-existing user", async () => {
         const { response: loginResponse } = await loginUser("non-existent", "non-existent");
         expect(loginResponse.status).toBe(404);
         expect(loginResponse.text).toBe(USER_NOT_FOUND);
     });
 
-    test.concurrent("Invalid credentials", async () => {
+    test("Invalid credentials", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -84,7 +84,7 @@ describe("Login", () => {
         expect(loginResponse.text).toBe(INVALID_CREDENTIALS);
     });
 
-    test.concurrent("Invalid request body", async () => {
+    test("Invalid request body", async () => {
         const loginResponse = await request(SERVER_URL).post("/users/" + "non-existent").send({
             pass: "password"
         });
@@ -94,7 +94,7 @@ describe("Login", () => {
 });
 
 describe("Create api key", () => {
-    test.concurrent("No timestamp", async () => {
+    test("No timestamp", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -108,7 +108,7 @@ describe("Create api key", () => {
         expect(getApiKeyResponse.body.expires_at).toBeUndefined();
     });
 
-    test.concurrent("With timestamp", async () => {
+    test("With timestamp", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -124,7 +124,7 @@ describe("Create api key", () => {
         expect(getApiKeyResponse.body.expires_at).toBe(date);
     });
 
-    test.concurrent("Non-existent user", async () => {
+    test("Non-existent user", async () => {
         const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse.status).toBe(200);
 
@@ -133,7 +133,7 @@ describe("Create api key", () => {
         expect(createApiKeyResponse.text).toBe(USER_NOT_FOUND);
     });
 
-    test.concurrent("Invalid capabilities", async () => {
+    test("Invalid capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -150,7 +150,7 @@ describe("Create api key", () => {
         expect(createApiKeyResponse3.text).toBe(INVALID_CAPABILITIES);
     });
 
-    test.concurrent("Invalid expiration", async () => {
+    test("Invalid expiration", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -163,7 +163,7 @@ describe("Create api key", () => {
         expect(createApiKeyResponse2.text).toBe(INVALID_TIMESTAMP);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -175,7 +175,7 @@ describe("Create api key", () => {
         expect(createApiKeyResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse.status).toBe(200);
 
@@ -189,7 +189,7 @@ describe("Create api key", () => {
         expect(getApiKeyResponse.status).toBe(200);
     });
 
-    test.concurrent("No auth", async () => {
+    test("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -198,7 +198,7 @@ describe("Create api key", () => {
         expect(createApiKeyResponse.text).toBe(UNAUTHORIZED);
     });
 
-    test.concurrent("Invalid auth", async () => {
+    test("Invalid auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -210,7 +210,7 @@ describe("Create api key", () => {
         expect(createApiKeyResponse2.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Invalid request", async () => {
+    test("Invalid request", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -227,7 +227,7 @@ describe("Create api key", () => {
 });
 
 describe("List api keys", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -256,7 +256,7 @@ describe("List api keys", () => {
         expect(getApiKeysResponse2.body).toEqual([]);
     });
 
-    test.concurrent("Non-existent user", async () => {
+    test("Non-existent user", async () => {
         const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse.status).toBe(200);
 
@@ -265,7 +265,7 @@ describe("List api keys", () => {
         expect(getApiKeysResponse.text).toBe(USER_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -280,7 +280,7 @@ describe("List api keys", () => {
         expect(getApiKeysResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -294,7 +294,7 @@ describe("List api keys", () => {
         expect(getApiKeysResponse.status).toBe(200);
     });
 
-    test.concurrent("No auth", async () => {
+    test("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -306,7 +306,7 @@ describe("List api keys", () => {
         expect(getApiKeysResponse.text).toBe(UNAUTHORIZED);
     });
 
-    test.concurrent("Wrong auth", async () => {
+    test("Wrong auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -320,7 +320,7 @@ describe("List api keys", () => {
 });
 
 describe("Get api key", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -337,7 +337,7 @@ describe("Get api key", () => {
         expect(getApiKeyResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Non-existent api key", async () => {
+    test("Non-existent api key", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -346,7 +346,7 @@ describe("Get api key", () => {
         expect(getApiKeyResponse.text).toBe(API_KEY_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent user", async () => {
+    test("Non-existent user", async () => {
         const { response: registerResponse, username } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse.status).toBe(200);
 
@@ -358,7 +358,7 @@ describe("Get api key", () => {
         expect(getApiKeyResponse.text).toBe(USER_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -373,7 +373,7 @@ describe("Get api key", () => {
         expect(getApiKeyResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse.status).toBe(200);
 
@@ -387,7 +387,7 @@ describe("Get api key", () => {
         expect(getApiKeyResponse.status).toBe(200);
     });
 
-    test.concurrent("No auth", async () => {
+    test("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -399,7 +399,7 @@ describe("Get api key", () => {
         expect(getApiKeyResponse.text).toBe(UNAUTHORIZED);
     });
 
-    test.concurrent("Wrong auth", async () => {
+    test("Wrong auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -413,7 +413,7 @@ describe("Get api key", () => {
 });
 
 describe("Delete api key", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -431,7 +431,7 @@ describe("Delete api key", () => {
         expect(getApiKeyResponse2.text).toBe(API_KEY_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent user", async () => {
+    test("Non-existent user", async () => {
         const { response: registerResponse, username } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse.status).toBe(200);
 
@@ -446,7 +446,7 @@ describe("Delete api key", () => {
         expect(getApiKeyResponse2.status).toBe(200);
     });
 
-    test.concurrent("Non-existent api key", async () => {
+    test("Non-existent api key", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -458,7 +458,7 @@ describe("Delete api key", () => {
         expect(deleteApiKeyResponse.text).toBe(API_KEY_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -473,7 +473,7 @@ describe("Delete api key", () => {
         expect(deleteApiKeyResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -491,7 +491,7 @@ describe("Delete api key", () => {
         expect(getApiKeyResponse.text).toBe(API_KEY_NOT_FOUND);
     });
 
-    test.concurrent("No auth", async () => {
+    test("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -503,7 +503,7 @@ describe("Delete api key", () => {
         expect(deleteApiKeyResponse.text).toBe(UNAUTHORIZED);
     });
 
-    test.concurrent("Wrong auth", async () => {
+    test("Wrong auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -517,7 +517,7 @@ describe("Delete api key", () => {
 });
 
 describe("Get preferences", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -527,7 +527,7 @@ describe("Get preferences", () => {
         expect(getPreferencesResponse.body.metadata_providers).toEqual(["epub_metadata_extractor"]);
     });
 
-    test.concurrent("Non-existent user", async () => {
+    test("Non-existent user", async () => {
         const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse.status).toBe(200);
 
@@ -536,7 +536,7 @@ describe("Get preferences", () => {
         expect(getPreferencesResponse.text).toBe(USER_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -548,7 +548,7 @@ describe("Get preferences", () => {
         expect(getPreferencesResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -559,7 +559,7 @@ describe("Get preferences", () => {
         expect(getPreferencesResponse.status).toBe(200);
     });
 
-    test.concurrent("No auth", async () => {
+    test("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -570,7 +570,7 @@ describe("Get preferences", () => {
 });
 
 describe("Update preferences", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -604,7 +604,7 @@ describe("Update preferences", () => {
         expect(getPreferencesResponse3.body.metadata_providers).toEqual([]);
     });
 
-    test.concurrent("Invalid providers", async () => {
+    test("Invalid providers", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -617,7 +617,7 @@ describe("Update preferences", () => {
         expect(updatePreferencesResponse.text).toBe(INVALID_PROVIDERS);
     });
 
-    test.concurrent("Non-existent user", async () => {
+    test("Non-existent user", async () => {
         const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse.status).toBe(200);
 
@@ -630,7 +630,7 @@ describe("Update preferences", () => {
         expect(updatePreferencesResponse.text).toBe(USER_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -646,7 +646,7 @@ describe("Update preferences", () => {
         expect(updatePreferencesResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -661,7 +661,7 @@ describe("Update preferences", () => {
         expect(updatePreferencesResponse.status).toBe(204);
     });
 
-    test.concurrent("No auth", async () => {
+    test("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -673,7 +673,7 @@ describe("Update preferences", () => {
         expect(updatePreferencesResponse.text).toBe(UNAUTHORIZED);
     });
 
-    test.concurrent("Invalid request", async () => {
+    test("Invalid request", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 

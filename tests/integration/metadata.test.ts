@@ -4,7 +4,7 @@ import { BOOK_NOT_FOUND, uploadBook } from "../utils/books"
 import { addMetadata, METADATA_CONFLICT, METADATA_NOT_FOUND, deleteMetadata, getMetadata, INVALID_METADATA, updateMetadata, patchMetadata, ALICE_METADATA, EXAMPLE_METADATA } from "../utils/metadata"
 
 describe("Get metadata JWT", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -20,7 +20,7 @@ describe("Get metadata JWT", () => {
         expect(downloadResponse.body).toEqual(ALICE_METADATA);
     });
 
-    test.concurrent("Non-existent metadata", async () => {
+    test("Non-existent metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -36,7 +36,7 @@ describe("Get metadata JWT", () => {
         expect(downloadResponse.text).toBe(METADATA_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -45,7 +45,7 @@ describe("Get metadata JWT", () => {
         expect(downloadResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -63,7 +63,7 @@ describe("Get metadata JWT", () => {
         expect(downloadResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -80,7 +80,7 @@ describe("Get metadata JWT", () => {
         expect(downloadResponse.status).toBe(200);
     });
 
-    test.concurrent("No auth", async () => {
+    test("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -97,7 +97,7 @@ describe("Get metadata JWT", () => {
 });
 
 describe("Get metadata api key", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -116,7 +116,7 @@ describe("Get metadata api key", () => {
         expect(downloadResponse.body).toEqual(ALICE_METADATA);
     });
 
-    test.concurrent("Non-existent metadata", async () => {
+    test("Non-existent metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -135,7 +135,7 @@ describe("Get metadata api key", () => {
         expect(downloadResponse.text).toBe(METADATA_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -147,7 +147,7 @@ describe("Get metadata api key", () => {
         expect(downloadResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -168,7 +168,7 @@ describe("Get metadata api key", () => {
         expect(downloadResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -188,7 +188,7 @@ describe("Get metadata api key", () => {
         expect(downloadResponse.status).toBe(200);
     });
 
-    test.concurrent("Wrong capabilities", async () => {
+    test("Wrong capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -206,7 +206,7 @@ describe("Get metadata api key", () => {
         expect(downloadResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Expired api key", async () => {
+    test("Expired api key", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -230,7 +230,7 @@ describe("Get metadata api key", () => {
 });
 
 describe("Add metadata JWT", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -249,7 +249,7 @@ describe("Add metadata JWT", () => {
         expect(downloadResponse.body).toEqual(EXAMPLE_METADATA);
     });
 
-    test.concurrent("Only authors", async () => {
+    test("Only authors", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -277,7 +277,7 @@ describe("Add metadata JWT", () => {
         expect(downloadResponse.body).toEqual(metadata);
     });
 
-    test.concurrent("Invalid metadata", async () => {
+    test("Invalid metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -292,7 +292,7 @@ describe("Add metadata JWT", () => {
         expect(addResponse.text).toBe(INVALID_METADATA);
     });
 
-    test.concurrent("Metadata conflict", async () => {
+    test("Metadata conflict", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -307,7 +307,7 @@ describe("Add metadata JWT", () => {
         expect(addResponse.text).toBe(METADATA_CONFLICT);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -316,7 +316,7 @@ describe("Add metadata JWT", () => {
         expect(addResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -334,7 +334,7 @@ describe("Add metadata JWT", () => {
         expect(addResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -351,7 +351,7 @@ describe("Add metadata JWT", () => {
         expect(addResponse.status).toBe(204);
     });
 
-    test.concurrent("No auth", async () => {
+    test("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -368,7 +368,7 @@ describe("Add metadata JWT", () => {
 });
 
 describe("Add metadata api key", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -390,7 +390,7 @@ describe("Add metadata api key", () => {
         expect(downloadResponse.body).toEqual(EXAMPLE_METADATA);
     });
 
-    test.concurrent("Only authors", async () => {
+    test("Only authors", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -422,7 +422,7 @@ describe("Add metadata api key", () => {
         expect(downloadResponse.body).toEqual(metadata);
     });
 
-    test.concurrent("Invalid metadata", async () => {
+    test("Invalid metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -440,7 +440,7 @@ describe("Add metadata api key", () => {
         expect(addResponse.text).toBe(INVALID_METADATA);
     });
 
-    test.concurrent("Metadata conflict", async () => {
+    test("Metadata conflict", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -458,7 +458,7 @@ describe("Add metadata api key", () => {
         expect(addResponse.text).toBe(METADATA_CONFLICT);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -470,7 +470,7 @@ describe("Add metadata api key", () => {
         expect(addResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -491,7 +491,7 @@ describe("Add metadata api key", () => {
         expect(addResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -511,7 +511,7 @@ describe("Add metadata api key", () => {
         expect(addResponse.status).toBe(204);
     });
 
-    test.concurrent("Wrong capabilities", async () => {
+    test("Wrong capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -529,7 +529,7 @@ describe("Add metadata api key", () => {
         expect(addResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Expired key", async () => {
+    test("Expired key", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -553,7 +553,7 @@ describe("Add metadata api key", () => {
 });
 
 describe("Delete metadata JWT", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -571,7 +571,7 @@ describe("Delete metadata JWT", () => {
         expect(downloadResponse.text).toBe(METADATA_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent metadata", async () => {
+    test("Non-existent metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -587,7 +587,7 @@ describe("Delete metadata JWT", () => {
         expect(deleteResponse.text).toBe(METADATA_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -596,7 +596,7 @@ describe("Delete metadata JWT", () => {
         expect(deleteResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -614,7 +614,7 @@ describe("Delete metadata JWT", () => {
         expect(deleteResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -631,7 +631,7 @@ describe("Delete metadata JWT", () => {
         expect(deleteResponse.status).toBe(204);
     });
 
-    test.concurrent("No auth", async () => {
+    test("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -648,7 +648,7 @@ describe("Delete metadata JWT", () => {
 });
 
 describe("Delete metadata api key", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -669,7 +669,7 @@ describe("Delete metadata api key", () => {
         expect(downloadResponse.text).toBe(METADATA_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent metadata", async () => {
+    test("Non-existent metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -688,7 +688,7 @@ describe("Delete metadata api key", () => {
         expect(deleteResponse.text).toBe(METADATA_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -700,7 +700,7 @@ describe("Delete metadata api key", () => {
         expect(deleteResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -721,7 +721,7 @@ describe("Delete metadata api key", () => {
         expect(deleteResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -741,7 +741,7 @@ describe("Delete metadata api key", () => {
         expect(deleteResponse.status).toBe(204);
     });
 
-    test.concurrent("Wrong capabilities", async () => {
+    test("Wrong capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -759,7 +759,7 @@ describe("Delete metadata api key", () => {
         expect(deleteResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Expired key", async () => {
+    test("Expired key", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -783,7 +783,7 @@ describe("Delete metadata api key", () => {
 });
 
 describe("Update metadata JWT", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -802,7 +802,7 @@ describe("Update metadata JWT", () => {
         expect(downloadResponse.body).toEqual(EXAMPLE_METADATA);
     });
 
-    test.concurrent("Non-existent metadata", async () => {
+    test("Non-existent metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -818,7 +818,7 @@ describe("Update metadata JWT", () => {
         expect(updateResponse.text).toBe(METADATA_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -827,7 +827,7 @@ describe("Update metadata JWT", () => {
         expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Invalid metadata", async () => {
+    test("Invalid metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -842,7 +842,7 @@ describe("Update metadata JWT", () => {
         expect(updateResponse.text).toBe(INVALID_METADATA);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -860,7 +860,7 @@ describe("Update metadata JWT", () => {
         expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -877,7 +877,7 @@ describe("Update metadata JWT", () => {
         expect(updateResponse.status).toBe(204);
     });
 
-    test.concurrent("No auth", async () => {
+    test("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -894,7 +894,7 @@ describe("Update metadata JWT", () => {
 });
 
 describe("Update metadata api key", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -916,7 +916,7 @@ describe("Update metadata api key", () => {
         expect(downloadResponse.body).toEqual(EXAMPLE_METADATA);
     });
 
-    test.concurrent("Non-existent metadata", async () => {
+    test("Non-existent metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -935,7 +935,7 @@ describe("Update metadata api key", () => {
         expect(updateResponse.text).toBe(METADATA_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -947,7 +947,7 @@ describe("Update metadata api key", () => {
         expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Invalid metadata", async () => {
+    test("Invalid metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -965,7 +965,7 @@ describe("Update metadata api key", () => {
         expect(updateResponse.text).toBe(INVALID_METADATA);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -986,7 +986,7 @@ describe("Update metadata api key", () => {
         expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1006,7 +1006,7 @@ describe("Update metadata api key", () => {
         expect(updateResponse.status).toBe(204);
     });
 
-    test.concurrent("Wrong capabilities", async () => {
+    test("Wrong capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1024,7 +1024,7 @@ describe("Update metadata api key", () => {
         expect(updateResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Expired key", async () => {
+    test("Expired key", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1048,7 +1048,7 @@ describe("Update metadata api key", () => {
 });
 
 describe("Patch metadata JWT", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1070,7 +1070,7 @@ describe("Patch metadata JWT", () => {
         expect(downloadResponse.body).toEqual(expectedMetadata);
     });
 
-    test.concurrent("Non-existent metadata", async () => {
+    test("Non-existent metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1086,7 +1086,7 @@ describe("Patch metadata JWT", () => {
         expect(patchResponse.text).toBe(METADATA_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1095,7 +1095,7 @@ describe("Patch metadata JWT", () => {
         expect(patchResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Invalid metadata", async () => {
+    test("Invalid metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1110,7 +1110,7 @@ describe("Patch metadata JWT", () => {
         expect(patchResponse.text).toBe(INVALID_METADATA);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1128,7 +1128,7 @@ describe("Patch metadata JWT", () => {
         expect(patchResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1145,7 +1145,7 @@ describe("Patch metadata JWT", () => {
         expect(patchResponse.status).toBe(204);
     });
 
-    test.concurrent("No auth", async () => {
+    test("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1162,7 +1162,7 @@ describe("Patch metadata JWT", () => {
 });
 
 describe("Patch metadata api key", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1187,7 +1187,7 @@ describe("Patch metadata api key", () => {
         expect(downloadResponse.body).toEqual(expectedMetadata);
     });
 
-    test.concurrent("Non-existent metadata", async () => {
+    test("Non-existent metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1206,7 +1206,7 @@ describe("Patch metadata api key", () => {
         expect(patchResponse.text).toBe(METADATA_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1218,7 +1218,7 @@ describe("Patch metadata api key", () => {
         expect(patchResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Invalid metadata", async () => {
+    test("Invalid metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1236,7 +1236,7 @@ describe("Patch metadata api key", () => {
         expect(patchResponse.text).toBe(INVALID_METADATA);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1257,7 +1257,7 @@ describe("Patch metadata api key", () => {
         expect(patchResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1277,7 +1277,7 @@ describe("Patch metadata api key", () => {
         expect(patchResponse.status).toBe(204);
     });
 
-    test.concurrent("Wrong capabilities", async () => {
+    test("Wrong capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1295,7 +1295,7 @@ describe("Patch metadata api key", () => {
         expect(patchResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Expired key", async () => {
+    test("Expired key", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 

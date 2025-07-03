@@ -4,7 +4,7 @@ import { BOOK_NOT_FOUND, uploadBook } from "../utils/books"
 import { addAnnotation, ALICE_NOTE, ANNOTATION_CONFLICT, ANNOTATION_NOT_FOUND, deleteAnnotation, getAnnotation, INVALID_ANNOTATION, listAnnotations, patchAnnotation } from "../utils/annotations"
 
 describe("Add annotation JWT", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -15,7 +15,7 @@ describe("Add annotation JWT", () => {
         expect(addAnnotationResponse.status).toBe(200);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -24,7 +24,7 @@ describe("Add annotation JWT", () => {
         expect(addAnnotationResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Annotation conflict", async () => {
+    test("Annotation conflict", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -39,7 +39,7 @@ describe("Add annotation JWT", () => {
         expect(addAnnotationResponse.text).toBe(ANNOTATION_CONFLICT);
     });
 
-    test.concurrent("Invalid annotation", async () => {
+    test("Invalid annotation", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -99,7 +99,7 @@ describe("Add annotation JWT", () => {
         expect(addAnnotationResponse.text).toBe(INVALID_ANNOTATION);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -114,7 +114,7 @@ describe("Add annotation JWT", () => {
         expect(addAnnotationResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -128,7 +128,7 @@ describe("Add annotation JWT", () => {
         expect(addAnnotationResponse.status).toBe(200);
     });
 
-    test.concurrent("No auth", async () => {
+    test("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -142,7 +142,7 @@ describe("Add annotation JWT", () => {
 });
 
 describe("Add annotation api key", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -156,7 +156,7 @@ describe("Add annotation api key", () => {
         expect(addAnnotationResponse.status).toBe(200);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -168,7 +168,7 @@ describe("Add annotation api key", () => {
         expect(addAnnotationResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Annotation conflict", async () => {
+    test("Annotation conflict", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -186,7 +186,7 @@ describe("Add annotation api key", () => {
         expect(addAnnotationResponse.text).toBe(ANNOTATION_CONFLICT);
     });
 
-    test.concurrent("Invalid annotation", async () => {
+    test("Invalid annotation", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -249,7 +249,7 @@ describe("Add annotation api key", () => {
         expect(addAnnotationResponse.text).toBe(INVALID_ANNOTATION);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -267,7 +267,7 @@ describe("Add annotation api key", () => {
         expect(addAnnotationResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -284,7 +284,7 @@ describe("Add annotation api key", () => {
         expect(addAnnotationResponse.status).toBe(200);
     });
 
-    test.concurrent("Wrong capabilities", async () => {
+    test("Wrong capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -299,7 +299,7 @@ describe("Add annotation api key", () => {
         expect(addAnnotationResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Expired api key", async () => {
+    test("Expired api key", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -320,7 +320,7 @@ describe("Add annotation api key", () => {
 });
 
 describe("Get annotation JWT", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -338,7 +338,7 @@ describe("Get annotation JWT", () => {
         expect(getAnnotationResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Non-existent annotation", async () => {
+    test("Non-existent annotation", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -350,7 +350,7 @@ describe("Get annotation JWT", () => {
         expect(getAnnotationResponse.text).toEqual(ANNOTATION_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -359,7 +359,7 @@ describe("Get annotation JWT", () => {
         expect(getAnnotationResponse.text).toEqual(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -377,7 +377,7 @@ describe("Get annotation JWT", () => {
         expect(getAnnotationResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -394,7 +394,7 @@ describe("Get annotation JWT", () => {
         expect(getAnnotationResponse.status).toBe(200);
     });
 
-    test.concurrent("No auth", async () => {
+    test("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -411,7 +411,7 @@ describe("Get annotation JWT", () => {
 });
 
 describe("Get annotation api key", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -432,7 +432,7 @@ describe("Get annotation api key", () => {
         expect(getAnnotationResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Non-existent annotation", async () => {
+    test("Non-existent annotation", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -447,7 +447,7 @@ describe("Get annotation api key", () => {
         expect(getAnnotationResponse.text).toEqual(ANNOTATION_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -459,7 +459,7 @@ describe("Get annotation api key", () => {
         expect(getAnnotationResponse.text).toEqual(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -480,7 +480,7 @@ describe("Get annotation api key", () => {
         expect(getAnnotationResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -500,7 +500,7 @@ describe("Get annotation api key", () => {
         expect(getAnnotationResponse.status).toBe(200);
     });
 
-    test.concurrent("Wrong capabilities", async () => {
+    test("Wrong capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -518,7 +518,7 @@ describe("Get annotation api key", () => {
         expect(getAnnotationResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Expired api key", async () => {
+    test("Expired api key", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -542,7 +542,7 @@ describe("Get annotation api key", () => {
 });
 
 describe("List annotations JWT", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -561,7 +561,7 @@ describe("List annotations JWT", () => {
         expect(listAnnotationsResponse.body).toEqual([addAnnotationResponse.text]);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -570,7 +570,7 @@ describe("List annotations JWT", () => {
         expect(listAnnotationsResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -585,7 +585,7 @@ describe("List annotations JWT", () => {
         expect(listAnnotationsResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -599,7 +599,7 @@ describe("List annotations JWT", () => {
         expect(listAnnotationsResponse.status).toBe(200);
     });
 
-    test.concurrent("No auth", async () => {
+    test("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -613,7 +613,7 @@ describe("List annotations JWT", () => {
 });
 
 describe("List annotations api key", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -635,7 +635,7 @@ describe("List annotations api key", () => {
         expect(listAnnotationsResponse.body).toEqual([addAnnotationResponse.text]);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -647,7 +647,7 @@ describe("List annotations api key", () => {
         expect(listAnnotationsResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -665,7 +665,7 @@ describe("List annotations api key", () => {
         expect(listAnnotationsResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -674,7 +674,7 @@ describe("List annotations api key", () => {
 
         const { response: registerResponse2, username: username2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse2.status).toBe(200);
-        
+
         const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Read"], undefined, { jwt: registerResponse2.text });
         expect(createApiKeyResponse.status).toBe(200);
 
@@ -682,7 +682,7 @@ describe("List annotations api key", () => {
         expect(listAnnotationsResponse.status).toBe(200);
     });
 
-    test.concurrent("Wrong capabilities", async () => {
+    test("Wrong capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -697,7 +697,7 @@ describe("List annotations api key", () => {
         expect(listAnnotationsResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Expired api key", async () => {
+    test("Expired api key", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -718,7 +718,7 @@ describe("List annotations api key", () => {
 });
 
 describe("Delete annotation JWT", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -739,7 +739,7 @@ describe("Delete annotation JWT", () => {
         expect(getAnnotationResponse.text).toBe(ANNOTATION_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent annotation", async () => {
+    test("Non-existent annotation", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -751,7 +751,7 @@ describe("Delete annotation JWT", () => {
         expect(deleteAnnotationResponse.text).toEqual(ANNOTATION_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -760,7 +760,7 @@ describe("Delete annotation JWT", () => {
         expect(deleteAnnotationResponse.text).toEqual(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -778,7 +778,7 @@ describe("Delete annotation JWT", () => {
         expect(deleteAnnotationResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -795,7 +795,7 @@ describe("Delete annotation JWT", () => {
         expect(deleteAnnotationResponse.status).toBe(204);
     });
 
-    test.concurrent("No auth", async () => {
+    test("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -812,7 +812,7 @@ describe("Delete annotation JWT", () => {
 });
 
 describe("Delete annotation api key", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -840,7 +840,7 @@ describe("Delete annotation api key", () => {
         expect(getAnnotationResponse.text).toBe(ANNOTATION_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent annotation", async () => {
+    test("Non-existent annotation", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -855,7 +855,7 @@ describe("Delete annotation api key", () => {
         expect(deleteAnnotationResponse.text).toEqual(ANNOTATION_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -867,7 +867,7 @@ describe("Delete annotation api key", () => {
         expect(deleteAnnotationResponse.text).toEqual(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -888,7 +888,7 @@ describe("Delete annotation api key", () => {
         expect(deleteAnnotationResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -908,7 +908,7 @@ describe("Delete annotation api key", () => {
         expect(deleteAnnotationResponse.status).toBe(204);
     });
 
-    test.concurrent("Wrong capabilities", async () => {
+    test("Wrong capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -926,7 +926,7 @@ describe("Delete annotation api key", () => {
         expect(deleteAnnotationResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Expired api key", async () => {
+    test("Expired api key", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -950,7 +950,7 @@ describe("Delete annotation api key", () => {
 });
 
 describe("Patch annotation JWT", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -971,7 +971,7 @@ describe("Patch annotation JWT", () => {
 
         let patchAnnotationResponse = await patchAnnotation(uploadResponse.text, addAnnotationResponse.text, "New note", { jwt: registerResponse.text });
         expect(patchAnnotationResponse.status).toBe(204);
-        
+
         getAnnotationResponse = await getAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse.text });
         expect(getAnnotationResponse.status).toBe(200);
         expect(getAnnotationResponse.body).toEqual(expectedResponse);
@@ -986,7 +986,7 @@ describe("Patch annotation JWT", () => {
         expect(getAnnotationResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Non-existent annotation", async () => {
+    test("Non-existent annotation", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -998,7 +998,7 @@ describe("Patch annotation JWT", () => {
         expect(patchAnnotationResponse.text).toEqual(ANNOTATION_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1007,7 +1007,7 @@ describe("Patch annotation JWT", () => {
         expect(patchAnnotationResponse.text).toEqual(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1025,7 +1025,7 @@ describe("Patch annotation JWT", () => {
         expect(patchAnnotationResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1042,7 +1042,7 @@ describe("Patch annotation JWT", () => {
         expect(patchAnnotationResponse.status).toBe(204);
     });
 
-    test.concurrent("No auth", async () => {
+    test("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1059,7 +1059,7 @@ describe("Patch annotation JWT", () => {
 });
 
 describe("Delete annotation api key", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1083,7 +1083,7 @@ describe("Delete annotation api key", () => {
 
         let patchAnnotationResponse = await patchAnnotation(uploadResponse.text, addAnnotationResponse.text, "New note", { apiKey: createApiKeyResponse.body.key });
         expect(patchAnnotationResponse.status).toBe(204);
-        
+
         getAnnotationResponse = await getAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse.text });
         expect(getAnnotationResponse.status).toBe(200);
         expect(getAnnotationResponse.body).toEqual(expectedResponse);
@@ -1098,7 +1098,7 @@ describe("Delete annotation api key", () => {
         expect(getAnnotationResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Non-existent annotation", async () => {
+    test("Non-existent annotation", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1113,7 +1113,7 @@ describe("Delete annotation api key", () => {
         expect(patchAnnotationResponse.text).toEqual(ANNOTATION_NOT_FOUND);
     });
 
-    test.concurrent("Non-existent book", async () => {
+    test("Non-existent book", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1125,7 +1125,7 @@ describe("Delete annotation api key", () => {
         expect(patchAnnotationResponse.text).toEqual(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1146,7 +1146,7 @@ describe("Delete annotation api key", () => {
         expect(patchAnnotationResponse.text).toBe(BOOK_NOT_FOUND);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1166,7 +1166,7 @@ describe("Delete annotation api key", () => {
         expect(patchAnnotationResponse.status).toBe(204);
     });
 
-    test.concurrent("Wrong capabilities", async () => {
+    test("Wrong capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1184,7 +1184,7 @@ describe("Delete annotation api key", () => {
         expect(patchAnnotationResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Expired api key", async () => {
+    test("Expired api key", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 

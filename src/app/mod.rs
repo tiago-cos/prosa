@@ -5,7 +5,7 @@ pub mod books;
 pub mod concurrency;
 pub mod covers;
 pub mod epubs;
-mod error;
+pub mod error;
 pub mod metadata;
 mod server;
 mod state;

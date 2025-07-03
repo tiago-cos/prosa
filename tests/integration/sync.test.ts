@@ -8,7 +8,7 @@ import { ALICE_STATE, patchState, updateState } from "../utils/state";
 import { addAnnotation, ALICE_NOTE, deleteAnnotation, patchAnnotation } from "../utils/annotations";
 
 describe("Sync JWT", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -99,7 +99,7 @@ describe("Sync JWT", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Implicit users", async () => {
+    test("Implicit users", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -190,7 +190,7 @@ describe("Sync JWT", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Deleted files", async () => {
+    test("Deleted files", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -249,7 +249,7 @@ describe("Sync JWT", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Changed metadata", async () => {
+    test("Changed metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -312,7 +312,7 @@ describe("Sync JWT", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Changed cover", async () => {
+    test("Changed cover", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -376,7 +376,7 @@ describe("Sync JWT", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Changed state", async () => {
+    test("Changed state", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -421,7 +421,7 @@ describe("Sync JWT", () => {
 
         now = Date.now();
 
-        stateResponse = await patchState(uploadResponse.text, {statistics: {reading_status: "Read"}}, { jwt: registerResponse.text });
+        stateResponse = await patchState(uploadResponse.text, { statistics: { reading_status: "Read" } }, { jwt: registerResponse.text });
         expect(stateResponse.status).toBe(204);
 
         syncResponse = await sync(username, now, { jwt: registerResponse.text });
@@ -439,7 +439,7 @@ describe("Sync JWT", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Changed annotations", async () => {
+    test("Changed annotations", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -521,7 +521,7 @@ describe("Sync JWT", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Different users", async () => {
+    test("Different users", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -563,7 +563,7 @@ describe("Sync JWT", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Different implicit users", async () => {
+    test("Different implicit users", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -605,7 +605,7 @@ describe("Sync JWT", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Invalid timestamp", async () => {
+    test("Invalid timestamp", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -614,7 +614,7 @@ describe("Sync JWT", () => {
         expect(syncResponse.text).toBe(INVALID_TIMESTAMP);
     });
 
-    test.concurrent("Non-existent user", async () => {
+    test("Non-existent user", async () => {
         const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse.status).toBe(200);
 
@@ -623,7 +623,7 @@ describe("Sync JWT", () => {
         expect(syncResponse.text).toBe(USER_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -635,7 +635,7 @@ describe("Sync JWT", () => {
         expect(syncResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -646,7 +646,7 @@ describe("Sync JWT", () => {
         expect(syncResponse.status).toBe(200);
     });
 
-    test.concurrent("No auth", async () => {
+    test("No auth", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -657,7 +657,7 @@ describe("Sync JWT", () => {
 });
 
 describe("Sync api key", () => {
-    test.concurrent("Simple", async () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -751,7 +751,7 @@ describe("Sync api key", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Implicit users", async () => {
+    test("Implicit users", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -845,7 +845,7 @@ describe("Sync api key", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Deleted files", async () => {
+    test("Deleted files", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -907,7 +907,7 @@ describe("Sync api key", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Changed metadata", async () => {
+    test("Changed metadata", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -973,7 +973,7 @@ describe("Sync api key", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Changed cover", async () => {
+    test("Changed cover", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1040,7 +1040,7 @@ describe("Sync api key", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Changed state", async () => {
+    test("Changed state", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1088,7 +1088,7 @@ describe("Sync api key", () => {
 
         now = Date.now();
 
-        stateResponse = await patchState(uploadResponse.text, {statistics: {reading_status: "Read"}}, { jwt: registerResponse.text });
+        stateResponse = await patchState(uploadResponse.text, { statistics: { reading_status: "Read" } }, { jwt: registerResponse.text });
         expect(stateResponse.status).toBe(204);
 
         syncResponse = await sync(username, now, { apiKey: createApiKeyResponse.body.key });
@@ -1106,7 +1106,7 @@ describe("Sync api key", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Changed annotations", async () => {
+    test("Changed annotations", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1191,7 +1191,7 @@ describe("Sync api key", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Different users", async () => {
+    test("Different users", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1239,7 +1239,7 @@ describe("Sync api key", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Different implicit users", async () => {
+    test("Different implicit users", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1287,7 +1287,7 @@ describe("Sync api key", () => {
         expect(syncResponse.body).toEqual(expectedResponse);
     });
 
-    test.concurrent("Invalid timestamp", async () => {
+    test("Invalid timestamp", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1299,7 +1299,7 @@ describe("Sync api key", () => {
         expect(syncResponse.text).toBe(INVALID_TIMESTAMP);
     });
 
-    test.concurrent("Non-existent user", async () => {
+    test("Non-existent user", async () => {
         const { response: registerResponse, username } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
         expect(registerResponse.status).toBe(200);
 
@@ -1311,7 +1311,7 @@ describe("Sync api key", () => {
         expect(syncResponse.text).toBe(USER_NOT_FOUND);
     });
 
-    test.concurrent("Different user without permission", async () => {
+    test("Different user without permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1326,7 +1326,7 @@ describe("Sync api key", () => {
         expect(syncResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Different user with permission", async () => {
+    test("Different user with permission", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1340,7 +1340,7 @@ describe("Sync api key", () => {
         expect(syncResponse.status).toBe(200);
     });
 
-    test.concurrent("Wrong capabilities", async () => {
+    test("Wrong capabilities", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
@@ -1352,7 +1352,7 @@ describe("Sync api key", () => {
         expect(syncResponse.text).toBe(FORBIDDEN);
     });
 
-    test.concurrent("Expired key", async () => {
+    test("Expired key", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 

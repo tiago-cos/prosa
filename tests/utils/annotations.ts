@@ -51,7 +51,7 @@ export async function patchAnnotation(book_id: string, annotation_id: string, no
     if (auth?.jwt) req = req.auth(auth.jwt, { type: "bearer" });
     if (auth?.apiKey) req = req.set("api-key", auth.apiKey);
 
-    return req.send({note: note});
+    return req.send({ note: note });
 }
 
 export async function deleteAnnotation(book_id: string, annotation_id: string, auth?: { jwt?: string; apiKey?: string }) {
