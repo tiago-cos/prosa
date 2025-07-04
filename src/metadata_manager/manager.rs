@@ -10,6 +10,7 @@ use crate::{
     },
     config::Configuration,
 };
+use log::warn;
 use sqlx::SqlitePool;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -54,13 +55,13 @@ impl MetadataManager {
         let lock = lock_manager.get_lock(&book_id).await;
         let _guard = lock.write().await;
 
-        let _ = match (book.metadata_id, metadata) {
+        let metadata_result = match (book.metadata_id, metadata) {
             (_, None) => Ok(()),
             (Some(_), Some(metadata)) => handle_metadata_update(&pool, &book_id, metadata).await,
             (None, Some(metadata)) => handle_metadata_create(&pool, &book_id, metadata).await,
         };
 
-        let _ = match (book.cover_id, image) {
+        let cover_result = match (book.cover_id, image) {
             (_, None) => Ok(()),
             (Some(_), Some(image)) => {
                 handle_cover_update(
@@ -85,6 +86,10 @@ impl MetadataManager {
                 .await
             }
         };
+
+        if !cover_result.is_ok() || !metadata_result.is_ok() {
+            warn!("Background metadata fetching failed for book {}", book_id);
+        }
     }
 }
 

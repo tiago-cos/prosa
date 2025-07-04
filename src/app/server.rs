@@ -1,6 +1,9 @@
 use super::{annotations, books, covers, metadata, state, sync, users};
+use crate::app::tracing;
 use crate::{app::concurrency::manager::BookLockManager, config::Configuration, metadata_manager};
+use axum::middleware::from_fn;
 use axum::Router;
+use log::info;
 use quick_cache::sync::Cache;
 use sqlx::SqlitePool;
 use std::{collections::HashSet, sync::Arc};
@@ -54,6 +57,10 @@ pub async fn run(config: Configuration, pool: SqlitePool) {
     };
 
     let host = format!("{}:{}", &state.config.server.host, &state.config.server.port);
+
+    tracing::init_logging();
+    info!("Server started on http://{}", host.replace("0.0.0.0", "localhost"));
+
     let app = Router::new()
         .merge(users::routes::get_routes(state.clone()))
         .merge(metadata::routes::get_routes(state.clone()))
@@ -61,8 +68,9 @@ pub async fn run(config: Configuration, pool: SqlitePool) {
         .merge(state::routes::get_routes(state.clone()))
         .merge(sync::routes::get_routes(state.clone()))
         .merge(books::routes::get_routes(state.clone()))
-        .merge(annotations::routes::get_routes(state.clone()));
+        .merge(annotations::routes::get_routes(state.clone()))
+        .layer(from_fn(tracing::log_layer));
 
-    let listener = TcpListener::bind(host).await.unwrap();
+    let listener = TcpListener::bind(&host).await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }

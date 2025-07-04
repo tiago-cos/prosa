@@ -6,8 +6,8 @@ use std::fmt::Debug;
 use std::str::FromStr;
 use strum::{EnumMessage, EnumProperty};
 
-pub trait ProsaErrorTrait: EnumMessage + EnumProperty + Debug {}
-impl<T> ProsaErrorTrait for T where T: EnumMessage + EnumProperty + Debug {}
+pub trait ProsaErrorTrait: EnumMessage + EnumProperty + Debug + Send + Sync {}
+impl<T> ProsaErrorTrait for T where T: EnumMessage + EnumProperty + Debug + Send + Sync {}
 pub type ProsaError = Box<dyn ProsaErrorTrait>;
 
 impl<T> From<T> for ProsaError

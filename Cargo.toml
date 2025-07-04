@@ -16,6 +16,7 @@ epub = "2.1.4"
 goodreads-metadata-scraper = "0.2.1"
 image = "0.25.6"
 jsonwebtoken = { version = "9.3.1", default-features = false }
+log = "0.4.27"
 merge = "0.2.0"
 quick_cache = "0.6.14"
 regex = "1.11.1"
@@ -27,5 +28,6 @@ sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite", "chrono"] }
 strum = "0.27.1"
 strum_macros = "0.27.1"
 tokio = { version = "1.46.0", features = ["full"] }
+tracing-subscriber = { version = "0.3.19", features = ["env-filter", "chrono"] }
 ureq = "3.0.12"
 uuid = { version = "1.17.0", features = ["v4"] }

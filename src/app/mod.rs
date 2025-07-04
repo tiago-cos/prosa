@@ -10,6 +10,7 @@ pub mod metadata;
 mod server;
 mod state;
 pub mod sync;
+mod tracing;
 pub mod users;
 
 pub use server::*;
