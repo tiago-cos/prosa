@@ -561,6 +561,10 @@ describe("Patch state JWT", () => {
         const patchResponse4 = await patchState(uploadResponse.text, invalid, { jwt: registerResponse.text });
         expect(patchResponse4.status).toBe(400);
         expect(patchResponse4.text).toBe(INVALID_READING_STATUS);
+
+        const patchResponse5 = await patchState(uploadResponse.text, {}, { jwt: registerResponse.text });
+        expect(patchResponse5.status).toBe(400);
+        expect(patchResponse5.text).toBe(INVALID_STATE);
     });
 
     test("Different user without permission", async () => {

@@ -136,7 +136,17 @@ pub async fn update_preferences_handler(
     Path(username): Path<String>,
     Json(body): Json<Preferences>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    service::update_preferences(&pool, &username, body.metadata_providers.clone()).await?;
+    service::update_preferences(&pool, &username, body).await?;
+
+    Ok((StatusCode::NO_CONTENT, ()))
+}
+
+pub async fn patch_preferences_handler(
+    State(pool): State<Pool>,
+    Path(username): Path<String>,
+    Json(body): Json<Preferences>,
+) -> Result<impl IntoResponse, ProsaError> {
+    service::patch_preferences(&pool, &username, body).await?;
 
     Ok((StatusCode::NO_CONTENT, ()))
 }

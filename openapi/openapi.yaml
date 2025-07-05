@@ -79,7 +79,7 @@ x-tagGroups:
       - Preferences
       - ApiKeys
 servers:
-  - url: http://{host}/api
+  - url: http://{host}
     variables:
       host:
         default: localhost

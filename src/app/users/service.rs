@@ -5,10 +5,11 @@ use super::{
 use crate::app::{
     authentication::{self, service::hash_secret},
     error::ProsaError,
-    users::models::ApiKeyError,
+    users::models::{ApiKeyError, PreferencesError},
 };
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use chrono::{DateTime, Utc};
+use merge::Merge;
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
@@ -20,7 +21,7 @@ pub async fn register_user(
 ) -> Result<(), ProsaError> {
     let password_hash = hash_secret(password).await;
     data::add_user(pool, username, &password_hash, is_admin).await?;
-    data::add_preferences(pool, username, vec![EPUB_PROVIDER.to_string()]).await?;
+    data::add_providers(pool, username, vec![EPUB_PROVIDER.to_string()]).await;
 
     Ok(())
 }
@@ -82,13 +83,41 @@ pub async fn get_preferences(pool: &SqlitePool, username: &str) -> Result<Prefer
 pub async fn update_preferences(
     pool: &SqlitePool,
     username: &str,
-    providers: Vec<String>,
+    preferences: Preferences,
 ) -> Result<(), ProsaError> {
     data::get_user(pool, username).await?;
-    data::delete_preferences(pool, username).await?;
-    if !providers.is_empty() {
-        data::add_preferences(pool, username, providers).await?;
+
+    if preferences.automatic_metadata.is_none() {
+        return Err(PreferencesError::MissingAutomaticMetadata.into());
     }
+
+    if preferences.metadata_providers.is_none() {
+        return Err(PreferencesError::InvalidMetadataProvider.into());
+    }
+
+    data::update_preferences(pool, username, preferences).await?;
+    Ok(())
+}
+
+pub async fn patch_preferences(
+    pool: &SqlitePool,
+    username: &str,
+    mut preferences: Preferences,
+) -> Result<(), ProsaError> {
+    data::get_user(pool, username).await?;
+
+    if preferences.automatic_metadata.is_none() && preferences.metadata_providers.is_none() {
+        return Err(PreferencesError::InvalidPreferences.into());
+    }
+
+    let original = data::get_preferences(pool, username).await?;
+    preferences.merge(original);
+
+    if preferences.automatic_metadata.is_none() {
+        return Err(PreferencesError::MissingAutomaticMetadata.into());
+    }
+
+    data::update_preferences(pool, username, preferences).await?;
     Ok(())
 }
 

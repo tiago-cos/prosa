@@ -10,6 +10,8 @@ export const API_KEY_NOT_FOUND = "The requested key does not exist or is not acc
 export const INVALID_CAPABILITIES = "Invalid or unsupported capabilities provided.";
 export const INVALID_TIMESTAMP = "Expiration timestamp is invalid or incorrectly formatted.";
 export const INVALID_PROVIDERS = "Invalid or unsupported metadata provider selection.";
+export const MISSING_METADATA_PREFERENCE = "Automatic metadata preference must be present.";
+export const INVALID_PREFERENCES = "Invalid or unsupported preferences provided.";
 
 export async function registerUser(username?: string, password?: string, adminKey?: string) {
     username = username ?? randomString(16);
@@ -108,7 +110,8 @@ export async function getPreferences(
 
 export async function updatePreferences(
     username: string,
-    providers: string[],
+    providers?: string[],
+    automatic_metadata?: boolean,
     auth?: { jwt?: string; apiKey?: string }
 ) {
     let req = request(SERVER_URL).put(`/users/${username}/preferences`);
@@ -116,9 +119,27 @@ export async function updatePreferences(
     if (auth?.jwt) req = req.auth(auth.jwt, { type: "bearer" });
     if (auth?.apiKey) req = req.set("api-key", auth.apiKey);
 
-    const body: any = {
-        metadata_providers: providers
-    };
+    const body: any = {};
+    if (providers !== undefined) body.metadata_providers = providers;
+    if (automatic_metadata !== undefined) body.automatic_metadata = automatic_metadata;
+
+    return req.send(body);
+}
+
+export async function patchPreferences(
+    username: string,
+    providers?: string[],
+    automatic_metadata?: boolean,
+    auth?: { jwt?: string; apiKey?: string }
+) {
+    let req = request(SERVER_URL).patch(`/users/${username}/preferences`);
+
+    if (auth?.jwt) req = req.auth(auth.jwt, { type: "bearer" });
+    if (auth?.apiKey) req = req.set("api-key", auth.apiKey);
+
+    const body: any = {};
+    if (providers !== undefined) body.metadata_providers = providers;
+    if (automatic_metadata !== undefined) body.automatic_metadata = automatic_metadata;
 
     return req.send(body);
 }

@@ -7,7 +7,8 @@ pub async fn create_tables(pool: &SqlitePool) {
         CREATE TABLE IF NOT EXISTS users (
             user_id TEXT PRIMARY KEY NOT NULL,
             password_hash TEXT NOT NULL,
-            is_admin BOOLEAN DEFAULT FALSE
+            is_admin BOOLEAN DEFAULT FALSE,
+            automatic_metadata BOOL NOT NULL DEFAULT TRUE
         );
 
         CREATE TABLE IF NOT EXISTS providers (

@@ -1,7 +1,7 @@
 import request from "supertest";
 import { FORBIDDEN, randomString, UNAUTHORIZED } from "../utils/common";
 import { SERVER_URL } from "../utils/common";
-import { registerUser, loginUser, createApiKey, getApiKey, getApiKeys, deleteApiKey, getPreferences, updatePreferences, INVALID_CREDENTIALS, INVALID_USERNAME_PASSWORD, USERNAME_IN_USE, USER_NOT_FOUND, API_KEY_NOT_FOUND, INVALID_CAPABILITIES, INVALID_TIMESTAMP, INVALID_PROVIDERS } from "../utils/users"
+import { registerUser, loginUser, createApiKey, getApiKey, getApiKeys, deleteApiKey, getPreferences, updatePreferences, INVALID_CREDENTIALS, INVALID_USERNAME_PASSWORD, USERNAME_IN_USE, USER_NOT_FOUND, API_KEY_NOT_FOUND, INVALID_CAPABILITIES, INVALID_TIMESTAMP, INVALID_PROVIDERS, MISSING_METADATA_PREFERENCE, patchPreferences, INVALID_PREFERENCES } from "../utils/users"
 
 describe("Register", () => {
     test("Regular user", async () => {
@@ -525,6 +525,8 @@ describe("Get preferences", () => {
         expect(getPreferencesResponse.status).toBe(200);
         expect(getPreferencesResponse.body).toHaveProperty("metadata_providers");
         expect(getPreferencesResponse.body.metadata_providers).toEqual(["epub_metadata_extractor"]);
+        expect(getPreferencesResponse.body).toHaveProperty("automatic_metadata");
+        expect(getPreferencesResponse.body.automatic_metadata).toEqual(true);
     });
 
     test("Non-existent user", async () => {
@@ -578,10 +580,13 @@ describe("Update preferences", () => {
         expect(getPreferencesResponse.status).toBe(200);
         expect(getPreferencesResponse.body).toHaveProperty("metadata_providers");
         expect(getPreferencesResponse.body.metadata_providers).toEqual(["epub_metadata_extractor"]);
+        expect(getPreferencesResponse.body).toHaveProperty("automatic_metadata");
+        expect(getPreferencesResponse.body.automatic_metadata).toEqual(true);
 
         const updatePreferencesResponse = await updatePreferences(
             username,
             ["goodreads_metadata_scraper", "epub_metadata_extractor"],
+            false,
             { jwt: registerResponse.text }
         );
         expect(updatePreferencesResponse.status).toBe(204);
@@ -590,10 +595,13 @@ describe("Update preferences", () => {
         expect(getPreferencesResponse2.status).toBe(200);
         expect(getPreferencesResponse2.body).toHaveProperty("metadata_providers");
         expect(getPreferencesResponse2.body.metadata_providers).toEqual(["goodreads_metadata_scraper", "epub_metadata_extractor"]);
+        expect(getPreferencesResponse2.body).toHaveProperty("automatic_metadata");
+        expect(getPreferencesResponse2.body.automatic_metadata).toEqual(false);
 
         const updatePreferencesResponse2 = await updatePreferences(
             username,
             [],
+            true,
             { jwt: registerResponse.text }
         );
         expect(updatePreferencesResponse2.status).toBe(204);
@@ -602,19 +610,45 @@ describe("Update preferences", () => {
         expect(getPreferencesResponse3.status).toBe(200);
         expect(getPreferencesResponse3.body).toHaveProperty("metadata_providers");
         expect(getPreferencesResponse3.body.metadata_providers).toEqual([]);
+        expect(getPreferencesResponse3.body).toHaveProperty("automatic_metadata");
+        expect(getPreferencesResponse3.body.automatic_metadata).toEqual(true);
     });
 
     test("Invalid providers", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
-        const updatePreferencesResponse = await updatePreferences(
+        let updatePreferencesResponse = await updatePreferences(
             username,
             ["invalid provider"],
+            true,
             { jwt: registerResponse.text }
         );
         expect(updatePreferencesResponse.status).toBe(400);
         expect(updatePreferencesResponse.text).toBe(INVALID_PROVIDERS);
+
+        updatePreferencesResponse = await updatePreferences(
+            username,
+            undefined,
+            true,
+            { jwt: registerResponse.text }
+        );
+        expect(updatePreferencesResponse.status).toBe(400);
+        expect(updatePreferencesResponse.text).toBe(INVALID_PROVIDERS);
+    });
+
+    test("Missing metadata preference", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const updatePreferencesResponse = await updatePreferences(
+            username,
+            ["epub_metadata_extractor"],
+            undefined,
+            { jwt: registerResponse.text }
+        );
+        expect(updatePreferencesResponse.status).toBe(400);
+        expect(updatePreferencesResponse.text).toBe(MISSING_METADATA_PREFERENCE);
     });
 
     test("Non-existent user", async () => {
@@ -624,6 +658,7 @@ describe("Update preferences", () => {
         const updatePreferencesResponse = await updatePreferences(
             "non-existent",
             ["goodreads_metadata_scraper"],
+            true,
             { jwt: registerResponse.text }
         );
         expect(updatePreferencesResponse.status).toBe(404);
@@ -640,6 +675,7 @@ describe("Update preferences", () => {
         const updatePreferencesResponse = await updatePreferences(
             username,
             ["goodreads_metadata_scraper"],
+            true,
             { jwt: registerResponse2.text }
         );
         expect(updatePreferencesResponse.status).toBe(403);
@@ -656,6 +692,7 @@ describe("Update preferences", () => {
         const updatePreferencesResponse = await updatePreferences(
             username,
             ["goodreads_metadata_scraper"],
+            true,
             { jwt: registerResponse2.text }
         );
         expect(updatePreferencesResponse.status).toBe(204);
@@ -667,23 +704,142 @@ describe("Update preferences", () => {
 
         const updatePreferencesResponse = await updatePreferences(
             username,
-            ["goodreads_metadata_scraper"]
+            ["goodreads_metadata_scraper"],
+            true,
         );
         expect(updatePreferencesResponse.status).toBe(401);
         expect(updatePreferencesResponse.text).toBe(UNAUTHORIZED);
     });
+});
 
-    test("Invalid request", async () => {
+describe("Patch preferences", () => {
+    test("Simple", async () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
-        const updatePreferencesResponse = await request(SERVER_URL)
-            .put(`/users/${username}/preferences`)
-            .auth(registerResponse.text, { type: "bearer" })
-            .send({
-                bad: "field"
-            });
+        let getPreferencesResponse = await getPreferences(username, { jwt: registerResponse.text });
+        expect(getPreferencesResponse.status).toBe(200);
+        expect(getPreferencesResponse.body).toHaveProperty("metadata_providers");
+        expect(getPreferencesResponse.body.metadata_providers).toEqual(["epub_metadata_extractor"]);
+        expect(getPreferencesResponse.body).toHaveProperty("automatic_metadata");
+        expect(getPreferencesResponse.body.automatic_metadata).toEqual(true);
 
-        expect(updatePreferencesResponse.status).toBe(422);
+        let patchPreferencesResponse = await patchPreferences(
+            username,
+            ["goodreads_metadata_scraper", "epub_metadata_extractor"],
+            undefined,
+            { jwt: registerResponse.text }
+        );
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        getPreferencesResponse = await getPreferences(username, { jwt: registerResponse.text });
+        expect(getPreferencesResponse.status).toBe(200);
+        expect(getPreferencesResponse.body).toHaveProperty("metadata_providers");
+        expect(getPreferencesResponse.body.metadata_providers).toEqual(["goodreads_metadata_scraper", "epub_metadata_extractor"]);
+        expect(getPreferencesResponse.body).toHaveProperty("automatic_metadata");
+        expect(getPreferencesResponse.body.automatic_metadata).toEqual(true);
+
+        patchPreferencesResponse = await patchPreferences(
+            username,
+            undefined,
+            false,
+            { jwt: registerResponse.text }
+        );
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        getPreferencesResponse = await getPreferences(username, { jwt: registerResponse.text });
+        expect(getPreferencesResponse.status).toBe(200);
+        expect(getPreferencesResponse.body).toHaveProperty("metadata_providers");
+        expect(getPreferencesResponse.body.metadata_providers).toEqual(["goodreads_metadata_scraper", "epub_metadata_extractor"]);
+        expect(getPreferencesResponse.body).toHaveProperty("automatic_metadata");
+        expect(getPreferencesResponse.body.automatic_metadata).toEqual(false);
+    });
+
+    test("Invalid providers", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(
+            username,
+            ["invalid provider"],
+            undefined,
+            { jwt: registerResponse.text }
+        );
+        expect(patchPreferencesResponse.status).toBe(400);
+        expect(patchPreferencesResponse.text).toBe(INVALID_PROVIDERS);
+    });
+
+    test("Empty body", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const updatePreferencesResponse = await patchPreferences(
+            username,
+            undefined,
+            undefined,
+            { jwt: registerResponse.text }
+        );
+        expect(updatePreferencesResponse.status).toBe(400);
+        expect(updatePreferencesResponse.text).toBe(INVALID_PREFERENCES);
+    });
+
+    test("Non-existent user", async () => {
+        const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(
+            "non-existent",
+            ["goodreads_metadata_scraper"],
+            undefined,
+            { jwt: registerResponse.text }
+        );
+        expect(patchPreferencesResponse.status).toBe(404);
+        expect(patchPreferencesResponse.text).toBe(USER_NOT_FOUND);
+    });
+
+    test("Different user without permission", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const { response: registerResponse2 } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(
+            username,
+            ["goodreads_metadata_scraper"],
+            undefined,
+            { jwt: registerResponse2.text }
+        );
+        expect(patchPreferencesResponse.status).toBe(403);
+        expect(patchPreferencesResponse.text).toBe(FORBIDDEN);
+    });
+
+    test("Different user with permission", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse2.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(
+            username,
+            ["goodreads_metadata_scraper"],
+            undefined,
+            { jwt: registerResponse2.text }
+        );
+        expect(patchPreferencesResponse.status).toBe(204);
+    });
+
+    test("No auth", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(
+            username,
+            undefined,
+            true,
+        );
+        expect(patchPreferencesResponse.status).toBe(401);
+        expect(patchPreferencesResponse.text).toBe(UNAUTHORIZED);
     });
 });

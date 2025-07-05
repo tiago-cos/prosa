@@ -1,4 +1,9 @@
-use axum::{extract::Request, middleware::Next, response::Response};
+use axum::{
+    body::{to_bytes, Body},
+    extract::Request,
+    middleware::Next,
+    response::Response,
+};
 use log::{error, info};
 use tracing_subscriber::{
     fmt::{layer, time::ChronoUtc},
@@ -26,7 +31,7 @@ pub async fn log_layer(req: Request, next: Next) -> Response {
     let method = req.method().clone();
     let path = req.uri().path().to_string();
 
-    let response = next.run(req).await;
+    let mut response = next.run(req).await;
 
     let status = response.status();
 
@@ -39,7 +44,16 @@ pub async fn log_layer(req: Request, next: Next) -> Response {
     if status.is_success() || status.is_redirection() {
         info!("{} {} [{}]", method, path, colored_code);
     } else {
-        error!("{} {} [{}]", method, path, colored_code);
+        let body = response.into_body();
+        let bytes = to_bytes(body, 1000).await.unwrap_or_default();
+        let body_text = String::from_utf8_lossy(&bytes);
+
+        error!("{} {} [{} - {}]", method, path, colored_code, body_text);
+
+        response = Response::builder()
+            .status(status)
+            .body(Body::from(bytes))
+            .unwrap();
     };
 
     response

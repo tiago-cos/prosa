@@ -1,5 +1,5 @@
 import { FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from "../utils/common";
-import { registerUser, createApiKey } from "../utils/users"
+import { registerUser, createApiKey, patchPreferences } from "../utils/users"
 import { BOOK_NOT_FOUND, uploadBook } from "../utils/books"
 import { addMetadata, METADATA_CONFLICT, METADATA_NOT_FOUND, deleteMetadata, getMetadata, INVALID_METADATA, updateMetadata, patchMetadata, ALICE_METADATA, EXAMPLE_METADATA } from "../utils/metadata"
 
@@ -18,6 +18,24 @@ describe("Get metadata JWT", () => {
         expect(downloadResponse.status).toBe(200);
 
         expect(downloadResponse.body).toEqual(ALICE_METADATA);
+    });
+
+    test("Disabled auto-fetch", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(username, undefined, false, { jwt: registerResponse.text });
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        const downloadResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.text });
+        expect(downloadResponse.status).toBe(404);
+        expect(downloadResponse.text).toEqual(METADATA_NOT_FOUND);
     });
 
     test("Non-existent metadata", async () => {

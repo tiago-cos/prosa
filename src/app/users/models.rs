@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use merge::Merge;
 use serde::{Deserialize, Serialize};
 use serde_with::skip_serializing_none;
 use sqlx::{error::DatabaseError, prelude::FromRow, sqlite::SqliteError};
@@ -100,6 +101,14 @@ pub enum PreferencesError {
     #[strum(props(StatusCode = "400"))]
     InvalidMetadataProvider,
 
+    #[strum(message = "Automatic metadata preference must be present.")]
+    #[strum(props(StatusCode = "400"))]
+    MissingAutomaticMetadata,
+
+    #[strum(message = "Invalid or unsupported preferences provided.")]
+    #[strum(props(StatusCode = "400"))]
+    InvalidPreferences,
+
     #[strum(message = "The requested user does not exist or is not accessible.")]
     #[strum(props(StatusCode = "404"))]
     UserNotFound,
@@ -151,9 +160,11 @@ pub struct LoginUserRequest {
 
 pub const EPUB_PROVIDER: &str = "epub_metadata_extractor";
 
-#[derive(FromRow, Serialize, Deserialize)]
+#[derive(FromRow, Serialize, Deserialize, Merge)]
+#[merge(strategy = merge::option::overwrite_none)]
 pub struct Preferences {
-    pub metadata_providers: Vec<String>,
+    pub metadata_providers: Option<Vec<String>>,
+    pub automatic_metadata: Option<bool>,
 }
 
 #[derive(FromRow)]

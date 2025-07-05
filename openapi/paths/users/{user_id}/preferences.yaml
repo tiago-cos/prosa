@@ -43,12 +43,51 @@ put:
       application/json:
         schema:
           $ref: ../../../components/schemas/Preferences.yaml
+          required:
+          - metadata_providers
+          - automatic_metadata
 
   responses:
     "204":
       description: Preferences updated successfully.
     "400":
-      $ref: ../../../components/responses/users/InvalidProviders.yaml
+      description: Invalid or unsupported preferences.
+    "401":
+      $ref: ../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../../components/responses/users/UserNotFound.yaml
+
+  security:
+    - prosaToken: []
+
+patch:
+  tags:
+    - Preferences
+  summary: "Patch preferences"
+  description: |
+    Partially update a user's preferences.
+    Only the fields specified in the request body will be updated.
+    At least one field must be provided.
+  operationId: patchPreferences
+  parameters:
+    - $ref: ../../../components/parameters/user_id.yaml
+
+  requestBody:
+    required: true
+    description: Request body for patching a user's preferences.
+    content:
+      application/json:
+        schema:
+          $ref: ../../../components/schemas/Preferences.yaml
+          minProperties: 1
+
+  responses:
+    "204":
+      description: Preferences patched successfully.
+    "400":
+      description: No fields specified or invalid/unsupported preferences.
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
     "403":

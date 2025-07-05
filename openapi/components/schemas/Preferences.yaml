@@ -9,6 +9,11 @@ properties:
     description: |
       An array of metadata providers, in order of preference.
       This is the order in which metadata providers will be used when searching for book metadata.
+  
+  automatic_metadata:
+    type: boolean
+    example: true
+    description: |
+      Whether to automatically perform a metadata search the first time a user uploads a book.
 
-minProperties: 1
 additionalProperties: false

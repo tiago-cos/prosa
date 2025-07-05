@@ -85,6 +85,9 @@ impl MetadataManager {
             };
 
             let (metadata, image) = self.fetch_metadata(&req.book_id, req.providers).await;
+            if metadata.is_none() && image.is_none() {
+                continue;
+            }
             self.store_metadata(&req.book_id, metadata, image).await;
         }
     }

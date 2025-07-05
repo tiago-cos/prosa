@@ -40,6 +40,10 @@ pub async fn patch_state(
     tag_cache: &TagCache,
     mut state: State,
 ) -> Result<(), ProsaError> {
+    if state.location.is_none() && state.statistics.is_none() {
+        return Err(StateError::InvalidState.into());
+    }
+
     let original = data::get_state(pool, state_id).await;
     state.merge(original);
 

@@ -9,7 +9,7 @@ use crate::app::{
 };
 use axum::{
     middleware::{from_fn, from_fn_with_state},
-    routing::{delete, get, post, put},
+    routing::{delete, get, patch, post, put},
     Router,
 };
 
@@ -29,6 +29,9 @@ pub fn get_routes(state: AppState) -> Router {
             .route_layer(from_fn(can_delete_api_key))
         )
         .route("/users/{username}/preferences", put(handlers::update_preferences_handler) 
+            .route_layer(from_fn(can_update_preferences))
+        )
+        .route("/users/{username}/preferences", patch(handlers::patch_preferences_handler) 
             .route_layer(from_fn(can_update_preferences))
         )
         .route("/users/{username}/preferences", get(handlers::get_preferences_handler) 

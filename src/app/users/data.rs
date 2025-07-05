@@ -10,13 +10,14 @@ pub async fn add_user(
 ) -> Result<(), UserError> {
     sqlx::query(
         r#"
-        INSERT INTO users (user_id, password_hash, is_admin)
-        VALUES ($1, $2, $3)
+        INSERT INTO users (user_id, password_hash, is_admin, automatic_metadata)
+        VALUES ($1, $2, $3, $4)
         "#,
     )
     .bind(user_id)
     .bind(password_hash)
     .bind(is_admin)
+    .bind(true)
     .execute(pool)
     .await?;
 
@@ -177,17 +178,7 @@ pub async fn delete_api_key(pool: &SqlitePool, username: &str, key_id: &str) -> 
     Ok(())
 }
 
-pub async fn add_preferences(
-    pool: &SqlitePool,
-    username: &str,
-    providers: Vec<String>,
-) -> Result<(), PreferencesError> {
-    if providers.is_empty() {
-        return Err(PreferencesError::InvalidMetadataProvider);
-    }
-
-    let mut tx = pool.begin().await?;
-
+pub async fn add_providers(pool: &SqlitePool, username: &str, providers: Vec<String>) -> () {
     let mut index = 1;
     let mut query = QueryBuilder::new("INSERT INTO providers (provider_type, priority, user_id)");
 
@@ -195,11 +186,11 @@ pub async fn add_preferences(
         b.push_bind(provider).push_bind(index).push_bind(username);
         index = index + 1;
     });
-    query.build().execute(&mut *tx).await?;
-
-    tx.commit().await?;
-
-    Ok(())
+    query
+        .build()
+        .execute(pool)
+        .await
+        .expect("Failed to add initial providers");
 }
 
 pub async fn get_preferences(pool: &SqlitePool, username: &str) -> Result<Preferences, PreferencesError> {
@@ -215,12 +206,49 @@ pub async fn get_preferences(pool: &SqlitePool, username: &str) -> Result<Prefer
     .fetch_all(pool)
     .await?;
 
+    let automatic_metadata: bool = sqlx::query_scalar(
+        r#"
+        SELECT automatic_metadata
+        FROM users
+        WHERE user_id = $1
+        "#,
+    )
+    .bind(username)
+    .fetch_one(pool)
+    .await?;
+
     Ok(Preferences {
-        metadata_providers: providers,
+        metadata_providers: Some(providers),
+        automatic_metadata: Some(automatic_metadata),
     })
 }
 
-pub async fn delete_preferences(pool: &SqlitePool, username: &str) -> Result<(), PreferencesError> {
+pub async fn update_preferences(
+    pool: &SqlitePool,
+    username: &str,
+    preferences: Preferences,
+) -> Result<(), PreferencesError> {
+    let automatic_metadata = preferences
+        .automatic_metadata
+        .expect("Metadata preference should be present");
+    let providers = preferences
+        .metadata_providers
+        .expect("Providers should be present");
+
+    let mut tx = pool.begin().await?;
+
+    sqlx::query(
+        r#"
+        UPDATE users
+        SET automatic_metadata = $1
+        WHERE user_id = $2
+        "#,
+    )
+    .bind(automatic_metadata)
+    .bind(username)
+    .execute(&mut *tx)
+    .await?;
+
     sqlx::query(
         r#"
         DELETE
@@ -229,8 +257,24 @@ pub async fn delete_preferences(pool: &SqlitePool, username: &str) -> Result<(),
         "#,
     )
     .bind(username)
-    .execute(pool)
+    .execute(&mut *tx)
     .await?;
+
+    if providers.is_empty() {
+        tx.commit().await?;
+        return Ok(());
+    }
+
+    let mut index = 1;
+    let mut query = QueryBuilder::new("INSERT INTO providers (provider_type, priority, user_id)");
+
+    query.push_values(providers, |mut b, provider| {
+        b.push_bind(provider).push_bind(index).push_bind(username);
+        index = index + 1;
+    });
+    query.build().execute(&mut *tx).await?;
+
+    tx.commit().await?;
 
     Ok(())
 }

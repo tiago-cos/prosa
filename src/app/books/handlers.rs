@@ -72,10 +72,19 @@ pub async fn upload_book_handler(
 
     let book_id = service::add_book(&state.pool, book).await?;
 
-    state
-        .metadata_manager
-        .enqueue_request(&data.owner_id, &book_id, preferences.metadata_providers)
-        .await;
+    let automatic_metadata = preferences
+        .automatic_metadata
+        .expect("Metadata preference should be present");
+    if automatic_metadata {
+        state
+            .metadata_manager
+            .enqueue_request(
+                &data.owner_id,
+                &book_id,
+                preferences.metadata_providers.unwrap_or(vec![]),
+            )
+            .await;
+    }
 
     Ok(book_id)
 }
