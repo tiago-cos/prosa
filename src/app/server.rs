@@ -42,24 +42,33 @@ pub async fn run(config: Configuration, pool: SqlitePool) {
     let tag_length_cache = Arc::new(Cache::new(100000));
 
     let cache = AppCache {
-        image_cache,
+        image_cache: image_cache.clone(),
         source_cache,
         tag_cache,
         tag_length_cache,
     };
 
+    let config = Arc::new(config.clone());
+    let pool = Arc::new(pool);
+    let lock_manager = Arc::new(BookLockManager::new());
+    let metadata_manager =
+        metadata_manager::MetadataManager::new(pool.clone(), lock_manager.clone(), image_cache, &config);
+
     let state = AppState {
-        config: Arc::new(config.clone()),
-        pool: Arc::new(pool),
-        metadata_manager: Arc::new(metadata_manager::MetadataManager::new(&config)),
-        lock_manager: Arc::new(BookLockManager::new()),
+        config,
+        pool,
+        metadata_manager,
+        lock_manager,
         cache,
     };
 
     let host = format!("{}:{}", &state.config.server.host, &state.config.server.port);
 
     tracing::init_logging();
-    info!("Server started on http://{}", host.replace("0.0.0.0", "localhost"));
+    info!(
+        "Server started on http://{}",
+        host.replace("0.0.0.0", "localhost")
+    );
 
     let app = Router::new()
         .merge(users::routes::get_routes(state.clone()))

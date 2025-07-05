@@ -72,13 +72,10 @@ pub async fn upload_book_handler(
 
     let book_id = service::add_book(&state.pool, book).await?;
 
-    tokio::spawn(state.metadata_manager.fetch_metadata(
-        state.pool,
-        state.lock_manager,
-        state.cache.image_cache,
-        book_id.clone(),
-        preferences.metadata_providers,
-    ));
+    state
+        .metadata_manager
+        .enqueue_request(&data.owner_id, &book_id, preferences.metadata_providers)
+        .await;
 
     Ok(book_id)
 }

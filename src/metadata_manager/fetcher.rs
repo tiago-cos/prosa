@@ -37,19 +37,7 @@ impl MetadataFetcher {
         epub_data: Vec<u8>,
         providers: Vec<String>,
     ) -> (Option<Metadata>, Option<Vec<u8>>) {
-        let mut metadata = Metadata {
-            title: None,
-            subtitle: None,
-            description: None,
-            publisher: None,
-            publication_date: None,
-            isbn: None,
-            contributors: None,
-            genres: None,
-            series: None,
-            page_count: None,
-            language: None,
-        };
+        let mut metadata = Metadata::default();
         let mut image: Vec<u8> = Vec::new();
 
         for provider in providers {
