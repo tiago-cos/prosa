@@ -154,12 +154,12 @@ describe("Get state api key", () => {
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
-        const timestamp = Date.now() + 2000;
+        const timestamp = Date.now() + 1000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         // Wait for the key to expire
-        await wait(2.5);
+        await wait(1.5);
 
         const downloadResponse = await getState(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
         expect(downloadResponse.status).toBe(401);
@@ -459,12 +459,12 @@ describe("Update state api key", () => {
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
-        const timestamp = Date.now() + 2000;
+        const timestamp = Date.now() + 1000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         // Wait for the key to expire
-        await wait(2.5);
+        await wait(1.5);
 
         const updateResponse = await updateState(uploadResponse.text, ALICE_STATE, { apiKey: createApiKeyResponse.body.key });
         expect(updateResponse.status).toBe(401);
@@ -766,12 +766,12 @@ describe("Patch state api key", () => {
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
-        const timestamp = Date.now() + 2000;
+        const timestamp = Date.now() + 1000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         // Wait for the key to expire
-        await wait(2.5);
+        await wait(1.5);
 
         const patchResponse = await patchState(uploadResponse.text, ALICE_STATE, { apiKey: createApiKeyResponse.body.key });
         expect(patchResponse.status).toBe(401);

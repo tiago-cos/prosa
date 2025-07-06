@@ -224,12 +224,12 @@ describe("Get cover api key", () => {
         // Wait for cover to be extracted
         await wait(0.5);
 
-        const timestamp = Date.now() + 2000;
+        const timestamp = Date.now() + 1000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         // Wait for the key to expire
-        await wait(2.5);
+        await wait(1.5);
 
         const downloadResponse = await getCover(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
         expect(downloadResponse.status).toBe(401);
@@ -499,12 +499,12 @@ describe("Add cover api key", () => {
         // Give chance for any cover to be extracted
         await wait(0.5);
 
-        const timestamp = Date.now() + 2000;
+        const timestamp = Date.now() + 1000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         // Wait for the key to expire
-        await wait(2.5);
+        await wait(1.5);
 
         const addResponse = await addCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
         expect(addResponse.status).toBe(401);
@@ -729,12 +729,12 @@ describe("Delete cover api key", () => {
         // Wait for cover to be extracted
         await wait(0.5);
 
-        const timestamp = Date.now() + 2000;
+        const timestamp = Date.now() + 1000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Delete"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         // Wait for the key to expire
-        await wait(2.5);
+        await wait(1.5);
 
         const deleteResponse = await deleteCover(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
         expect(deleteResponse.status).toBe(401);
@@ -1006,12 +1006,12 @@ describe("Update cover api key", () => {
         // Wait for cover to be extracted
         await wait(0.5);
 
-        const timestamp = Date.now() + 2000;
+        const timestamp = Date.now() + 1000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         // Wait for the key to expire
-        await wait(2.5);
+        await wait(1.5);
 
         const updateResponse = await updateCover(uploadResponse.text, "Generic.jpeg", { apiKey: createApiKeyResponse.body.key });
         expect(updateResponse.status).toBe(401);

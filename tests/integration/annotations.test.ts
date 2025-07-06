@@ -306,12 +306,12 @@ describe("Add annotation api key", () => {
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
-        const timestamp = Date.now() + 2000;
+        const timestamp = Date.now() + 1000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         // Wait for the key to expire
-        await wait(2.5);
+        await wait(1.5);
 
         const addAnnotationResponse = await addAnnotation(uploadResponse.text, ALICE_NOTE, { apiKey: createApiKeyResponse.body.key });
         expect(addAnnotationResponse.status).toBe(401);
@@ -528,12 +528,12 @@ describe("Get annotation api key", () => {
         const addAnnotationResponse = await addAnnotation(uploadResponse.text, ALICE_NOTE, { jwt: registerResponse.text });
         expect(addAnnotationResponse.status).toBe(200);
 
-        const timestamp = Date.now() + 2000;
+        const timestamp = Date.now() + 1000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         // Wait for the key to expire
-        await wait(2.5);
+        await wait(1.5);
 
         let getAnnotationResponse = await getAnnotation(uploadResponse.text, addAnnotationResponse.text, { apiKey: createApiKeyResponse.body.key });
         expect(getAnnotationResponse.status).toBe(401);
@@ -704,12 +704,12 @@ describe("List annotations api key", () => {
         const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
         expect(uploadResponse.status).toBe(200);
 
-        const timestamp = Date.now() + 2000;
+        const timestamp = Date.now() + 1000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         // Wait for the key to expire
-        await wait(2.5);
+        await wait(1.5);
 
         let listAnnotationsResponse = await listAnnotations(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
         expect(listAnnotationsResponse.status).toBe(401);
@@ -936,12 +936,12 @@ describe("Delete annotation api key", () => {
         const addAnnotationResponse = await addAnnotation(uploadResponse.text, ALICE_NOTE, { jwt: registerResponse.text });
         expect(addAnnotationResponse.status).toBe(200);
 
-        const timestamp = Date.now() + 2000;
+        const timestamp = Date.now() + 1000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         // Wait for the key to expire
-        await wait(2.5);
+        await wait(1.5);
 
         let deleteAnnotationResponse = await deleteAnnotation(uploadResponse.text, addAnnotationResponse.text, { apiKey: createApiKeyResponse.body.key });
         expect(deleteAnnotationResponse.status).toBe(401);
@@ -1194,12 +1194,12 @@ describe("Delete annotation api key", () => {
         const addAnnotationResponse = await addAnnotation(uploadResponse.text, ALICE_NOTE, { jwt: registerResponse.text });
         expect(addAnnotationResponse.status).toBe(200);
 
-        const timestamp = Date.now() + 2000;
+        const timestamp = Date.now() + 1000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         // Wait for the key to expire
-        await wait(2.5);
+        await wait(1.5);
 
         let patchAnnotationResponse = await patchAnnotation(uploadResponse.text, addAnnotationResponse.text, "note", { apiKey: createApiKeyResponse.body.key });
         expect(patchAnnotationResponse.status).toBe(401);

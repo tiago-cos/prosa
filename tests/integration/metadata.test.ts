@@ -1,7 +1,7 @@
 import { FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from "../utils/common";
-import { registerUser, createApiKey, patchPreferences } from "../utils/users"
+import { registerUser, createApiKey, patchPreferences, INVALID_PROVIDERS } from "../utils/users"
 import { BOOK_NOT_FOUND, uploadBook } from "../utils/books"
-import { addMetadata, METADATA_CONFLICT, METADATA_NOT_FOUND, deleteMetadata, getMetadata, INVALID_METADATA, updateMetadata, patchMetadata, ALICE_METADATA, EXAMPLE_METADATA } from "../utils/metadata"
+import { addMetadata, METADATA_CONFLICT, METADATA_NOT_FOUND, deleteMetadata, getMetadata, INVALID_METADATA, updateMetadata, patchMetadata, ALICE_METADATA, EXAMPLE_METADATA, addMetadataRequest, listMetadataRequests } from "../utils/metadata"
 
 describe("Get metadata JWT", () => {
     test("Simple", async () => {
@@ -234,12 +234,12 @@ describe("Get metadata api key", () => {
         // Wait for metadata to be extracted
         await wait(0.5);
 
-        const timestamp = Date.now() + 2000;
+        const timestamp = Date.now() + 1000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         // Wait for the key to expire
-        await wait(2.5);
+        await wait(1.5);
 
         const downloadResponse = await getMetadata(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
         expect(downloadResponse.status).toBe(401);
@@ -557,12 +557,12 @@ describe("Add metadata api key", () => {
         // Give chance for any metadata to be extracted
         await wait(0.5);
 
-        const timestamp = Date.now() + 2000;
+        const timestamp = Date.now() + 1000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         // Wait for the key to expire
-        await wait(2.5);
+        await wait(1.5);
 
         const addResponse = await addMetadata(uploadResponse.text, EXAMPLE_METADATA, { apiKey: createApiKeyResponse.body.key });
         expect(addResponse.status).toBe(401);
@@ -787,12 +787,12 @@ describe("Delete metadata api key", () => {
         // Wait for metadata to be extracted
         await wait(0.5);
 
-        const timestamp = Date.now() + 2000;
+        const timestamp = Date.now() + 1000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Delete"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         // Wait for the key to expire
-        await wait(2.5);
+        await wait(1.5);
 
         const deleteResponse = await deleteMetadata(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
         expect(deleteResponse.status).toBe(401);
@@ -1052,12 +1052,12 @@ describe("Update metadata api key", () => {
         // Wait for metadata to be extracted
         await wait(0.5);
 
-        const timestamp = Date.now() + 2000;
+        const timestamp = Date.now() + 1000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         // Wait for the key to expire
-        await wait(2.5);
+        await wait(1.5);
 
         const updateResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA, { apiKey: createApiKeyResponse.body.key });
         expect(updateResponse.status).toBe(401);
@@ -1323,15 +1323,507 @@ describe("Patch metadata api key", () => {
         // Wait for metadata to be extracted
         await wait(0.5);
 
-        const timestamp = Date.now() + 2000;
+        const timestamp = Date.now() + 1000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         // Wait for the key to expire
-        await wait(2.5);
+        await wait(1.5);
 
         const patchResponse = await patchMetadata(uploadResponse.text, { title: "title test" }, { apiKey: createApiKeyResponse.body.key });
         expect(patchResponse.status).toBe(401);
         expect(patchResponse.text).toBe(INVALID_API_KEY);
+    });
+});
+
+describe("Add metadata request JWT", () => {
+    test("Simple", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(username, undefined, false, { jwt: registerResponse.text });
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        let getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.text });
+        expect(getResponse.status).toBe(404);
+
+        const addResponse = await addMetadataRequest(uploadResponse.text, undefined, { jwt: registerResponse.text });
+        expect(addResponse.status).toBe(204);
+
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.text });
+        expect(getResponse.status).toBe(200);
+    });
+
+    test("Invalid providers", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(username, undefined, false, { jwt: registerResponse.text });
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.text });
+        expect(getResponse.status).toBe(404);
+
+        const addResponse = await addMetadataRequest(uploadResponse.text, ["invalid"], { jwt: registerResponse.text });
+        expect(addResponse.status).toBe(400);
+        expect(addResponse.text).toBe(INVALID_PROVIDERS);
+    });
+
+    test("Non-existent book", async () => {
+        const { response: registerResponse } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const addResponse = await addMetadataRequest("non-existent", undefined, { jwt: registerResponse.text });
+        expect(addResponse.status).toBe(404);
+        expect(addResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test("Request conflict", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(username, undefined, false, { jwt: registerResponse.text });
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        // Send 3 identical requests in parallel
+        const [res1, res2, res3] = await Promise.all([
+            addMetadataRequest(uploadResponse.text, undefined, { jwt: registerResponse.text }),
+            addMetadataRequest(uploadResponse.text, undefined, { jwt: registerResponse.text }),
+            addMetadataRequest(uploadResponse.text, undefined, { jwt: registerResponse.text }),
+        ]);
+
+        const statuses = [res1.status, res2.status, res3.status];
+
+        // At least one should be 204, at least one should be 409
+        const successCount = statuses.filter(s => s === 204).length;
+        const conflictCount = statuses.filter(s => s === 409).length;
+
+        expect(successCount).toBeGreaterThanOrEqual(1);
+        expect(conflictCount).toBeGreaterThanOrEqual(1);
+
+        // Wait for metadata to be extracted
+        await wait(1.5);
+
+        const getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.text });
+        expect(getResponse.status).toBe(200);
+    });
+
+    test("Different user without permission", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(username, undefined, false, { jwt: registerResponse.text });
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const { response: registerResponse2 } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const addResponse = await addMetadataRequest(uploadResponse.text, undefined, { jwt: registerResponse2.text });
+        expect(addResponse.status).toBe(404);
+        expect(addResponse.text).toBe(BOOK_NOT_FOUND);
+
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        const getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.text });
+        expect(getResponse.status).toBe(404);
+        expect(getResponse.text).toBe(METADATA_NOT_FOUND);
+    });
+
+    test("Different user with permission", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(username, undefined, false, { jwt: registerResponse.text });
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse2.status).toBe(200);
+
+        const addResponse = await addMetadataRequest(uploadResponse.text, undefined, { jwt: registerResponse2.text });
+        expect(addResponse.status).toBe(204);
+
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        const getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.text });
+        expect(getResponse.status).toBe(200);
+    });
+
+    test("No auth", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(username, undefined, false, { jwt: registerResponse.text });
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const addResponse = await addMetadataRequest(uploadResponse.text);
+        expect(addResponse.status).toBe(401);
+        expect(addResponse.text).toBe(UNAUTHORIZED);
+    });
+});
+
+describe("Add metadata request api key", () => {
+    test("Simple", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(username, undefined, false, { jwt: registerResponse.text });
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        let getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.text });
+        expect(getResponse.status).toBe(404);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const addResponse = await addMetadataRequest(uploadResponse.text, undefined, { apiKey: createApiKeyResponse.body.key });
+        expect(addResponse.status).toBe(204);
+
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.text });
+        expect(getResponse.status).toBe(200);
+    });
+
+    test("Invalid providers", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(username, undefined, false, { jwt: registerResponse.text });
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.text });
+        expect(getResponse.status).toBe(404);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const addResponse = await addMetadataRequest(uploadResponse.text, ["invalid"], { apiKey: createApiKeyResponse.body.key });
+        expect(addResponse.status).toBe(400);
+        expect(addResponse.text).toBe(INVALID_PROVIDERS);
+    });
+
+    test("Non-existent book", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const addResponse = await addMetadataRequest("non-existent", undefined, { apiKey: createApiKeyResponse.body.key });
+        expect(addResponse.status).toBe(404);
+        expect(addResponse.text).toBe(BOOK_NOT_FOUND);
+    });
+
+    test("Request conflict", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(username, undefined, false, { jwt: registerResponse.text });
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        // Send 3 identical requests in parallel
+        const [res1, res2, res3] = await Promise.all([
+            addMetadataRequest(uploadResponse.text, undefined, { apiKey: createApiKeyResponse.body.key }),
+            addMetadataRequest(uploadResponse.text, undefined, { apiKey: createApiKeyResponse.body.key }),
+            addMetadataRequest(uploadResponse.text, undefined, { apiKey: createApiKeyResponse.body.key }),
+        ]);
+
+        const statuses = [res1.status, res2.status, res3.status];
+
+        // At least one should be 204, at least one should be 409
+        const successCount = statuses.filter(s => s === 204).length;
+        const conflictCount = statuses.filter(s => s === 409).length;
+
+        expect(successCount).toBeGreaterThanOrEqual(1);
+        expect(conflictCount).toBeGreaterThanOrEqual(1);
+
+        // Wait for metadata to be extracted
+        await wait(1.5);
+
+        const getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.text });
+        expect(getResponse.status).toBe(200);
+    });
+
+    test("Different user without permission", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(username, undefined, false, { jwt: registerResponse.text });
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const { response: registerResponse2, username: username2 } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Update"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const addResponse = await addMetadataRequest(uploadResponse.text, undefined, { apiKey: createApiKeyResponse.body.key });
+        expect(addResponse.status).toBe(404);
+        expect(addResponse.text).toBe(BOOK_NOT_FOUND);
+
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        const getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.text });
+        expect(getResponse.status).toBe(404);
+        expect(getResponse.text).toBe(METADATA_NOT_FOUND);
+    });
+
+    test("Different user with permission", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(username, undefined, false, { jwt: registerResponse.text });
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const { response: registerResponse2, username: username2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Update"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const addResponse = await addMetadataRequest(uploadResponse.text, undefined, { apiKey: createApiKeyResponse.body.key });
+        expect(addResponse.status).toBe(204);
+
+        // Wait for metadata to be extracted
+        await wait(0.5);
+
+        const getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.text });
+        expect(getResponse.status).toBe(200);
+    });
+
+    test("Wrong capabilities", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(username, undefined, false, { jwt: registerResponse.text });
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Create"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const addResponse = await addMetadataRequest(uploadResponse.text, undefined, { apiKey: createApiKeyResponse.body.key });
+        expect(addResponse.status).toBe(403);
+        expect(addResponse.text).toBe(FORBIDDEN);
+    });
+
+    test("Expired api key", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(username, undefined, false, { jwt: registerResponse.text });
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const timestamp = Date.now() + 1000;
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Update"], timestamp, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        // Wait for the key to expire
+        await wait(1.5);
+
+        const addResponse = await addMetadataRequest(uploadResponse.text, undefined, { apiKey: createApiKeyResponse.body.key });
+        expect(addResponse.status).toBe(401);
+        expect(addResponse.text).toBe(INVALID_API_KEY);
+    });
+});
+
+describe("List metadata requests JWT", () => {
+    test("Simple", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(username, undefined, false, { jwt: registerResponse.text });
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const getResponse = await listMetadataRequests(username, { jwt: registerResponse.text });
+        expect(getResponse.status).toBe(200);
+        expect(getResponse.body).toEqual([]);
+    });
+
+    test("Different user without permission", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const { response: registerResponse2 } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        let getResponse = await listMetadataRequests(username, { jwt: registerResponse2.text });
+        expect(getResponse.status).toBe(403);
+        expect(getResponse.text).toEqual(FORBIDDEN);
+
+        getResponse = await listMetadataRequests(undefined, { jwt: registerResponse2.text });
+        expect(getResponse.status).toBe(403);
+        expect(getResponse.text).toEqual(FORBIDDEN);
+    });
+
+    test("Different user with permission", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse2.status).toBe(200);
+
+        let getResponse = await listMetadataRequests(username, { jwt: registerResponse2.text });
+        expect(getResponse.status).toBe(200);
+        expect(getResponse.body).toEqual([]);
+
+        getResponse = await listMetadataRequests(undefined, { jwt: registerResponse2.text });
+        expect(getResponse.status).toBe(200);
+        expect(getResponse.body).toEqual([]);
+    });
+
+    test("No auth", async () => {
+        const getResponse = await listMetadataRequests(undefined);
+        expect(getResponse.status).toBe(401);
+        expect(getResponse.text).toEqual(UNAUTHORIZED);
+    });
+});
+
+describe("List metadata requests api key", () => {
+    test("Simple", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(username, undefined, false, { jwt: registerResponse.text });
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const getResponse = await listMetadataRequests(username, { apiKey: createApiKeyResponse.body.key });
+        expect(getResponse.status).toBe(200);
+        expect(getResponse.body).toEqual([]);
+    });
+
+    test("Different user without permission", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const { response: registerResponse2, username: username2 } = await registerUser();
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Read"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        let getResponse = await listMetadataRequests(username, { apiKey: createApiKeyResponse.body.key });
+        expect(getResponse.status).toBe(403);
+        expect(getResponse.text).toEqual(FORBIDDEN);
+
+        getResponse = await listMetadataRequests(undefined, { apiKey: createApiKeyResponse.body.key });
+        expect(getResponse.status).toBe(403);
+        expect(getResponse.text).toEqual(FORBIDDEN);
+    });
+
+    test("Different user with permission", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const { response: registerResponse2, username: username2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+        expect(registerResponse2.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username2, "Test Key", ["Read"], undefined, { jwt: registerResponse2.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        let getResponse = await listMetadataRequests(username, { apiKey: createApiKeyResponse.body.key });
+        expect(getResponse.status).toBe(200);
+        expect(getResponse.body).toEqual([]);
+
+        getResponse = await listMetadataRequests(undefined, { apiKey: createApiKeyResponse.body.key });
+        expect(getResponse.status).toBe(200);
+        expect(getResponse.body).toEqual([]);
+    });
+
+    test("Wrong capabilities", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(username, undefined, false, { jwt: registerResponse.text });
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Delete"], undefined, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        const getResponse = await listMetadataRequests(username, { apiKey: createApiKeyResponse.body.key });
+        expect(getResponse.status).toBe(403);
+        expect(getResponse.text).toEqual(FORBIDDEN);
+    });
+
+    test("Expired api key", async () => {
+        const { response: registerResponse, username } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const patchPreferencesResponse = await patchPreferences(username, undefined, false, { jwt: registerResponse.text });
+        expect(patchPreferencesResponse.status).toBe(204);
+
+        const uploadResponse = await uploadBook(username, "Alices_Adventures_in_Wonderland.epub", { jwt: registerResponse.text });
+        expect(uploadResponse.status).toBe(200);
+
+        const timestamp = Date.now() + 1000;
+        const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], timestamp, { jwt: registerResponse.text });
+        expect(createApiKeyResponse.status).toBe(200);
+
+        // Wait for the key to expire
+        await wait(1.5);
+
+        const getResponse = await listMetadataRequests(username, { apiKey: createApiKeyResponse.body.key });
+        expect(getResponse.status).toBe(401);
+        expect(getResponse.text).toEqual(INVALID_API_KEY);
     });
 });

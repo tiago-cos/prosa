@@ -13,7 +13,7 @@ base64 = "0.22.1"
 chrono = { version = "0.4.41", features = ["serde"] }
 config = "0.15.11"
 epub = "2.1.4"
-goodreads-metadata-scraper = "0.2.1"
+goodreads-metadata-scraper = "0.2.2"
 image = "0.25.6"
 jsonwebtoken = { version = "9.3.1", default-features = false }
 log = "0.4.27"
@@ -27,7 +27,7 @@ sha2 = "0.10.9"
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite", "chrono"] }
 strum = "0.27.1"
 strum_macros = "0.27.1"
-tokio = { version = "1.46.0", features = ["full"] }
+tokio = { version = "1.46.1", features = ["full"] }
 tracing-subscriber = { version = "0.3.19", features = ["env-filter", "chrono"] }
 ureq = "3.0.12"
 uuid = { version = "1.17.0", features = ["v4"] }

@@ -22,7 +22,8 @@ pub fn init_logging() {
         .with_timer(ChronoUtc::rfc_3339())
         .compact();
 
-    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    //TODO force html5ever=error, even if env is provided
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info,html5ever=error"));
 
     tracing_subscriber::registry().with(filter).with(fmt_layer).init();
 }
@@ -48,7 +49,11 @@ pub async fn log_layer(req: Request, next: Next) -> Response {
         let bytes = to_bytes(body, 1000).await.unwrap_or_default();
         let body_text = String::from_utf8_lossy(&bytes);
 
-        error!("{} {} [{} - {}]", method, path, colored_code, body_text);
+        if body_text.is_empty() {
+            error!("{} {} [{}]", method, path, colored_code);
+        } else {
+            error!("{} {} [{} - {}]", method, path, colored_code, body_text);
+        }
 
         response = Response::builder()
             .status(status)

@@ -158,7 +158,7 @@ pub struct LoginUserRequest {
     pub password: String,
 }
 
-pub const EPUB_PROVIDER: &str = "epub_metadata_extractor";
+pub const VALID_PROVIDERS: [&str; 2] = ["epub_metadata_extractor", "goodreads_metadata_scraper"];
 
 #[derive(FromRow, Serialize, Deserialize, Merge)]
 #[merge(strategy = merge::option::overwrite_none)]

@@ -1,0 +1,76 @@
+post:
+  tags:
+    - Metadata
+  summary: "Enqueue metadata fetch request"
+  description: |
+    Enqueue a metadata fetch request for a specific book owned by a user.
+    The user must be authenticated and have the appropriate permissions.
+  operationId: enqueueMetadataRequest
+  parameters:
+    - $ref: ../components/parameters/book_id.yaml
+
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/MetadataRequest.yaml
+
+  responses:
+    "204":
+      description: The metadata fetch request was successfully enqueued.
+    "400":
+      description: Invalid or unsupported metadata provider selection.
+    "401":
+      $ref: ../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../components/responses/books/BookNotFound.yaml
+    "409":
+      description: This metadata request is already enqueued.
+
+  security:
+    - prosaToken: []
+    - apiKey: []
+
+get:
+  tags:
+    - Metadata
+  summary: "List metadata fetch requests"
+  description: |
+    Lists metadata fetch requests.
+
+    - **Regular users** must include their own `user_id` in the query parameter.
+    - **Admin users** can list requests for any user using the `user_id` parameter.
+    - If no `user_id` is provided, admins will see **all** metadata requests.
+
+  operationId: listMetadataRequests
+  parameters:
+    - in: query
+      name: user_id
+      required: false
+      schema:
+        type: string
+      description: |
+        If specified, filters metadata requests by user ID.
+        Required for regular users. Optional for admins.
+
+  responses:
+    "200":
+      description: A list of metadata fetch requests.
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: ../components/schemas/MetadataRequestStatus.yaml
+
+    "401":
+      $ref: ../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+
+  security:
+    - prosaToken: []
+    - apiKey: []

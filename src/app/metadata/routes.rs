@@ -1,7 +1,10 @@
 use super::handlers;
 use crate::app::{
     authentication::middleware::extract_token_middleware,
-    authorization::books::{can_delete_book, can_read_book, can_update_book},
+    authorization::{
+        books::{can_delete_book, can_read_book, can_update_book},
+        metadata::{can_add_metadata_request, can_list_metadata_requests},
+    },
     AppState,
 };
 use axum::{
@@ -27,6 +30,12 @@ pub fn get_routes(state: AppState) -> Router {
         )
         .route("/books/{book_id}/metadata", patch(handlers::patch_metadata_handler) 
             .route_layer(from_fn_with_state(state.clone(), can_update_book))
+        )
+        .route("/metadata-requests", post(handlers::add_metadata_request_handler) 
+            .route_layer(from_fn_with_state(state.clone(), can_add_metadata_request))
+        )
+        .route("/metadata-requests", get(handlers::list_metadata_requests_handler) 
+            .route_layer(from_fn_with_state(state.clone(), can_list_metadata_requests))
         )
         .layer(from_fn_with_state(state.clone(), extract_token_middleware))
         .with_state(state)

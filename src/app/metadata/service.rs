@@ -41,8 +41,7 @@ pub async fn patch_metadata(
 
     let original = data::get_metadata(pool, metadata_id).await?;
     metadata.merge(original);
-    data::delete_metadata(pool, metadata_id).await?;
-    data::add_metadata(pool, metadata_id, metadata).await?;
+    data::update_metadata(pool, metadata_id, metadata).await?;
 
     Ok(())
 }
@@ -56,8 +55,7 @@ pub async fn update_metadata(
         return Err(MetadataError::InvalidMetadata.into());
     }
 
-    data::delete_metadata(pool, metadata_id).await?;
-    data::add_metadata(pool, metadata_id, metadata).await?;
+    data::update_metadata(pool, metadata_id, metadata).await?;
 
     Ok(())
 }

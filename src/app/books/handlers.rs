@@ -15,6 +15,7 @@ use axum::{
 use axum_typed_multipart::TypedMultipart;
 use std::collections::HashMap;
 
+//TODO refactor lock system, I'm using it for hashes and not deleting locks. I'm also leaving locks for books that don't exist
 pub async fn download_book_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
@@ -83,7 +84,7 @@ pub async fn upload_book_handler(
                 &book_id,
                 preferences.metadata_providers.unwrap_or(vec![]),
             )
-            .await;
+            .await?;
     }
 
     Ok(book_id)

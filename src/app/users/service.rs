@@ -1,11 +1,11 @@
 use super::{
     data,
-    models::{ApiKey, Preferences, User, UserError, EPUB_PROVIDER},
+    models::{ApiKey, Preferences, User, UserError},
 };
 use crate::app::{
     authentication::{self, service::hash_secret},
     error::ProsaError,
-    users::models::{ApiKeyError, PreferencesError},
+    users::models::{ApiKeyError, PreferencesError, VALID_PROVIDERS},
 };
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use chrono::{DateTime, Utc};
@@ -21,7 +21,7 @@ pub async fn register_user(
 ) -> Result<(), ProsaError> {
     let password_hash = hash_secret(password).await;
     data::add_user(pool, username, &password_hash, is_admin).await?;
-    data::add_providers(pool, username, vec![EPUB_PROVIDER.to_string()]).await;
+    data::add_providers(pool, username, vec![VALID_PROVIDERS[0].to_string()]).await;
 
     Ok(())
 }

@@ -4,15 +4,19 @@ use crate::app::{
     concurrency::manager::BookLockManager,
     covers, epubs,
     error::ProsaError,
-    metadata::{self, models::Metadata},
+    metadata::{
+        self,
+        models::{Metadata, MetadataError},
+    },
     sync, Config, ImageCache,
 };
 use log::warn;
+use serde::Serialize;
 use sqlx::SqlitePool;
 use std::{collections::VecDeque, sync::Arc};
 use tokio::sync::{Mutex, Notify, RwLock};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, PartialEq)]
 pub struct MetadataRequest {
     user_id: String,
     book_id: String,
@@ -55,14 +59,29 @@ impl MetadataManager {
         manager
     }
 
-    pub async fn enqueue_request(&self, user_id: &str, book_id: &str, providers: Vec<String>) {
-        let mut q = self.queue.write().await;
-        q.push_back(MetadataRequest {
+    pub async fn enqueue_request(
+        &self,
+        user_id: &str,
+        book_id: &str,
+        providers: Vec<String>,
+    ) -> Result<(), MetadataError> {
+        let req = MetadataRequest {
             user_id: user_id.to_string(),
             book_id: book_id.to_string(),
             providers,
-        });
+        };
+
+        let q = self.queue.read().await;
+        if q.contains(&req) {
+            return Err(MetadataError::MetadataRequestConflict);
+        }
+        drop(q);
+
+        let mut q = self.queue.write().await;
+        q.push_back(req);
         self.notify.notify_one();
+
+        Ok(())
     }
 
     pub async fn get_enqueued(&self, user_id: Option<String>) -> Vec<MetadataRequest> {
@@ -97,6 +116,9 @@ impl MetadataManager {
         book_id: &str,
         providers: Vec<String>,
     ) -> (Option<Metadata>, Option<Vec<u8>>) {
+        let lock = self.lock_manager.get_lock(&book_id).await;
+        let _guard = lock.read().await;
+
         let Ok(book) = books::service::get_book(&self.pool, &book_id).await else {
             warn!("Background metadata fetching failed for book {}", book_id);
             return (None, None);
@@ -114,13 +136,13 @@ impl MetadataManager {
     }
 
     async fn store_metadata(&self, book_id: &str, metadata: Option<Metadata>, image: Option<Vec<u8>>) -> () {
+        let lock = self.lock_manager.get_lock(&book_id).await;
+        let _guard = lock.write().await;
+
         let Ok(book) = books::service::get_book(&self.pool, &book_id).await else {
             warn!("Background metadata fetching failed for book {}", book_id);
             return;
         };
-
-        let lock = self.lock_manager.get_lock(&book_id).await;
-        let _guard = lock.write().await;
 
         let metadata_result = match (book.metadata_id, metadata) {
             (_, None) => Ok(()),
@@ -141,10 +163,11 @@ impl MetadataManager {
 
     async fn handle_metadata_update(&self, book_id: &str, metadata: Metadata) -> Result<(), ProsaError> {
         let book = books::service::get_book(&self.pool, &book_id).await?;
-        let metadata_id = book.metadata_id.expect("Failed to retrieve metadata id");
-        metadata::service::update_metadata(&self.pool, &metadata_id, metadata).await?;
+        let sync_id = book.sync_id.clone();
+        let metadata_id = book.metadata_id.as_ref().expect("Failed to retrieve metadata id");
+        metadata::service::update_metadata(&self.pool, metadata_id, metadata).await?;
 
-        sync::service::update_metadata_timestamp(&self.pool, &book.sync_id).await;
+        sync::service::update_metadata_timestamp(&self.pool, &sync_id).await;
 
         Ok(())
     }

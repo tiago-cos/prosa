@@ -12,6 +12,8 @@ get:
     - `deleted`: Books that have been removed.
 
     If no user is specified, the user will be extracted from the authentication process.
+
+    **Note:** Only admin users are allowed to retrieve sync information for other users.
   operationId: sync
   parameters:
     - name: user_id

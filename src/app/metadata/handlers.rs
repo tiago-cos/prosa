@@ -2,13 +2,24 @@ use super::{
     models::{Metadata, MetadataError},
     service,
 };
-use crate::app::{books, error::ProsaError, sync, AppState};
+use crate::app::{
+    books,
+    error::ProsaError,
+    metadata::models::MetadataFetchRequest,
+    sync,
+    users::{
+        self,
+        models::{PreferencesError, VALID_PROVIDERS},
+    },
+    AppState,
+};
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
+use std::collections::HashMap;
 
 pub async fn get_metadata_handler(
     State(state): State<AppState>,
@@ -82,7 +93,7 @@ pub async fn patch_metadata_handler(
     let lock = state.lock_manager.get_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let mut book = books::service::get_book(&state.pool, &book_id).await?;
+    let book = books::service::get_book(&state.pool, &book_id).await?;
     let sync_id = book.sync_id.clone();
 
     let metadata_id = match book.metadata_id {
@@ -91,10 +102,6 @@ pub async fn patch_metadata_handler(
     };
 
     service::patch_metadata(&state.pool, &metadata_id, metadata).await?;
-
-    // We need to reset the metadata_id because the update temporarily deletes the metadata, which causes the foreign key restriction to set the entry to null
-    book.metadata_id = Some(metadata_id);
-    books::service::update_book(&state.pool, &book_id, book).await?;
 
     sync::service::update_metadata_timestamp(&state.pool, &sync_id).await;
 
@@ -109,7 +116,7 @@ pub async fn update_metadata_handler(
     let lock = state.lock_manager.get_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let mut book = books::service::get_book(&state.pool, &book_id).await?;
+    let book = books::service::get_book(&state.pool, &book_id).await?;
     let sync_id = book.sync_id.clone();
 
     let metadata_id = match book.metadata_id {
@@ -119,11 +126,42 @@ pub async fn update_metadata_handler(
 
     service::update_metadata(&state.pool, &metadata_id, metadata).await?;
 
-    // We need to reset the metadata_id because the update temporarily deletes the metadata, which causes the foreign key restriction to set the entry to null
-    book.metadata_id = Some(metadata_id);
-    books::service::update_book(&state.pool, &book_id, book).await?;
-
     sync::service::update_metadata_timestamp(&state.pool, &sync_id).await;
 
     Ok((StatusCode::NO_CONTENT, ()))
+}
+
+pub async fn add_metadata_request_handler(
+    State(state): State<AppState>,
+    Json(request): Json<MetadataFetchRequest>,
+) -> Result<impl IntoResponse, ProsaError> {
+    let book = books::service::get_book(&state.pool, &request.book_id).await?;
+    let providers = match request.metadata_providers {
+        Some(p) => p,
+        None => users::service::get_preferences(&state.pool, &book.owner_id)
+            .await?
+            .metadata_providers
+            .expect("Providers should be present"),
+    };
+
+    if !providers.iter().all(|p| VALID_PROVIDERS.contains(&p.as_str())) {
+        return Err(PreferencesError::InvalidMetadataProvider.into());
+    }
+
+    state
+        .metadata_manager
+        .enqueue_request(&book.owner_id, &request.book_id, providers)
+        .await?;
+
+    Ok((StatusCode::NO_CONTENT, ()))
+}
+
+pub async fn list_metadata_requests_handler(
+    State(state): State<AppState>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<impl IntoResponse, ProsaError> {
+    let user_id = params.get("user_id").map(|u| u.to_string());
+    let enqueued = state.metadata_manager.get_enqueued(user_id).await;
+
+    Ok(Json(enqueued))
 }

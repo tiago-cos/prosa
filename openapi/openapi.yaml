@@ -113,6 +113,8 @@ paths:
     $ref: "paths/users/{user_id}/keys/{key_id}.yaml"
   /sync:
     $ref: "paths/sync.yaml"
+  /metadata-requests:
+    $ref: "paths/metadata-requests.yaml"
 
 components:
   securitySchemes:

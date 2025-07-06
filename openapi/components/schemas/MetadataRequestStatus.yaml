@@ -1,0 +1,29 @@
+type: object
+description: Represents a metadata fetch request.
+properties:
+  user_id:
+    type: string
+    description: The ID of the user who submitted the request.
+    example: "johndoe"
+  book_id:
+    type: string
+    description: The ID of the book for which metadata is being fetched.
+    example: "1e841a44-feb4-489c-8f1e-cb0e4b1c8ed2"
+  providers:
+    type: array
+    description: The list of metadata providers used for this request.
+    items:
+      type: string
+      enum:
+        - epub_metadata_extractor
+        - goodreads_metadata_scraper
+    example:
+      - "epub_metadata_extractor"
+      - "goodreads_metadata_scraper"
+
+required:
+  - user_id
+  - book_id
+  - providers
+
+additionalProperties: false

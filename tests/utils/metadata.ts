@@ -99,3 +99,28 @@ export async function deleteMetadata(book_id: string, auth?: { jwt?: string; api
 
     return req.send();
 }
+
+export async function addMetadataRequest(book_id: string, providers?: string[], auth?: { jwt?: string; apiKey?: string }) {
+    let req = request(SERVER_URL)
+        .post(`/metadata-requests`);
+
+    if (auth?.jwt) req = req.auth(auth.jwt, { type: "bearer" });
+    if (auth?.apiKey) req = req.set("api-key", auth.apiKey);
+
+    const body: any = {};
+    body.book_id = book_id;
+    if (providers !== undefined) body.metadata_providers = providers;
+
+    return req.send(body);
+}
+
+export async function listMetadataRequests(user_id?: string, auth?: { jwt?: string; apiKey?: string }) {
+    let req = request(SERVER_URL)
+        .get(`/metadata-requests`);
+
+    if (user_id) req = req.query({ user_id: user_id });
+    if (auth?.jwt) req = req.auth(auth.jwt, { type: "bearer" });
+    if (auth?.apiKey) req = req.set("api-key", auth.apiKey);
+
+    return req.send();
+}

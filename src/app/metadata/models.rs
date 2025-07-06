@@ -16,6 +16,12 @@ pub enum MetadataError {
     #[strum(message = "The provided metadata is invalid.")]
     #[strum(props(StatusCode = "400"))]
     InvalidMetadata,
+    #[strum(message = "The provided metadata request is invalid.")]
+    #[strum(props(StatusCode = "400"))]
+    InvalidMetadataRequest,
+    #[strum(message = "This metadata request is already enqueued.")]
+    #[strum(props(StatusCode = "409"))]
+    MetadataRequestConflict,
     #[strum(message = "The requested metadata does not exist or is not accessible.")]
     #[strum(props(StatusCode = "404"))]
     MetadataNotFound,
@@ -94,4 +100,10 @@ impl Metadata {
             && self.page_count.is_none()
             && self.language.is_none()
     }
+}
+
+#[derive(Deserialize)]
+pub struct MetadataFetchRequest {
+    pub book_id: String,
+    pub metadata_providers: Option<Vec<String>>,
 }

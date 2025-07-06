@@ -1356,12 +1356,12 @@ describe("Sync api key", () => {
         const { response: registerResponse, username } = await registerUser();
         expect(registerResponse.status).toBe(200);
 
-        const timestamp = Date.now() + 2000;
+        const timestamp = Date.now() + 1000;
         const createApiKeyResponse = await createApiKey(username, "Test Key", ["Read"], timestamp, { jwt: registerResponse.text });
         expect(createApiKeyResponse.status).toBe(200);
 
         // Wait for the key to expire
-        await wait(2.5);
+        await wait(1.5);
 
         let syncResponse = await sync(username, undefined, { apiKey: createApiKeyResponse.body.key });
         expect(syncResponse.status).toBe(401);
