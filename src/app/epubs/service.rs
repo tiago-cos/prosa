@@ -1,5 +1,5 @@
 use super::{data, models::EpubError};
-use crate::app::concurrency::manager::BookLockManager;
+use crate::app::concurrency::manager::ProsaLockManager;
 use base64::{prelude::BASE64_STANDARD, Engine};
 use epub::doc::EpubDoc;
 use sha2::{Digest, Sha256};
@@ -17,7 +17,7 @@ pub async fn write_epub(
     kepubify_path: &str,
     epub_path: &str,
     epub_data: &Vec<u8>,
-    lock_manager: &BookLockManager,
+    lock_manager: &ProsaLockManager,
 ) -> Result<String, EpubError> {
     if !is_valid_epub(epub_data).await {
         return Err(EpubError::InvalidEpub);

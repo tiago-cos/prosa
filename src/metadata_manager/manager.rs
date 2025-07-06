@@ -1,7 +1,7 @@
 use super::fetcher::MetadataFetcher;
 use crate::app::{
     books,
-    concurrency::manager::BookLockManager,
+    concurrency::manager::ProsaLockManager,
     covers, epubs,
     error::ProsaError,
     metadata::{
@@ -26,7 +26,7 @@ pub struct MetadataRequest {
 pub struct MetadataManager {
     fetcher: Mutex<MetadataFetcher>,
     pool: Arc<SqlitePool>,
-    lock_manager: Arc<BookLockManager>,
+    lock_manager: Arc<ProsaLockManager>,
     image_cache: Arc<ImageCache>,
     epub_path: String,
     cover_path: String,
@@ -37,7 +37,7 @@ pub struct MetadataManager {
 impl MetadataManager {
     pub fn new(
         pool: Arc<SqlitePool>,
-        lock_manager: Arc<BookLockManager>,
+        lock_manager: Arc<ProsaLockManager>,
         image_cache: Arc<ImageCache>,
         config: &Config,
     ) -> Arc<Self> {

@@ -1,27 +1,37 @@
-use std::{collections::HashMap, sync::Arc};
-
+use std::{
+    collections::HashMap,
+    sync::{Arc, Weak},
+};
 use tokio::sync::{Mutex, RwLock};
 
-pub struct BookLockManager {
-    locks: Mutex<HashMap<String, Arc<RwLock<()>>>>,
+pub struct ProsaLockManager {
+    locks: Mutex<HashMap<String, Weak<RwLock<()>>>>,
+    cleaning_threshold: usize,
 }
 
-impl BookLockManager {
-    pub fn new() -> Self {
+impl ProsaLockManager {
+    pub fn new(cleaning_threshold: usize) -> Self {
         Self {
             locks: Mutex::new(HashMap::new()),
+            cleaning_threshold,
         }
     }
 
     pub async fn get_lock(&self, id: &str) -> Arc<RwLock<()>> {
         let mut map = self.locks.lock().await;
-        map.entry(id.to_string())
-            .or_insert_with(|| Arc::new(RwLock::new(())))
-            .clone()
-    }
 
-    pub async fn delete_lock(&self, id: &str) -> () {
-        let mut map = self.locks.lock().await;
-        map.remove(id);
+        if let Some(weak_lock) = map.get(id) {
+            if let Some(strong_lock) = weak_lock.upgrade() {
+                return strong_lock;
+            }
+        }
+
+        if map.len() >= self.cleaning_threshold {
+            map.retain(|_, weak_ref| weak_ref.strong_count() > 0);
+        }
+
+        let new_lock = Arc::new(RwLock::new(()));
+        map.insert(id.to_string(), Arc::downgrade(&new_lock));
+        new_lock
     }
 }

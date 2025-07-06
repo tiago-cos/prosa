@@ -22,8 +22,8 @@ pub fn init_logging() {
         .with_timer(ChronoUtc::rfc_3339())
         .compact();
 
-    //TODO force html5ever=error, even if env is provided
-    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info,html5ever=error"));
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    let filter = filter.add_directive("html5ever=error".parse().expect("Failed to parse log filter"));
 
     tracing_subscriber::registry().with(filter).with(fmt_layer).init();
 }

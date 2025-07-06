@@ -1,5 +1,5 @@
 use super::{data, models::CoverError};
-use crate::app::{concurrency::manager::BookLockManager, ImageCache};
+use crate::app::{concurrency::manager::ProsaLockManager, ImageCache};
 use base64::{prelude::BASE64_STANDARD, Engine};
 use image::ImageFormat;
 use sha2::{Digest, Sha256};
@@ -15,7 +15,7 @@ pub async fn write_cover(
     pool: &SqlitePool,
     cover_path: &str,
     cover_data: &Vec<u8>,
-    lock_manager: &BookLockManager,
+    lock_manager: &ProsaLockManager,
     image_cache: &ImageCache,
 ) -> Result<String, CoverError> {
     if !is_valid_image(cover_data).await {

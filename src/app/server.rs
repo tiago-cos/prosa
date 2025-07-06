@@ -1,6 +1,6 @@
 use super::{annotations, books, covers, metadata, state, sync, users};
 use crate::app::tracing;
-use crate::{app::concurrency::manager::BookLockManager, config::Configuration, metadata_manager};
+use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
 use axum::middleware::from_fn;
 use axum::Router;
 use log::info;
@@ -12,7 +12,7 @@ use tokio::net::TcpListener;
 pub type Config = Arc<Configuration>;
 pub type Pool = Arc<SqlitePool>;
 pub type MetadataManager = Arc<metadata_manager::MetadataManager>;
-pub type LockManager = Arc<BookLockManager>;
+pub type LockManager = Arc<ProsaLockManager>;
 pub type ImageCache = Cache<String, Arc<Vec<u8>>>;
 pub type SourceCache = Cache<String, Arc<HashSet<String>>>;
 pub type TagCache = Cache<String, Arc<HashSet<String>>>;
@@ -50,7 +50,7 @@ pub async fn run(config: Configuration, pool: SqlitePool) {
 
     let config = Arc::new(config.clone());
     let pool = Arc::new(pool);
-    let lock_manager = Arc::new(BookLockManager::new());
+    let lock_manager = Arc::new(ProsaLockManager::new(20));
     let metadata_manager =
         metadata_manager::MetadataManager::new(pool.clone(), lock_manager.clone(), image_cache, &config);
 
