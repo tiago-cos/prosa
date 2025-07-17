@@ -5,3 +5,4 @@ schema:
   type: string
   format: uuid
 description: The unique ID of the annotation to retrieve or modify.
+example: "f17d72ec-0bdb-4fb5-ac68-ddfb481efef6"

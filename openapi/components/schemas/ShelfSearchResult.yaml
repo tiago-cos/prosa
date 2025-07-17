@@ -1,0 +1,39 @@
+type: object
+description: Shelf search result
+properties:
+  shelf_ids:
+    type: array
+    description: List of shelf IDs matching the search.
+    items:
+      type: string
+    example:
+      [
+        "d71a7b8e-f531-4ebf-b26c-3763d004a7ae",
+        "10f4e9ec-5097-4a2c-be0c-c13e4ce9f05c",
+        "8721a925-b9b5-4ca4-b985-90cc0884dc41",
+        "6c812cfe-1387-4a38-b64d-4f10f6636734",
+        "b4ae1fb8-501c-478f-9606-60a5856eacff",
+      ]
+  page_size:
+    type: integer
+    description: Number of items per page.
+    example: 5
+  total_elements:
+    type: integer
+    description: Total number of matching shelves.
+    example: 7
+  total_pages:
+    type: integer
+    description: Total number of pages available.
+    example: 2
+  current_page:
+    type: integer
+    description: Current page number.
+    example: 1
+required:
+  - shelf_ids
+  - page_size
+  - total_elements
+  - total_pages
+  - current_page
+additionalProperties: false

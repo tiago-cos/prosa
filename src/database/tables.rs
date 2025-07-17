@@ -6,9 +6,17 @@ pub async fn create_tables(pool: &SqlitePool) {
         r#"
         CREATE TABLE IF NOT EXISTS users (
             user_id TEXT PRIMARY KEY NOT NULL,
+            username TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             is_admin BOOLEAN DEFAULT FALSE,
             automatic_metadata BOOL NOT NULL DEFAULT TRUE
+        );
+
+        CREATE TABLE IF NOT EXISTS refresh_tokens (
+            user_id TEXT NOT NULL,
+            refresh_token_hash TEXT PRIMARY KEY NOT NULL,
+            expiration DATETIME NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
         );
 
         CREATE TABLE IF NOT EXISTS providers (
@@ -155,6 +163,7 @@ pub async fn clear_tables(pool: &SqlitePool) {
         r#"
         DROP TABLE IF EXISTS key_capabilities;
         DROP TABLE IF EXISTS providers;
+        DROP TABLE IF EXISTS refresh_tokens;
         DROP TABLE IF EXISTS books;
         DROP TABLE IF EXISTS deleted_books;
         DROP TABLE IF EXISTS series;

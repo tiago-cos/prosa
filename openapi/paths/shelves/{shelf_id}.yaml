@@ -1,0 +1,77 @@
+get:
+  tags:
+    - Shelf
+  summary: "Get shelf metadata"
+  description: |
+    Retrieve metadata for a specific shelf by its ID.
+    Includes the shelf's name, owner, and number of books in it.
+    Only the shelf's owner or an admin can access this information.
+  operationId: getShelf
+  parameters:
+    - $ref: ../../components/parameters/shelf_id.yaml
+
+  responses:
+    "200":
+      description: Metadata for the shelf.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              name:
+                type: string
+                description: The name of the shelf.
+              owner_id:
+                type: string
+                format: uuid
+                description: The UUID of the shelf's owner.
+              book_count:
+                type: integer
+                description: The number of books in this shelf.
+            required:
+              - name
+              - owner_id
+              - book_count
+          examples:
+            success:
+              summary: Example response with shelf metadata
+              value:
+                name: "Favorites"
+                owner_id: "f5f0608d-c463-4f91-b5f2-8ce28ff6a112"
+                book_count: 12
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../components/responses/shelves/ShelfNotFound.yaml
+
+  security:
+    - prosaToken: []
+    - apiKey: []
+
+delete:
+  tags:
+    - Shelf
+  summary: "Delete a shelf"
+  description: |
+    Delete a shelf by its ID.
+    Only the shelf's owner or an admin may delete a shelf.
+    Deleting a shelf does not delete the books it contains.
+  operationId: deleteShelf
+  parameters:
+    - $ref: ../../components/parameters/book_id.yaml
+
+  responses:
+    "204":
+      description: The shelf was deleted successfully.
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../components/responses/shelves/ShelfNotFound.yaml
+
+  security:
+    - prosaToken: []
+    - apiKey: []

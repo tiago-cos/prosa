@@ -1,0 +1,7 @@
+name: username
+in: path
+required: true
+schema:
+  type: string
+description: The username that identifies the user.
+example: "silveira12"

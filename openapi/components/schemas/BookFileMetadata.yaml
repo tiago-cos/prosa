@@ -7,8 +7,9 @@ required:
 properties:
   owner_id:
     type: string
-    description: The ID of the user who owns the book file.
-    example: "user_123"
+    format: uuid
+    description: The UUID of the user who owns the book file.
+    example: "14ae396c-07c3-437d-a0a0-ef48189ba40a"
   file_size:
     type: integer
     description: The size of the book file in bytes.

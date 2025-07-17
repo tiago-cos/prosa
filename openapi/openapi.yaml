@@ -45,39 +45,53 @@ tags:
     description: "Operations about book files."
   - name: Cover
     description: "Operations about book covers."
-  - name: Metadata
+  - name: Book Metadata
     description: "Operations about book metadata."
   - name: Annotations
     description: "Operations about book annotations."
   - name: State
     description: "Operations about book state."
-  - name: Search
+  - name: Shelf
+    description: "Operations about book collections (shelves)."
+  - name: Search Shelves
+    description: "Operations about searching shelves."
+  - name: Search Books
     description: "Operations about searching books."
   - name: Sync
     description: "Operations about synchronization."
   - name: Authentication
     description: "Operations about user authentication."
+  - name: User Profile
+    description: "Operations about user profile."
   - name: Preferences
     description: "Operations about user preferences."
-  - name: ApiKeys
+  - name: API Keys
     description: "Operations about user API keys."
+
 x-tagGroups:
-  - name: Book
+  - name: Book Management
     tags:
       - File
       - Cover
-      - Metadata
+      - Book Metadata
       - Annotations
       - State
-      - Search
+      - Search Books
+  - name: Shelf Management
+    tags:
+      - Shelf
+      - Book
+      - Search Shelves
   - name: Sync
     tags:
       - Sync
-  - name: User
+  - name: User Management
     tags:
       - Authentication
+      - User Profile
       - Preferences
-      - ApiKeys
+      - API Keys
+      
 servers:
   - url: http://{host}
     variables:
@@ -101,8 +115,22 @@ paths:
     $ref: "paths/books/{book_id}/annotations/{annotation_id}.yaml"
   /books/{book_id}/state:
     $ref: "paths/books/{book_id}/state.yaml"
-  /users:
-    $ref: "paths/users.yaml"
+  /shelves:
+    $ref: "paths/shelves.yaml"
+  /shelves/{shelf_id}:
+    $ref: "paths/shelves/{shelf_id}.yaml"
+  /shelves/{shelf_id}/books:
+    $ref: "paths/shelves/{shelf_id}/books.yaml"
+  /shelves/{shelf_id}/books/{book_id}:
+    $ref: "paths/shelves/{shelf_id}/books/{book_id}.yaml"
+  /auth/register:
+    $ref: "paths/auth/register.yaml"
+  /auth/login:
+    $ref: "paths/auth/login.yaml"
+  /auth/logout:
+    $ref: "paths/auth/logout.yaml"
+  /auth/refresh:
+    $ref: "paths/auth/refresh.yaml"
   /users/{user_id}:
     $ref: "paths/users/{user_id}.yaml"
   /users/{user_id}/preferences:

@@ -1,0 +1,118 @@
+post:
+  tags:
+    - Shelf
+  summary: "Create a shelf"
+  description: |
+    Create a new shelf for organizing books.
+    The request must include the shelf name and the UUID of the owner.
+    If the authenticated user is not an admin, they can only create shelves for themselves.
+  operationId: createShelf
+  requestBody:
+    required: true
+    description: Request body containing the shelf name and the owner's UUID.
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+              description: The name of the shelf.
+            owner_id:
+              type: string
+              format: uuid
+              description: The UUID of the user who owns the shelf.
+          required:
+            - name
+            - owner_id
+        example:
+          name: "Fiction Favorites"
+          owner_id: "9b6a18d1-6dc1-43dd-b1a2-6888660e9735"
+
+  responses:
+    "200":
+      description: The shelf was created successfully.
+      content:
+        text/plain:
+          schema:
+            type: string
+            description: The unique ID of the created shelf.
+          examples:
+            success:
+              summary: Example response for a successful shelf creation
+              value: "050299f0-6d4d-4015-a522-9aeb92924a56"
+    "400":
+      description: The provided shelf name is invalid.
+    "401":
+      $ref: ../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../components/responses/users/UserNotFound.yaml
+    "409":
+      $ref: ../components/responses/shelves/ShelfConflict.yaml
+
+  security:
+    - prosaToken: []
+    - apiKey: []
+
+get:
+  tags:
+    - Search Shelves
+  summary: "Search for shelves"
+  description: |
+    Retrieve a paginated list of shelves that match the search criteria.
+    The user must be authenticated and have the appropriate permissions.
+    Only users with admin privileges can search without user-based filtering.
+  operationId: searchShelves
+  parameters:
+    - name: username
+      in: query
+      required: false
+      description: Shelf owner filter.
+      schema:
+        type: string
+      example: "john.doe"
+    - name: name
+      in: query
+      required: false
+      description: Shelf name search query.
+      schema:
+        type: string
+      example: "Sci-Fi"
+    - name: page
+      in: query
+      required: false
+      description: The page number to retrieve.
+      schema:
+        type: integer
+        default: 1
+      example: 1
+    - name: size
+      in: query
+      required: false
+      description: Number of items per page.
+      schema:
+        type: integer
+        default: 10
+      example: 10
+
+  responses:
+    "200":
+      description: The result of the shelf search.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ShelfSearchResult.yaml
+    "400":
+      $ref: ../components/responses/shelves/InvalidPagination.yaml
+    "401":
+      $ref: ../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../components/responses/users/UserNotFound.yaml
+
+  security:
+    - prosaToken: []
+    - apiKey: []

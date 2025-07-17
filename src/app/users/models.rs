@@ -26,6 +26,14 @@ pub enum UserError {
     #[strum(props(StatusCode = "400"))]
     InvalidInput,
 
+    #[strum(message = "Username must not exceed 20 characters.")]
+    #[strum(props(StatusCode = "400"))]
+    UsernameTooBig,
+
+    #[strum(message = "Password must not exceed 256 characters.")]
+    #[strum(props(StatusCode = "400"))]
+    PasswordTooBig,
+
     #[strum(message = "Internal server error")]
     #[strum(props(StatusCode = "500"))]
     InternalError,
@@ -140,8 +148,10 @@ impl From<&SqliteError> for PreferencesError {
 }
 
 #[derive(FromRow)]
+#[allow(unused)]
 pub struct User {
     pub user_id: String,
+    pub username: String,
     pub password_hash: String,
     pub is_admin: bool,
 }
@@ -155,7 +165,13 @@ pub struct RegisterUserRequest {
 
 #[derive(Deserialize)]
 pub struct LoginUserRequest {
+    pub username: String,
     pub password: String,
+}
+
+#[derive(Deserialize)]
+pub struct RefreshTokenRequest {
+    pub refresh_token: String,
 }
 
 pub const VALID_PROVIDERS: [&str; 2] = ["epub_metadata_extractor", "goodreads_metadata_scraper"];
@@ -196,4 +212,11 @@ pub struct CreateApiKeyRequest {
 pub struct CreateApiKeyResponse {
     pub id: String,
     pub key: String,
+}
+
+#[derive(Serialize)]
+pub struct AuthenticationResponse {
+    pub jwt_token: String,
+    pub refresh_token: String,
+    pub user_id: String,
 }

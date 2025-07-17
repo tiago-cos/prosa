@@ -1,0 +1,57 @@
+post:
+  tags:
+    - Authentication
+  summary: Refresh access token
+  description: |
+    Exchange a valid refresh token for a new access token and a rotated refresh token.
+    The old refresh token becomes invalid after use.
+  operationId: refreshAccessToken
+  requestBody:
+    required: true
+    description: Request body containing the refresh token.
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            refresh_token:
+              type: string
+              description: The refresh token issued during login or previous refresh.
+          required:
+            - refresh_token
+        example:
+          refresh_token: "ez6K5tTdum8rAOdCV4vdoyuSxDeALroCDrJyR4n8JcMtJIHWbH3IJfz1cWp0mx5k"
+
+  responses:
+    "200":
+      description: A new JWT and rotated refresh token, alongisde the ID of the authenticated user.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              jwt_token:
+                type: string
+                description: Base64-encoded JWT access token
+              refresh_token:
+                type: string
+                description: Refresh token used to obtain new JWTs
+              user_id:
+                type: string
+                format: uuid
+                description: UUID of the authenticated user
+            required:
+              - jwt_token
+              - refresh_token
+              - user_id
+          examples:
+            success:
+              summary: Example refresh response
+              value:
+                jwt_token: "ZXlKMGVYQWlPaUpLVjFRaUxDSmhiR2NpT2lKSVV6STFOaUo5LmV5SnliMnhsSWpwN0lsVnpaWElpT2lKaFpHRm1JbjBzSW1WNGNDSTZNVGN6T0RFNE1UTTNNWDAuZExmYWJFVnJ6VXI1eTgwNTlFTUl0dC1VLXhoc2lQWlFYU3R5WUo4Q29hYw=="
+                refresh_token: "ez6K5tTdum8rAOdCV4vdoyuSxDeALroCDrJyR4n8JcMtJIHWbH3IJfz1cWp0mx5k"
+                user_id: "2c5f1d4d-3b9d-4b9d-3b9d-4b9d3b9d3b9d"
+    "401":
+      description: The provided refresh token is invalid or has expired.
+
+  security: []

@@ -1,6 +1,6 @@
 get:
   tags:
-    - ApiKeys
+    - API Keys
   summary: "Get API key"
   description: Get an API key by ID.
   operationId: getApiKey
@@ -28,7 +28,7 @@ get:
 
 delete:
   tags:
-    - ApiKeys
+    - API Keys
   summary: "Revoke API key"
   description: Revoke an API key by ID.
   operationId: deleteApiKey

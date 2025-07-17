@@ -1,0 +1,36 @@
+post:
+  tags:
+    - Authentication
+  summary: "Logout"
+  description: |
+    Invalidate a user's refresh token, effectively logging them out.
+  operationId: logoutUser
+
+  requestBody:
+    required: true
+    description: The refresh token to invalidate.
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            refresh_token:
+              type: string
+              description: The refresh token to invalidate.
+          required:
+            - refresh_token
+        examples:
+          example1:
+            summary: Valid refresh token
+            value:
+              refresh_token: "eKxEETPjUDfvvY1oxcCRboHn88GsggBoyoyiSAUJ37FAeZquv8BwruAl6I6Pc8wJ"
+
+  responses:
+    "204":
+      description: Logout successful. The refresh token has been invalidated.
+    "401":
+      description: The provided refresh token is invalid.
+    "404":
+      description: The refresh token was not found or cannot be accessed.
+
+  security: []

@@ -1,0 +1,120 @@
+post:
+  tags:
+    - Book
+  summary: "Add books to a shelf"
+  description: |
+    Add one or more books to the specified shelf.
+    Only the shelf's owner or an admin can perform this operation.
+  operationId: addBooksToShelf
+  parameters:
+    - $ref: ../../../components/parameters/shelf_id.yaml
+
+  requestBody:
+    required: true
+    description: Array of book UUIDs to add to the shelf.
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            book_ids:
+              type: array
+              items:
+                type: string
+                format: uuid
+              description: List of book UUIDs to add.
+          required:
+            - book_ids
+        example:
+          book_ids:
+            - "8f2a8b48-42fb-4391-87d9-293adbe22d4b"
+            - "4c62ce06-8585-42eb-87a4-43f03a944baa"
+            - "cab0dfac-07e8-4e61-a79c-dfca7b571972"
+
+  responses:
+    "200":
+      description: The books were successfully added to the shelf.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              added:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+                description: List of book IDs that were successfully added.
+              skipped:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+                description: List of book IDs that were already present or invalid.
+            required:
+              - added
+              - skipped
+          examples:
+            result:
+              summary: Example response
+              value:
+                added:
+                  - "8f2a8b48-42fb-4391-87d9-293adbe22d4b"
+                  - "4c62ce06-8585-42eb-87a4-43f03a944baa"
+                skipped:
+                  - "cab0dfac-07e8-4e61-a79c-dfca7b571972"
+    "401":
+      $ref: ../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../../components/responses/shelves/ShelfNotFound.yaml
+
+  security:
+    - prosaToken: []
+    - apiKey: []
+
+get:
+  tags:
+    - Book
+  summary: "List books in a shelf"
+  description: |
+    Retrieve the list of book UUIDs in the specified shelf.
+    Only the shelf's owner or an admin can access this list.
+  operationId: listBooksInShelf
+  parameters:
+    - $ref: ../../../components/parameters/shelf_id.yaml
+
+  responses:
+    "200":
+      description: List of book IDs in the shelf.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              book_ids:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+                description: List of book UUIDs.
+            required:
+              - book_ids
+          examples:
+            success:
+              summary: Example list of books in shelf
+              value:
+                book_ids:
+                  - "2fa53248-7516-4269-8783-845751a9084c"
+                  - "c5e2f477-e8a3-4761-ad8a-b82e697a4b0c"
+    "401":
+      $ref: ../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../../components/responses/shelves/ShelfNotFound.yaml
+
+  security:
+    - prosaToken: []
+    - apiKey: []

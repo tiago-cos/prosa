@@ -5,7 +5,7 @@ use crate::app::{
         models::{BookError, UploadBoodRequest},
     },
     error::ProsaError,
-    Pool,
+    users, Pool,
 };
 use axum::{
     body::{to_bytes, Body},
@@ -17,13 +17,13 @@ use axum::{
 use axum_typed_multipart::TypedMultipart;
 use std::{collections::HashMap, usize};
 
-async fn username_matches(username: &str, token: &AuthToken) -> bool {
-    let user_id = match &token.role {
+async fn user_id_matches(user_id: &str, token: &AuthToken) -> bool {
+    let token_user_id = match &token.role {
         AuthRole::Admin(_) => return true,
         AuthRole::User(id) => id,
     };
 
-    username == user_id
+    user_id == token_user_id
 }
 
 pub async fn can_create_book(
@@ -46,7 +46,7 @@ pub async fn can_create_book(
         .await
         .expect("Failed to parse request");
 
-    if !username_matches(&data.owner_id, &token).await {
+    if !user_id_matches(&data.owner_id, &token).await {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -66,7 +66,7 @@ pub async fn can_read_book(
 
     let book = books::service::get_book(&pool, &book_id).await?;
 
-    if !username_matches(&book.owner_id, &token).await {
+    if !user_id_matches(&book.owner_id, &token).await {
         return Err(BookError::BookNotFound.into());
     }
 
@@ -76,6 +76,7 @@ pub async fn can_read_book(
 pub async fn can_search_books(
     Extension(token): Extension<AuthToken>,
     Query(params): Query<HashMap<String, String>>,
+    State(pool): State<Pool>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -83,11 +84,14 @@ pub async fn can_search_books(
         return Err(AuthError::Forbidden.into());
     }
 
-    match params.get("username") {
-        None if !username_matches("", &token).await => return Err(AuthError::Forbidden.into()),
-        Some(u) if !username_matches(u, &token).await => return Err(AuthError::Forbidden.into()),
-        _ => (),
+    let user_id = match params.get("username") {
+        None => "".to_string(),
+        Some(u) => users::service::get_user_by_username(&pool, u).await?.user_id,
     };
+
+    if !user_id_matches(&user_id, &token).await {
+        return Err(AuthError::Forbidden.into());
+    }
 
     Ok(next.run(request).await)
 }
@@ -105,7 +109,7 @@ pub async fn can_delete_book(
 
     let book = books::service::get_book(&pool, &book_id).await?;
 
-    if !username_matches(&book.owner_id, &token).await {
+    if !user_id_matches(&book.owner_id, &token).await {
         return Err(BookError::BookNotFound.into());
     }
 
@@ -125,7 +129,7 @@ pub async fn can_update_book(
 
     let book = books::service::get_book(&pool, &book_id).await?;
 
-    if !username_matches(&book.owner_id, &token).await {
+    if !user_id_matches(&book.owner_id, &token).await {
         return Err(BookError::BookNotFound.into());
     }
 

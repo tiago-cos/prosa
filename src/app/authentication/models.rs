@@ -1,4 +1,6 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use sqlx::FromRow;
 use strum_macros::{EnumMessage, EnumProperty};
 
 type JwtError = jsonwebtoken::errors::Error;
@@ -13,6 +15,10 @@ pub enum AuthError {
     #[strum(message = "The provided token is invalid.")]
     #[strum(props(StatusCode = "401"))]
     InvalidToken,
+
+    #[strum(message = "The refresh token was not found or cannot be accessed.")]
+    #[strum(props(StatusCode = "404"))]
+    MissingToken,
 
     #[strum(message = "The provided API key is invalid.")]
     #[strum(props(StatusCode = "401"))]
@@ -89,4 +95,12 @@ pub struct AuthToken {
     pub role: AuthRole,
     pub capabilities: Vec<String>,
     pub auth_type: AuthType,
+}
+
+#[derive(FromRow)]
+#[allow(unused)]
+pub struct RefreshToken {
+    pub user_id: String,
+    pub refresh_token_hash: String,
+    pub expiration: DateTime<Utc>,
 }

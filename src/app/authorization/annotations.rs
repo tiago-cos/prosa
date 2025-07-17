@@ -11,13 +11,13 @@ use axum::{
     Extension,
 };
 
-async fn username_matches(username: &str, token: &AuthToken) -> bool {
-    let user_id = match &token.role {
+async fn user_id_matches(user_id: &str, token: &AuthToken) -> bool {
+    let token_user_id = match &token.role {
         AuthRole::Admin(_) => return true,
         AuthRole::User(id) => id,
     };
 
-    username == user_id
+    user_id == token_user_id
 }
 
 pub async fn can_read_annotation(
@@ -33,7 +33,7 @@ pub async fn can_read_annotation(
 
     let book = books::service::get_book(&pool, &book_id).await?;
 
-    if !username_matches(&book.owner_id, &token).await {
+    if !user_id_matches(&book.owner_id, &token).await {
         return Err(BookError::BookNotFound.into());
     }
 
@@ -53,7 +53,7 @@ pub async fn can_update_annotation(
 
     let book = books::service::get_book(&pool, &book_id).await?;
 
-    if !username_matches(&book.owner_id, &token).await {
+    if !user_id_matches(&book.owner_id, &token).await {
         return Err(BookError::BookNotFound.into());
     }
 

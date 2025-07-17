@@ -33,7 +33,7 @@ pub async fn delete_book(pool: &SqlitePool, book_id: &str) -> Result<(), ProsaEr
 
 pub async fn search_books(
     pool: &SqlitePool,
-    user_id: Option<String>,
+    username: Option<String>,
     title: Option<String>,
     author: Option<String>,
     page: Option<i64>,
@@ -53,7 +53,7 @@ pub async fn search_books(
         return Err(BookError::InvalidPagination.into());
     }
 
-    Ok(data::get_paginated_books(pool, page, page_size, user_id, title, author).await)
+    Ok(data::get_paginated_books(pool, page, page_size, username, title, author).await)
 }
 
 pub async fn cover_is_in_use(pool: &SqlitePool, cover_id: &str) -> bool {

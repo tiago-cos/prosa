@@ -9,18 +9,18 @@ use axum::{
     Extension,
 };
 
-async fn username_matches(username: &str, token: AuthToken) -> bool {
-    let user_id = match token.role {
+async fn user_id_matches(user_id: &str, token: AuthToken) -> bool {
+    let token_user_id = match token.role {
         AuthRole::Admin(_) => return true,
         AuthRole::User(id) => id,
     };
 
-    username == user_id
+    user_id == token_user_id
 }
 
 pub async fn can_create_api_key(
     Extension(token): Extension<AuthToken>,
-    Path(username): Path<String>,
+    Path(user_id): Path<String>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -32,7 +32,7 @@ pub async fn can_create_api_key(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !username_matches(&username, token).await {
+    if !user_id_matches(&user_id, token).await {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -41,7 +41,7 @@ pub async fn can_create_api_key(
 
 pub async fn can_read_api_key(
     Extension(token): Extension<AuthToken>,
-    Path((username, _)): Path<(String, String)>,
+    Path((user_id, _)): Path<(String, String)>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -53,7 +53,7 @@ pub async fn can_read_api_key(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !username_matches(&username, token).await {
+    if !user_id_matches(&user_id, token).await {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -62,7 +62,7 @@ pub async fn can_read_api_key(
 
 pub async fn can_read_api_keys(
     Extension(token): Extension<AuthToken>,
-    Path(username): Path<String>,
+    Path(user_id): Path<String>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -74,7 +74,7 @@ pub async fn can_read_api_keys(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !username_matches(&username, token).await {
+    if !user_id_matches(&user_id, token).await {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -83,7 +83,7 @@ pub async fn can_read_api_keys(
 
 pub async fn can_delete_api_key(
     Extension(token): Extension<AuthToken>,
-    Path((username, _)): Path<(String, String)>,
+    Path((user_id, _)): Path<(String, String)>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -95,7 +95,7 @@ pub async fn can_delete_api_key(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !username_matches(&username, token).await {
+    if !user_id_matches(&user_id, token).await {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -104,7 +104,7 @@ pub async fn can_delete_api_key(
 
 pub async fn can_update_preferences(
     Extension(token): Extension<AuthToken>,
-    Path(username): Path<String>,
+    Path(user_id): Path<String>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -116,7 +116,7 @@ pub async fn can_update_preferences(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !username_matches(&username, token).await {
+    if !user_id_matches(&user_id, token).await {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -125,7 +125,7 @@ pub async fn can_update_preferences(
 
 pub async fn can_read_preferences(
     Extension(token): Extension<AuthToken>,
-    Path(username): Path<String>,
+    Path(user_id): Path<String>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -137,7 +137,7 @@ pub async fn can_read_preferences(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !username_matches(&username, token).await {
+    if !user_id_matches(&user_id, token).await {
         return Err(AuthError::Forbidden.into());
     }
 

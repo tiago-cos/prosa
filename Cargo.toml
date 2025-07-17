@@ -11,7 +11,7 @@ axum = { version = "0.8.4", features = ["multipart"] }
 axum_typed_multipart = "0.16.3"
 base64 = "0.22.1"
 chrono = { version = "0.4.41", features = ["serde"] }
-config = "0.15.11"
+config = "0.15.13"
 epub = "2.1.4"
 goodreads-metadata-scraper = "0.2.2"
 image = "0.25.6"

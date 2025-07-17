@@ -5,7 +5,8 @@ port = 5000
 [auth]
 secret_key = "jwt_secret_key"
 admin_key = "admin_key"
-token_duration = 900
+jwt_token_duration = 900
+refresh_token_duration = 604800
 
 [book_storage]
 epub_path = "library/epubs"

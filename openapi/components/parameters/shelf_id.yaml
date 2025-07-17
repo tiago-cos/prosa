@@ -1,0 +1,8 @@
+name: shelf_id
+in: path
+required: true
+description: The UUID of the shelf.
+schema:
+  type: string
+  format: uuid
+example: "7ae3e4b9-4ad0-483f-8c5d-bf1d50ccd6b9"

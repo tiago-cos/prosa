@@ -4,17 +4,19 @@ use sqlx::{QueryBuilder, SqlitePool};
 
 pub async fn add_user(
     pool: &SqlitePool,
+    username: &str,
     user_id: &str,
     password_hash: &str,
     is_admin: bool,
 ) -> Result<(), UserError> {
     sqlx::query(
         r#"
-        INSERT INTO users (user_id, password_hash, is_admin, automatic_metadata)
-        VALUES ($1, $2, $3, $4)
+        INSERT INTO users (user_id, username, password_hash, is_admin, automatic_metadata)
+        VALUES ($1, $2, $3, $4, $5)
         "#,
     )
     .bind(user_id)
+    .bind(username)
     .bind(password_hash)
     .bind(is_admin)
     .bind(true)
@@ -24,15 +26,32 @@ pub async fn add_user(
     Ok(())
 }
 
+//TODO refactor the authentication further, then develop more tests
+
 pub async fn get_user(pool: &SqlitePool, user_id: &str) -> Result<User, UserError> {
     let user = sqlx::query_as(
         r#"
-        SELECT user_id, password_hash, is_admin
+        SELECT user_id, username, password_hash, is_admin
         FROM users
         WHERE user_id = $1
         "#,
     )
     .bind(user_id)
+    .fetch_one(pool)
+    .await?;
+
+    Ok(user)
+}
+
+pub async fn get_user_by_username(pool: &SqlitePool, username: &str) -> Result<User, UserError> {
+    let user = sqlx::query_as(
+        r#"
+        SELECT user_id, username, password_hash, is_admin
+        FROM users
+        WHERE username = $1
+        "#,
+    )
+    .bind(username)
     .fetch_one(pool)
     .await?;
 
@@ -76,7 +95,7 @@ pub async fn add_api_key(
     Ok(())
 }
 
-pub async fn get_api_key(pool: &SqlitePool, username: &str, key_id: &str) -> Result<ApiKey, ApiKeyError> {
+pub async fn get_api_key(pool: &SqlitePool, user_id: &str, key_id: &str) -> Result<ApiKey, ApiKeyError> {
     let mut key: ApiKey = sqlx::query_as(
         r#"
         SELECT 
@@ -89,7 +108,7 @@ pub async fn get_api_key(pool: &SqlitePool, username: &str, key_id: &str) -> Res
         "#,
     )
     .bind(key_id)
-    .bind(username)
+    .bind(user_id)
     .fetch_one(pool)
     .await?;
 
@@ -143,7 +162,7 @@ pub async fn get_api_key_by_hash(pool: &SqlitePool, key_hash: &str) -> Option<Ap
     Some(key)
 }
 
-pub async fn get_api_keys(pool: &SqlitePool, username: &str) -> Result<Vec<String>, ApiKeyError> {
+pub async fn get_api_keys(pool: &SqlitePool, user_id: &str) -> Result<Vec<String>, ApiKeyError> {
     let keys: Vec<String> = sqlx::query_scalar(
         r#"
         SELECT key_id
@@ -151,14 +170,14 @@ pub async fn get_api_keys(pool: &SqlitePool, username: &str) -> Result<Vec<Strin
         WHERE user_id = $1
         "#,
     )
-    .bind(username)
+    .bind(user_id)
     .fetch_all(pool)
     .await?;
 
     Ok(keys)
 }
 
-pub async fn delete_api_key(pool: &SqlitePool, username: &str, key_id: &str) -> Result<(), ApiKeyError> {
+pub async fn delete_api_key(pool: &SqlitePool, user_id: &str, key_id: &str) -> Result<(), ApiKeyError> {
     let result = sqlx::query(
         r#"
         DELETE
@@ -167,7 +186,7 @@ pub async fn delete_api_key(pool: &SqlitePool, username: &str, key_id: &str) -> 
         "#,
     )
     .bind(key_id)
-    .bind(username)
+    .bind(user_id)
     .execute(pool)
     .await?;
 
@@ -178,12 +197,12 @@ pub async fn delete_api_key(pool: &SqlitePool, username: &str, key_id: &str) -> 
     Ok(())
 }
 
-pub async fn add_providers(pool: &SqlitePool, username: &str, providers: Vec<String>) -> () {
+pub async fn add_providers(pool: &SqlitePool, user_id: &str, providers: Vec<String>) -> () {
     let mut index = 1;
     let mut query = QueryBuilder::new("INSERT INTO providers (provider_type, priority, user_id)");
 
     query.push_values(providers, |mut b, provider| {
-        b.push_bind(provider).push_bind(index).push_bind(username);
+        b.push_bind(provider).push_bind(index).push_bind(user_id);
         index = index + 1;
     });
     query
@@ -193,7 +212,7 @@ pub async fn add_providers(pool: &SqlitePool, username: &str, providers: Vec<Str
         .expect("Failed to add initial providers");
 }
 
-pub async fn get_preferences(pool: &SqlitePool, username: &str) -> Result<Preferences, PreferencesError> {
+pub async fn get_preferences(pool: &SqlitePool, user_id: &str) -> Result<Preferences, PreferencesError> {
     let providers: Vec<String> = sqlx::query_scalar(
         r#"
         SELECT provider_type
@@ -202,7 +221,7 @@ pub async fn get_preferences(pool: &SqlitePool, username: &str) -> Result<Prefer
         ORDER BY priority
         "#,
     )
-    .bind(username)
+    .bind(user_id)
     .fetch_all(pool)
     .await?;
 
@@ -213,7 +232,7 @@ pub async fn get_preferences(pool: &SqlitePool, username: &str) -> Result<Prefer
         WHERE user_id = $1
         "#,
     )
-    .bind(username)
+    .bind(user_id)
     .fetch_one(pool)
     .await?;
 
@@ -225,7 +244,7 @@ pub async fn get_preferences(pool: &SqlitePool, username: &str) -> Result<Prefer
 
 pub async fn update_preferences(
     pool: &SqlitePool,
-    username: &str,
+    user_id: &str,
     preferences: Preferences,
 ) -> Result<(), PreferencesError> {
     let automatic_metadata = preferences
@@ -245,7 +264,7 @@ pub async fn update_preferences(
         "#,
     )
     .bind(automatic_metadata)
-    .bind(username)
+    .bind(user_id)
     .execute(&mut *tx)
     .await?;
 
@@ -256,7 +275,7 @@ pub async fn update_preferences(
         WHERE user_id = $1
         "#,
     )
-    .bind(username)
+    .bind(user_id)
     .execute(&mut *tx)
     .await?;
 
@@ -269,7 +288,7 @@ pub async fn update_preferences(
     let mut query = QueryBuilder::new("INSERT INTO providers (provider_type, priority, user_id)");
 
     query.push_values(providers, |mut b, provider| {
-        b.push_bind(provider).push_bind(index).push_bind(username);
+        b.push_bind(provider).push_bind(index).push_bind(user_id);
         index = index + 1;
     });
     query.build().execute(&mut *tx).await?;

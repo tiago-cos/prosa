@@ -1,6 +1,6 @@
 post:
   tags:
-    - ApiKeys
+    - API Keys
   summary: "Create API key"
   description: |
     Create an API key for a user.
@@ -54,7 +54,7 @@ post:
 
 get:
   tags:
-    - ApiKeys
+    - API Keys
   summary: "Get API keys"
   description: Get the IDs of all API keys for a user.
   operationId: getApiKeys

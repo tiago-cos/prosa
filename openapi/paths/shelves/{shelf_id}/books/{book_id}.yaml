@@ -1,0 +1,25 @@
+delete:
+  tags:
+    - Book
+  summary: "Remove a book from a shelf"
+  description: |
+    Remove a specific book from the specified shelf.
+    Only the shelf owner or an admin can perform this operation.
+  operationId: removeBookFromShelf
+  parameters:
+    - $ref: ../../../../components/parameters/shelf_id.yaml
+    - $ref: ../../../../components/parameters/book_id.yaml
+
+  responses:
+    "204":
+      description: The book was successfully removed from the shelf.
+    "401":
+      $ref: ../../../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../../../components/responses/Forbidden.yaml
+    "404":
+      description: The shelf or book was not found, or the book is not in the shelf.
+   
+  security:
+    - prosaToken: []
+    - apiKey: []

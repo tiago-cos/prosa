@@ -14,7 +14,8 @@ pub struct Server {
 pub struct Auth {
     pub secret_key: String,
     pub admin_key: String,
-    pub token_duration: u64,
+    pub jwt_token_duration: u64,
+    pub refresh_token_duration: u64,
 }
 
 #[derive(Deserialize, Clone)]

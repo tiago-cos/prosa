@@ -131,8 +131,9 @@ pub async fn search_books_handler(
     State(pool): State<Pool>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if let Some(user_id) = params.get("username") {
-        users::service::user_exists(&pool, &user_id).await?;
+    if let Some(username) = params.get("username") {
+        // Verify user exists
+        users::service::get_user_by_username(&pool, &username).await?;
     };
 
     let page = params.get("page").map(|t| t.parse::<i64>());

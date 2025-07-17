@@ -5,3 +5,4 @@ schema:
   type: string
   format: uuid
 description: The unique ID of the user.
+example: "a47621ad-59bf-4674-a6f2-5e7d9abf9faf"

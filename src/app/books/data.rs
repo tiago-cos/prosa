@@ -138,7 +138,7 @@ pub async fn get_paginated_books(
     pool: &SqlitePool,
     page: i64,
     page_size: i64,
-    user_id: Option<String>,
+    username: Option<String>,
     title: Option<String>,
     author: Option<String>,
 ) -> PaginatedBooks {
@@ -150,6 +150,7 @@ pub async fn get_paginated_books(
         r#"
         SELECT DISTINCT book_id
         FROM books b
+        INNER JOIN users u ON b.owner_id = u.user_id
         LEFT JOIN metadata m ON b.metadata_id = m.metadata_id
         LEFT JOIN contributors c ON b.metadata_id = c.metadata_id
         WHERE 1=1
@@ -160,17 +161,18 @@ pub async fn get_paginated_books(
         r#"
         SELECT COUNT(DISTINCT book_id)
         FROM books b
+        INNER JOIN users u ON b.owner_id = u.user_id
         LEFT JOIN metadata m ON b.metadata_id = m.metadata_id
         LEFT JOIN contributors c ON b.metadata_id = c.metadata_id
         WHERE 1=1
         "#,
     );
 
-    if let Some(user_id) = user_id {
-        let part = format!(" AND b.owner_id = ${}", bind_params.len() + 1);
+    if let Some(name) = username {
+        let part = format!(" AND u.username = ${}", bind_params.len() + 1);
         book_query.push_str(&part);
         count_query.push_str(&part);
-        bind_params.push(user_id);
+        bind_params.push(name);
     }
 
     if let Some(title) = title {

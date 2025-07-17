@@ -42,19 +42,38 @@ post:
 
   responses:
     "200":
-      description: The JWT token for the newly created user
+      description: Tokens and user ID for the newly registered user.
       content:
-        text/plain:
+        application/json:
           schema:
-            type: string
-            description: Base64-encoded JWT token
+            type: object
+            properties:
+              jwt_token:
+                type: string
+                description: Base64-encoded JWT access token
+              refresh_token:
+                type: string
+                description: Refresh token used to obtain new JWTs
+              user_id:
+                type: string
+                format: uuid
+                description: UUID of the authenticated user
+            required:
+              - jwt_token
+              - refresh_token
+              - user_id
           examples:
             success:
-              summary: Base64-encoded JWT token
-              value: "ZXlKMGVYQWlPaUpLVjFRaUxDSmhiR2NpT2lKSVV6STFOaUo5LmV5SnliMnhsSWpwN0lsVnpaWElpT2lKaFpHRm1JbjBzSW1WNGNDSTZNVGN6T0RFNE1UTTNNWDAuZExmYWJFVnJ6VXI1eTgwNTlFTUl0dC1VLXhoc2lQWlFYU3R5WUo4Q29hYw=="
+              summary: Example login response
+              value:
+                jwt_token: "ZXlKMGVYQWlPaUpLVjFRaUxDSmhiR2NpT2lKSVV6STFOaUo5LmV5SnliMnhsSWpwN0lsVnpaWElpT2lKaFpHRm1JbjBzSW1WNGNDSTZNVGN6T0RFNE1UTTNNWDAuZExmYWJFVnJ6VXI1eTgwNTlFTUl0dC1VLXhoc2lQWlFYU3R5WUo4Q29hYw=="
+                refresh_token: "ez6K5tTdum8rAOdCV4vdoyuSxDeALroCDrJyR4n8JcMtJIHWbH3IJfz1cWp0mx5k"
+                user_id: "2c5f1d4d-3b9d-4b9d-3b9d-4b9d3b9d3b9d"
     "400":
-      $ref: ../components/responses/users/InvalidUsernamePassword.yaml
+      $ref: ../../components/responses/users/InvalidUsernamePassword.yaml
     "403":
-      $ref: ../components/responses/users/InvalidCredentials.yaml
+      $ref: ../../components/responses/users/InvalidCredentials.yaml
     "409":
-      $ref: ../components/responses/users/UserConflict.yaml
+      $ref: ../../components/responses/users/UserConflict.yaml
+
+  security: []

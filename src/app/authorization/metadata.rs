@@ -14,13 +14,13 @@ use axum::{
 };
 use std::collections::HashMap;
 
-async fn username_matches(username: &str, token: &AuthToken) -> bool {
-    let user_id = match &token.role {
+async fn user_id_matches(user_id: &str, token: &AuthToken) -> bool {
+    let token_user_id = match &token.role {
         AuthRole::Admin(_) => return true,
         AuthRole::User(id) => id,
     };
 
-    username == user_id
+    user_id == token_user_id
 }
 
 pub async fn can_list_metadata_requests(
@@ -39,8 +39,8 @@ pub async fn can_list_metadata_requests(
     };
 
     match params.get("user_id") {
-        Some(id) if !username_matches(&id, &token).await => return Err(AuthError::Forbidden.into()),
-        Some(id) if username_matches(&id, &token).await => return Ok(next.run(request).await),
+        Some(id) if !user_id_matches(&id, &token).await => return Err(AuthError::Forbidden.into()),
+        Some(id) if user_id_matches(&id, &token).await => return Ok(next.run(request).await),
         None if is_admin => return Ok(next.run(request).await),
         _ => return Err(AuthError::Forbidden.into()),
     };
@@ -68,7 +68,7 @@ pub async fn can_add_metadata_request(
 
     let book = books::service::get_book(&pool, &payload.book_id).await?;
 
-    if !username_matches(&book.owner_id, &token).await {
+    if !user_id_matches(&book.owner_id, &token).await {
         return Err(BookError::BookNotFound.into());
     }
 

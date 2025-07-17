@@ -10,13 +10,13 @@ use axum::{
 };
 use std::collections::HashMap;
 
-async fn username_matches(username: &str, token: &AuthToken) -> bool {
-    let user_id = match &token.role {
+async fn user_id_matches(user_id: &str, token: &AuthToken) -> bool {
+    let token_user_id = match &token.role {
         AuthRole::Admin(_) => return true,
         AuthRole::User(id) => id,
     };
 
-    username == user_id
+    user_id == token_user_id
 }
 
 pub async fn can_sync(
@@ -30,7 +30,7 @@ pub async fn can_sync(
     }
 
     match params.get("user_id") {
-        Some(id) if !username_matches(&id, &token).await => return Err(AuthError::Forbidden.into()),
+        Some(id) if !user_id_matches(&id, &token).await => return Err(AuthError::Forbidden.into()),
         _ => return Ok(next.run(request).await),
     };
 }

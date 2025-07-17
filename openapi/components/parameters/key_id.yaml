@@ -5,3 +5,4 @@ schema:
   type: string
   format: uuid
 description: The unique ID of the API key.
+example: "2110c3af-d1ab-4224-975c-23d79a7f3b30"

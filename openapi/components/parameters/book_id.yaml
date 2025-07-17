@@ -5,3 +5,4 @@ schema:
   type: string
   format: uuid
 description: The unique ID of the book to retrieve.
+example: "6e42e3b3-a828-4d86-9f91-7b3a000e84f2"

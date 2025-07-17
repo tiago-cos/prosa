@@ -61,7 +61,7 @@ post:
 
 get:
   tags:
-    - Search
+    - Search Books
   summary: "Search for books"
   description: |
     Retrieve a paginated list of books that match the search criteria.
@@ -113,7 +113,7 @@ get:
       content:
         application/json:
           schema:
-            $ref: ../components/schemas/SearchResult.yaml
+            $ref: ../components/schemas/BookSearchResult.yaml
     "400":
       $ref: ../components/responses/books/InvalidPagination.yaml
     "401":
