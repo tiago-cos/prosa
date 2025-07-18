@@ -1,3 +1,5 @@
+use crate::app::users::models::UserProfile;
+
 use super::models::{ApiKey, ApiKeyError, Preferences, PreferencesError, User, UserError};
 use chrono::{DateTime, Utc};
 use sqlx::{QueryBuilder, SqlitePool};
@@ -26,8 +28,6 @@ pub async fn add_user(
     Ok(())
 }
 
-//TODO refactor the authentication further, then develop more tests
-
 pub async fn get_user(pool: &SqlitePool, user_id: &str) -> Result<User, UserError> {
     let user = sqlx::query_as(
         r#"
@@ -41,6 +41,30 @@ pub async fn get_user(pool: &SqlitePool, user_id: &str) -> Result<User, UserErro
     .await?;
 
     Ok(user)
+}
+
+pub async fn update_user_profile(
+    pool: &SqlitePool,
+    user_id: &str,
+    profile: UserProfile,
+) -> Result<(), UserError> {
+    let result = sqlx::query(
+        r#"
+        UPDATE users
+        SET username = $1
+        WHERE user_id = $2
+        "#,
+    )
+    .bind(profile.username)
+    .bind(user_id)
+    .execute(pool)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(UserError::UserNotFound);
+    }
+
+    Ok(())
 }
 
 pub async fn get_user_by_username(pool: &SqlitePool, username: &str) -> Result<User, UserError> {

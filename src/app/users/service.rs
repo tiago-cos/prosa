@@ -5,7 +5,7 @@ use super::{
 use crate::app::{
     authentication::{self, service::hash_secret},
     error::ProsaError,
-    users::models::{ApiKeyError, PreferencesError, VALID_PROVIDERS},
+    users::models::{ApiKeyError, PreferencesError, UserProfile, VALID_PROVIDERS},
 };
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use chrono::{DateTime, Utc};
@@ -20,7 +20,8 @@ pub async fn register_user(
     password: &str,
     is_admin: bool,
 ) -> Result<String, ProsaError> {
-    verify_user_credentials(username, password).await?;
+    verify_username(username).await?;
+    verify_password(password).await?;
 
     let user_id = Uuid::new_v4().to_string();
     let password_hash = hash_secret(password).await;
@@ -49,6 +50,24 @@ pub async fn get_user(pool: &SqlitePool, user_id: &str) -> Result<User, ProsaErr
 pub async fn get_user_by_username(pool: &SqlitePool, username: &str) -> Result<User, ProsaError> {
     let user = data::get_user_by_username(pool, username).await?;
     Ok(user)
+}
+
+pub async fn get_user_profile(pool: &SqlitePool, user_id: &str) -> Result<UserProfile, ProsaError> {
+    let user = data::get_user(pool, user_id).await?;
+    let profile = UserProfile {
+        username: user.username,
+    };
+    Ok(profile)
+}
+
+pub async fn update_user_profile(
+    pool: &SqlitePool,
+    user_id: &str,
+    profile: UserProfile,
+) -> Result<(), ProsaError> {
+    verify_username(&profile.username).await?;
+    data::update_user_profile(pool, user_id, profile).await?;
+    Ok(())
 }
 
 pub async fn create_api_key(
@@ -144,14 +163,23 @@ pub async fn patch_preferences(
     Ok(())
 }
 
-async fn verify_user_credentials(username: &str, password: &str) -> Result<(), UserError> {
+async fn verify_username(username: &str) -> Result<(), UserError> {
     let filter = Regex::new(r"^[\w.!@-]+$").unwrap();
-    if !filter.is_match(username) || !filter.is_match(password) {
+    if !filter.is_match(username) {
         return Err(UserError::InvalidInput.into());
     }
 
     if username.len() > 20 {
         return Err(UserError::UsernameTooBig);
+    }
+
+    Ok(())
+}
+
+async fn verify_password(password: &str) -> Result<(), UserError> {
+    let filter = Regex::new(r"^[\w.!@-]+$").unwrap();
+    if !filter.is_match(password) {
+        return Err(UserError::InvalidInput.into());
     }
 
     if password.len() > 256 {

@@ -220,3 +220,8 @@ pub struct AuthenticationResponse {
     pub refresh_token: String,
     pub user_id: String,
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct UserProfile {
+    pub username: String,
+}

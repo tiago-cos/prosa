@@ -138,3 +138,25 @@ export async function patchPreferences(user_id: string, providers?: string[], au
 
   return req.send(body);
 }
+
+export async function getUserProfile(user_id: string, auth?: { jwt?: string; apiKey?: string }) {
+  let req = request(SERVER_URL).get(`/users/${user_id}`);
+
+  if (auth?.jwt) req = req.auth(auth.jwt, { type: 'bearer' });
+  if (auth?.apiKey) req = req.set('api-key', auth.apiKey);
+
+  return req.send();
+}
+
+export async function updateUserProfile(user_id: string, username: string, auth?: { jwt?: string; apiKey?: string }) {
+  let req = request(SERVER_URL).put(`/users/${user_id}`);
+
+  const payload = {
+    username
+  };
+
+  if (auth?.jwt) req = req.auth(auth.jwt, { type: 'bearer' });
+  if (auth?.apiKey) req = req.set('api-key', auth.apiKey);
+
+  return req.send(payload);
+}

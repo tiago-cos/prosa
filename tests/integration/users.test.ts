@@ -7,6 +7,7 @@ import {
   getApiKey,
   getApiKeys,
   getPreferences,
+  getUserProfile,
   INVALID_CAPABILITIES,
   INVALID_CREDENTIALS,
   INVALID_PREFERENCES,
@@ -23,6 +24,7 @@ import {
   registerUser,
   TOKEN_NOT_FOUND,
   updatePreferences,
+  updateUserProfile,
   USER_NOT_FOUND,
   USERNAME_IN_USE,
   USERNAME_TOO_BIG
@@ -272,10 +274,10 @@ describe('Create api key', () => {
   test('Different user with permission', async () => {
     const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
-    const userId = registerResponse.body.user_id;
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
+    const userId = registerResponse.body.user_id;
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -885,5 +887,146 @@ describe('Patch preferences', () => {
     const patchPreferencesResponse = await patchPreferences(userId, undefined, true);
     expect(patchPreferencesResponse.status).toBe(401);
     expect(patchPreferencesResponse.text).toBe(UNAUTHORIZED);
+  });
+});
+
+describe('Get user profile', () => {
+  test('Simple', async () => {
+    const { response: registerResponse, username } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const getProfileResponse = await getUserProfile(userId, { jwt: registerResponse.body.jwt_token });
+    expect(getProfileResponse.status).toBe(200);
+    expect(getProfileResponse.body.username).toBe(username);
+  });
+
+  test('Non-existent user', async () => {
+    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    expect(registerResponse.status).toBe(200);
+
+    const getProfileResponse = await getUserProfile('non-existent', { jwt: registerResponse.body.jwt_token });
+    expect(getProfileResponse.status).toBe(404);
+    expect(getProfileResponse.text).toBe(USER_NOT_FOUND);
+  });
+
+  test('Different user without permission', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const { response: registerResponse2 } = await registerUser();
+    expect(registerResponse2.status).toBe(200);
+
+    const getProfileResponse = await getUserProfile(userId, { jwt: registerResponse2.body.jwt_token });
+    expect(getProfileResponse.status).toBe(403);
+    expect(getProfileResponse.text).toBe(FORBIDDEN);
+  });
+
+  test('Different user with permission', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    expect(registerResponse2.status).toBe(200);
+
+    const getProfileResponse = await getUserProfile(userId, { jwt: registerResponse2.body.jwt_token });
+    expect(getProfileResponse.status).toBe(200);
+  });
+
+  test('No auth', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const getProfileResponse = await getUserProfile(userId);
+    expect(getProfileResponse.status).toBe(401);
+    expect(getProfileResponse.text).toBe(UNAUTHORIZED);
+  });
+});
+
+describe('Update user profile', () => {
+  test('Simple', async () => {
+    const { response: registerResponse, username } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    let getProfileResponse = await getUserProfile(userId, { jwt: registerResponse.body.jwt_token });
+    expect(getProfileResponse.status).toBe(200);
+    expect(getProfileResponse.body.username).toBe(username);
+
+    const newUsername = randomString(16);
+
+    const updateProfileResponse = await updateUserProfile(userId, newUsername, { jwt: registerResponse.body.jwt_token });
+    expect(updateProfileResponse.status).toBe(204);
+
+    getProfileResponse = await getUserProfile(userId, { jwt: registerResponse.body.jwt_token });
+    expect(getProfileResponse.status).toBe(200);
+    expect(getProfileResponse.body.username).toBe(newUsername);
+  });
+
+  test('Invalid username', async () => {
+    const { response: registerResponse, username } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    let getProfileResponse = await getUserProfile(userId, { jwt: registerResponse.body.jwt_token });
+    expect(getProfileResponse.status).toBe(200);
+    expect(getProfileResponse.body.username).toBe(username);
+
+    const newUsername = randomString(30);
+
+    const updateProfileResponse = await updateUserProfile(userId, newUsername, { jwt: registerResponse.body.jwt_token });
+    expect(updateProfileResponse.status).toBe(400);
+    expect(updateProfileResponse.text).toBe(USERNAME_TOO_BIG);
+  });
+
+  test('Non-existent user', async () => {
+    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    expect(registerResponse.status).toBe(200);
+
+    const updateProfileResponse = await updateUserProfile('non-existent', 'username', { jwt: registerResponse.body.jwt_token });
+    expect(updateProfileResponse.status).toBe(404);
+    expect(updateProfileResponse.text).toBe(USER_NOT_FOUND);
+  });
+
+  test('Different user without permission', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const { response: registerResponse2 } = await registerUser();
+    expect(registerResponse2.status).toBe(200);
+
+    const newUsername = randomString(16);
+
+    const updateProfileResponse = await updateUserProfile(userId, newUsername, { jwt: registerResponse2.body.jwt_token });
+    expect(updateProfileResponse.status).toBe(403);
+    expect(updateProfileResponse.text).toBe(FORBIDDEN);
+  });
+
+  test('Different user with permission', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    expect(registerResponse2.status).toBe(200);
+
+    const newUsername = randomString(16);
+
+    const updateProfileResponse = await updateUserProfile(userId, newUsername, { jwt: registerResponse2.body.jwt_token });
+    expect(updateProfileResponse.status).toBe(204);
+  });
+
+  test('No auth', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const updateProfileResponse = await updateUserProfile(userId, 'username');
+    expect(updateProfileResponse.status).toBe(401);
+    expect(updateProfileResponse.text).toBe(UNAUTHORIZED);
   });
 });

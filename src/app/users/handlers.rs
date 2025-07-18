@@ -8,7 +8,7 @@ use super::{
 use crate::app::{
     authentication::{self, models::AuthError},
     error::ProsaError,
-    users::models::{AuthenticationResponse, RefreshTokenRequest},
+    users::models::{AuthenticationResponse, RefreshTokenRequest, UserProfile},
     AppState, Pool,
 };
 use axum::{
@@ -192,6 +192,25 @@ pub async fn patch_preferences_handler(
     Json(body): Json<Preferences>,
 ) -> Result<impl IntoResponse, ProsaError> {
     service::patch_preferences(&pool, &user_id, body).await?;
+
+    Ok((StatusCode::NO_CONTENT, ()))
+}
+
+pub async fn get_user_profile_handler(
+    State(pool): State<Pool>,
+    Path(user_id): Path<String>,
+) -> Result<impl IntoResponse, ProsaError> {
+    let profile = service::get_user_profile(&pool, &user_id).await?;
+
+    Ok(Json(profile))
+}
+
+pub async fn update_user_profile_handler(
+    State(pool): State<Pool>,
+    Path(user_id): Path<String>,
+    Json(body): Json<UserProfile>,
+) -> Result<impl IntoResponse, ProsaError> {
+    service::update_user_profile(&pool, &user_id, body).await?;
 
     Ok((StatusCode::NO_CONTENT, ()))
 }

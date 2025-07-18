@@ -3,7 +3,7 @@ use crate::app::{
     authentication::middleware::extract_token_middleware,
     authorization::users::{
         can_create_api_key, can_delete_api_key, can_read_api_key, can_read_api_keys, can_read_preferences,
-        can_update_preferences,
+        can_read_profile, can_update_preferences, can_update_profile,
     },
     server::AppState,
 };
@@ -36,6 +36,12 @@ pub fn get_routes(state: AppState) -> Router {
         )
         .route("/users/{user_id}/preferences", get(handlers::get_preferences_handler) 
             .route_layer(from_fn(can_read_preferences))
+        )
+        .route("/users/{user_id}", get(handlers::get_user_profile_handler) 
+            .route_layer(from_fn(can_read_profile))
+        )
+        .route("/users/{user_id}", put(handlers::update_user_profile_handler) 
+            .route_layer(from_fn(can_update_profile))
         )
         .layer(from_fn_with_state(state.clone(), extract_token_middleware))
         .route("/auth/register", post(handlers::register_user_handler))
