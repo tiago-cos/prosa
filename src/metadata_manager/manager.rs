@@ -116,7 +116,7 @@ impl MetadataManager {
         book_id: &str,
         providers: Vec<String>,
     ) -> (Option<Metadata>, Option<Vec<u8>>) {
-        let lock = self.lock_manager.get_lock(&book_id).await;
+        let lock = self.lock_manager.get_book_lock(&book_id).await;
         let _guard = lock.read().await;
 
         let Ok(book) = books::service::get_book(&self.pool, &book_id).await else {
@@ -136,7 +136,7 @@ impl MetadataManager {
     }
 
     async fn store_metadata(&self, book_id: &str, metadata: Option<Metadata>, image: Option<Vec<u8>>) -> () {
-        let lock = self.lock_manager.get_lock(&book_id).await;
+        let lock = self.lock_manager.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
         let Ok(book) = books::service::get_book(&self.pool, &book_id).await else {
@@ -163,31 +163,30 @@ impl MetadataManager {
 
     async fn handle_metadata_update(&self, book_id: &str, metadata: Metadata) -> Result<(), ProsaError> {
         let book = books::service::get_book(&self.pool, &book_id).await?;
-        let sync_id = book.sync_id.clone();
+        let book_sync_id = book.book_sync_id.clone();
         let metadata_id = book.metadata_id.as_ref().expect("Failed to retrieve metadata id");
         metadata::service::update_metadata(&self.pool, metadata_id, metadata).await?;
 
-        sync::service::update_metadata_timestamp(&self.pool, &sync_id).await;
+        sync::service::update_book_metadata_timestamp(&self.pool, &book_sync_id).await;
 
         Ok(())
     }
 
-    //TODO in kobont, dont forget to update the book file size endpoint
     async fn handle_metadata_create(&self, book_id: &str, metadata: Metadata) -> Result<(), ProsaError> {
         let mut book = books::service::get_book(&self.pool, &book_id).await?;
-        let sync_id = book.sync_id.clone();
+        let book_sync_id = book.book_sync_id.clone();
         let metadata_id = metadata::service::add_metadata(&self.pool, metadata).await?;
         book.metadata_id = Some(metadata_id);
         books::service::update_book(&self.pool, &book_id, book).await?;
 
-        sync::service::update_metadata_timestamp(&self.pool, &sync_id).await;
+        sync::service::update_book_metadata_timestamp(&self.pool, &book_sync_id).await;
 
         Ok(())
     }
 
     async fn handle_cover_update(&self, book_id: &str, cover: Vec<u8>) -> Result<(), ProsaError> {
         let mut book = books::service::get_book(&self.pool, &book_id).await?;
-        let sync_id = book.sync_id.clone();
+        let book_sync_id = book.book_sync_id.clone();
 
         let old_cover_id = book.cover_id.expect("Failed to retrieve old cover id");
         let new_cover_id = covers::service::write_cover(
@@ -207,14 +206,14 @@ impl MetadataManager {
                 .await?;
         }
 
-        sync::service::update_cover_timestamp(&self.pool, &sync_id).await;
+        sync::service::update_cover_timestamp(&self.pool, &book_sync_id).await;
 
         Ok(())
     }
 
     async fn handle_cover_create(&self, book_id: &str, cover: Vec<u8>) -> Result<(), ProsaError> {
         let mut book = books::service::get_book(&self.pool, &book_id).await?;
-        let sync_id = book.sync_id.clone();
+        let book_sync_id = book.book_sync_id.clone();
         let cover_id = covers::service::write_cover(
             &self.pool,
             &self.cover_path,
@@ -226,7 +225,7 @@ impl MetadataManager {
         book.cover_id = Some(cover_id);
         books::service::update_book(&self.pool, &book_id, book).await?;
 
-        sync::service::update_cover_timestamp(&self.pool, &sync_id).await;
+        sync::service::update_cover_timestamp(&self.pool, &book_sync_id).await;
 
         Ok(())
     }

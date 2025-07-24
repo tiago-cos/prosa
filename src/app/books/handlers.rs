@@ -19,7 +19,7 @@ pub async fn download_book_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let lock = state.lock_manager.get_lock(&book_id).await;
+    let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.read().await;
 
     let book = service::get_book(&state.pool, &book_id).await?;
@@ -32,7 +32,7 @@ pub async fn get_book_file_metadata_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let lock = state.lock_manager.get_lock(&book_id).await;
+    let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.read().await;
 
     let book = service::get_book(&state.pool, &book_id).await?;
@@ -58,8 +58,13 @@ pub async fn upload_book_handler(
         &state.lock_manager,
     )
     .await?;
+
+    if service::epub_is_in_use_by_user(&state.pool, &epub_id, &data.owner_id).await {
+        return Err(BookError::BookConflict.into());
+    }
+
     let state_id = state::service::initialize_state(&state.pool).await;
-    let sync_id = sync::service::initialize_sync(&state.pool).await;
+    let book_sync_id = sync::service::initialize_book_sync(&state.pool).await;
 
     let book = Book {
         owner_id: data.owner_id.clone(),
@@ -67,7 +72,7 @@ pub async fn upload_book_handler(
         metadata_id: None,
         cover_id: None,
         state_id,
-        sync_id,
+        book_sync_id,
     };
 
     let book_id = service::add_book(&state.pool, book).await?;
@@ -93,13 +98,11 @@ pub async fn delete_book_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let lock = state.lock_manager.get_lock(&book_id).await;
+    let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
     let book = service::get_book(&state.pool, &book_id).await?;
     service::delete_book(&state.pool, &book_id).await?;
-
-    sync::service::update_delete_timestamp(&state.pool, &book.sync_id).await;
 
     if let Some(metadata_id) = book.metadata_id {
         metadata::service::delete_metadata(&state.pool, &metadata_id).await?;
@@ -113,6 +116,8 @@ pub async fn delete_book_handler(
         None => return Ok((StatusCode::NO_CONTENT, ())),
         Some(cover_id) => cover_id,
     };
+
+    sync::service::update_book_delete_timestamp(&state.pool, &book.book_sync_id).await;
 
     if !service::cover_is_in_use(&state.pool, &cover_id).await {
         covers::service::delete_cover(

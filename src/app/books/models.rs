@@ -52,7 +52,7 @@ pub struct Book {
     pub metadata_id: Option<String>,
     pub cover_id: Option<String>,
     pub state_id: String,
-    pub sync_id: String,
+    pub book_sync_id: String,
 }
 
 #[derive(TryFromMultipart)]

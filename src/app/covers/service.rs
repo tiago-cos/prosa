@@ -24,7 +24,7 @@ pub async fn write_cover(
 
     let hash = BASE64_STANDARD.encode(Sha256::digest(cover_data));
 
-    let lock = lock_manager.get_lock(&hash).await;
+    let lock = lock_manager.get_hash_lock(&hash).await;
     let _guard = lock.write().await;
 
     if let Some(cover_id) = data::get_cover_by_hash(pool, &hash).await {

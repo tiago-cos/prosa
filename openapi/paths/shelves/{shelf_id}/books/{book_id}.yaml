@@ -18,7 +18,7 @@ delete:
     "403":
       $ref: ../../../../components/responses/Forbidden.yaml
     "404":
-      description: The shelf or book was not found, or the book is not in the shelf.
+      description: The shelf was not found, or the book is not in the shelf.
    
   security:
     - prosaToken: []

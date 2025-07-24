@@ -1,0 +1,204 @@
+use crate::app::{
+    authentication::models::{AuthError, AuthRole, AuthToken, CREATE, DELETE, READ, UPDATE},
+    books::{self, models::BookError},
+    error::ProsaError,
+    shelves::{
+        self,
+        models::{AddBookToShelfRequest, CreateShelfRequest, ShelfBookError, ShelfError},
+    },
+    users, Pool,
+};
+use axum::{
+    body::{to_bytes, Body},
+    extract::{FromRequest, Path, Query, Request, State},
+    middleware::Next,
+    response::IntoResponse,
+    Extension, Json,
+};
+use std::collections::HashMap;
+
+async fn user_id_matches(user_id: &str, token: &AuthToken) -> bool {
+    let token_user_id = match &token.role {
+        AuthRole::Admin(_) => return true,
+        AuthRole::User(id) => id,
+    };
+
+    user_id == token_user_id
+}
+
+pub async fn can_create_shelf(
+    Extension(token): Extension<AuthToken>,
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, ProsaError> {
+    if !token.capabilities.contains(&CREATE.to_string()) {
+        return Err(AuthError::Forbidden.into());
+    }
+
+    let (parts, body) = request.into_parts();
+    let body_bytes = to_bytes(body, 1000).await.expect("Failed to parse request");
+    let request1 = Request::from_parts(parts.clone(), Body::from(body_bytes.clone()));
+    let request2 = Request::from_parts(parts, Body::from(body_bytes));
+
+    let Json(payload): Json<CreateShelfRequest> = match Json::from_request(request1, &()).await {
+        Ok(p) => p,
+        Err(_) => return Err(ShelfError::InvalidShelfRequest.into()),
+    };
+
+    if !user_id_matches(&payload.owner_id, &token).await {
+        return Err(AuthError::Forbidden.into());
+    }
+
+    Ok(next.run(request2).await)
+}
+
+pub async fn can_read_shelf(
+    Extension(token): Extension<AuthToken>,
+    Path(shelf_id): Path<String>,
+    State(pool): State<Pool>,
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, ProsaError> {
+    if !token.capabilities.contains(&READ.to_string()) {
+        return Err(AuthError::Forbidden.into());
+    }
+
+    let shelf = shelves::service::get_shelf(&pool, &shelf_id).await?;
+
+    if !user_id_matches(&shelf.owner_id, &token).await {
+        return Err(ShelfError::ShelfNotFound.into());
+    }
+
+    Ok(next.run(request).await)
+}
+
+pub async fn can_update_shelf(
+    Extension(token): Extension<AuthToken>,
+    Path(shelf_id): Path<String>,
+    State(pool): State<Pool>,
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, ProsaError> {
+    if !token.capabilities.contains(&UPDATE.to_string()) {
+        return Err(AuthError::Forbidden.into());
+    }
+
+    let shelf = shelves::service::get_shelf(&pool, &shelf_id).await?;
+
+    if !user_id_matches(&shelf.owner_id, &token).await {
+        return Err(ShelfError::ShelfNotFound.into());
+    }
+
+    Ok(next.run(request).await)
+}
+
+pub async fn can_delete_shelf(
+    Extension(token): Extension<AuthToken>,
+    Path(shelf_id): Path<String>,
+    State(pool): State<Pool>,
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, ProsaError> {
+    if !token.capabilities.contains(&DELETE.to_string()) {
+        return Err(AuthError::Forbidden.into());
+    }
+
+    let shelf = shelves::service::get_shelf(&pool, &shelf_id).await?;
+
+    if !user_id_matches(&shelf.owner_id, &token).await {
+        return Err(ShelfError::ShelfNotFound.into());
+    }
+
+    Ok(next.run(request).await)
+}
+
+pub async fn can_search_shelves(
+    Extension(token): Extension<AuthToken>,
+    Query(params): Query<HashMap<String, String>>,
+    State(pool): State<Pool>,
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, ProsaError> {
+    if !token.capabilities.contains(&READ.to_string()) {
+        return Err(AuthError::Forbidden.into());
+    }
+
+    let user_id = match params.get("username") {
+        None => "".to_string(),
+        Some(u) => users::service::get_user_by_username(&pool, u).await?.user_id,
+    };
+
+    if !user_id_matches(&user_id, &token).await {
+        return Err(AuthError::Forbidden.into());
+    }
+
+    Ok(next.run(request).await)
+}
+
+pub async fn can_add_book_to_shelf(
+    Extension(token): Extension<AuthToken>,
+    Path(shelf_id): Path<String>,
+    State(pool): State<Pool>,
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, ProsaError> {
+    if !token.capabilities.contains(&UPDATE.to_string()) {
+        return Err(AuthError::Forbidden.into());
+    }
+
+    let shelf = shelves::service::get_shelf(&pool, &shelf_id).await?;
+
+    if !user_id_matches(&shelf.owner_id, &token).await {
+        return Err(ShelfError::ShelfNotFound.into());
+    }
+
+    let (parts, body) = request.into_parts();
+    let body_bytes = to_bytes(body, 1000).await.expect("Failed to parse request");
+    let request1 = Request::from_parts(parts.clone(), Body::from(body_bytes.clone()));
+    let request2 = Request::from_parts(parts, Body::from(body_bytes));
+
+    let Json(payload): Json<AddBookToShelfRequest> = match Json::from_request(request1, &()).await {
+        Ok(p) => p,
+        Err(_) => return Err(ShelfError::InvalidShelfRequest.into()),
+    };
+
+    let book = books::service::get_book(&pool, &payload.book_id).await?;
+
+    if !user_id_matches(&book.owner_id, &token).await {
+        return Err(BookError::BookNotFound.into());
+    }
+
+    if &book.owner_id != &shelf.owner_id {
+        return Err(AuthError::Forbidden.into());
+    }
+
+    Ok(next.run(request2).await)
+}
+
+pub async fn can_delete_book_from_shelf(
+    Extension(token): Extension<AuthToken>,
+    Path((shelf_id, book_id)): Path<(String, String)>,
+    State(pool): State<Pool>,
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, ProsaError> {
+    if !token.capabilities.contains(&UPDATE.to_string()) {
+        return Err(AuthError::Forbidden.into());
+    }
+
+    let shelf = shelves::service::get_shelf(&pool, &shelf_id).await?;
+
+    if !user_id_matches(&shelf.owner_id, &token).await {
+        return Err(ShelfError::ShelfNotFound.into());
+    }
+
+    let book = books::service::get_book(&pool, &book_id)
+        .await
+        .map_err(|_| ShelfBookError::ShelfBookNotFound)?;
+
+    if !user_id_matches(&book.owner_id, &token).await {
+        return Err(ShelfBookError::ShelfBookNotFound.into());
+    }
+
+    Ok(next.run(request).await)
+}

@@ -25,7 +25,7 @@ pub async fn get_metadata_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let lock = state.lock_manager.get_lock(&book_id).await;
+    let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.read().await;
 
     let book = books::service::get_book(&state.pool, &book_id).await?;
@@ -45,11 +45,11 @@ pub async fn add_metadata_handler(
     Path(book_id): Path<String>,
     Json(metadata): Json<Metadata>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let lock = state.lock_manager.get_lock(&book_id).await;
+    let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
     let mut book = books::service::get_book(&state.pool, &book_id).await?;
-    let sync_id = book.sync_id.clone();
+    let book_sync_id = book.book_sync_id.clone();
 
     let metadata_id = match book.metadata_id {
         None => service::add_metadata(&state.pool, metadata).await?,
@@ -59,7 +59,7 @@ pub async fn add_metadata_handler(
     book.metadata_id = Some(metadata_id);
     books::service::update_book(&state.pool, &book_id, book).await?;
 
-    sync::service::update_metadata_timestamp(&state.pool, &sync_id).await;
+    sync::service::update_book_metadata_timestamp(&state.pool, &book_sync_id).await;
 
     Ok((StatusCode::NO_CONTENT, ()))
 }
@@ -68,7 +68,7 @@ pub async fn delete_metadata_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let lock = state.lock_manager.get_lock(&book_id).await;
+    let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
     let book = books::service::get_book(&state.pool, &book_id).await?;
@@ -80,7 +80,7 @@ pub async fn delete_metadata_handler(
 
     service::delete_metadata(&state.pool, &metadata_id).await?;
 
-    sync::service::update_metadata_timestamp(&state.pool, &book.sync_id).await;
+    sync::service::update_book_metadata_timestamp(&state.pool, &book.book_sync_id).await;
 
     Ok((StatusCode::NO_CONTENT, ()))
 }
@@ -90,11 +90,11 @@ pub async fn patch_metadata_handler(
     Path(book_id): Path<String>,
     Json(metadata): Json<Metadata>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let lock = state.lock_manager.get_lock(&book_id).await;
+    let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
     let book = books::service::get_book(&state.pool, &book_id).await?;
-    let sync_id = book.sync_id.clone();
+    let book_sync_id = book.book_sync_id.clone();
 
     let metadata_id = match book.metadata_id {
         None => return Err(MetadataError::MetadataNotFound.into()),
@@ -103,7 +103,7 @@ pub async fn patch_metadata_handler(
 
     service::patch_metadata(&state.pool, &metadata_id, metadata).await?;
 
-    sync::service::update_metadata_timestamp(&state.pool, &sync_id).await;
+    sync::service::update_book_metadata_timestamp(&state.pool, &book_sync_id).await;
 
     Ok((StatusCode::NO_CONTENT, ()))
 }
@@ -113,11 +113,11 @@ pub async fn update_metadata_handler(
     Path(book_id): Path<String>,
     Json(metadata): Json<Metadata>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let lock = state.lock_manager.get_lock(&book_id).await;
+    let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
     let book = books::service::get_book(&state.pool, &book_id).await?;
-    let sync_id = book.sync_id.clone();
+    let book_sync_id = book.book_sync_id.clone();
 
     let metadata_id = match book.metadata_id {
         None => return Err(MetadataError::MetadataNotFound.into()),
@@ -126,7 +126,7 @@ pub async fn update_metadata_handler(
 
     service::update_metadata(&state.pool, &metadata_id, metadata).await?;
 
-    sync::service::update_metadata_timestamp(&state.pool, &sync_id).await;
+    sync::service::update_book_metadata_timestamp(&state.pool, &book_sync_id).await;
 
     Ok((StatusCode::NO_CONTENT, ()))
 }

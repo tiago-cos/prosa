@@ -1,74 +1,45 @@
 post:
   tags:
     - Book
-  summary: "Add books to a shelf"
+  summary: "Add book to a shelf"
   description: |
-    Add one or more books to the specified shelf.
+    Add a single book to the specified shelf.
     Only the shelf's owner or an admin can perform this operation.
-  operationId: addBooksToShelf
+    
+    **Note:** Even if you are an admin, you cannot add a book that the user does not own to one of their shelves. 
+    In such cases, the operation will be rejected with a `403 Forbidden` response.
+  operationId: addBookToShelf
   parameters:
     - $ref: ../../../components/parameters/shelf_id.yaml
 
   requestBody:
     required: true
-    description: Array of book UUIDs to add to the shelf.
+    description: UUID of the book to add to the shelf.
     content:
       application/json:
         schema:
           type: object
           properties:
-            book_ids:
-              type: array
-              items:
-                type: string
-                format: uuid
-              description: List of book UUIDs to add.
+            book_id:
+              type: string
+              format: uuid
+              description: UUID of the book to add.
           required:
-            - book_ids
+            - book_id
         example:
-          book_ids:
-            - "8f2a8b48-42fb-4391-87d9-293adbe22d4b"
-            - "4c62ce06-8585-42eb-87a4-43f03a944baa"
-            - "cab0dfac-07e8-4e61-a79c-dfca7b571972"
+          book_id: "8f2a8b48-42fb-4391-87d9-293adbe22d4b"
 
   responses:
-    "200":
-      description: The books were successfully added to the shelf.
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              added:
-                type: array
-                items:
-                  type: string
-                  format: uuid
-                description: List of book IDs that were successfully added.
-              skipped:
-                type: array
-                items:
-                  type: string
-                  format: uuid
-                description: List of book IDs that were already present or invalid.
-            required:
-              - added
-              - skipped
-          examples:
-            result:
-              summary: Example response
-              value:
-                added:
-                  - "8f2a8b48-42fb-4391-87d9-293adbe22d4b"
-                  - "4c62ce06-8585-42eb-87a4-43f03a944baa"
-                skipped:
-                  - "cab0dfac-07e8-4e61-a79c-dfca7b571972"
+    "204":
+      description: The book was succesfully added to the shelf.
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
     "403":
       $ref: ../../../components/responses/Forbidden.yaml
     "404":
-      $ref: ../../../components/responses/shelves/ShelfNotFound.yaml
+      description: The requested book or shelf was not found or cannot be accessed.
+    "409":
+      description: The provided book is already present in this shelf.
 
   security:
     - prosaToken: []
@@ -91,23 +62,17 @@ get:
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              book_ids:
-                type: array
-                items:
-                  type: string
-                  format: uuid
-                description: List of book UUIDs.
-            required:
-              - book_ids
+            type: array
+            items:
+              type: string
+              format: uuid
+            description: List of book UUIDs.
           examples:
             success:
               summary: Example list of books in shelf
               value:
-                book_ids:
-                  - "2fa53248-7516-4269-8783-845751a9084c"
-                  - "c5e2f477-e8a3-4761-ad8a-b82e697a4b0c"
+                - "2fa53248-7516-4269-8783-845751a9084c"
+                - "c5e2f477-e8a3-4761-ad8a-b82e697a4b0c"
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
     "403":

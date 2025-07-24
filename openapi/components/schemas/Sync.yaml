@@ -1,39 +1,79 @@
 type: object
-description: Contains the IDs of books whose data has changed since the last sync.
+description: Contains the IDs of items whose data has changed since the last sync.
+required:
+  - book
+  - shelf
 properties:
-  file:
-    type: array
-    items:
-      type: string
-      format: uuid
-    example: ["2c5f1d4d-3b9d-4b9d-3b9d-4b9d3b9d3b9d"]
+  book:
+    type: object
+    required:
+      - file
+      - metadata
+      - cover
+      - state
+      - deleted
+    properties:
+      file:
+        type: array
+        items:
+          type: string
+          format: uuid
+        example: ["2c5f1d4d-3b9d-4b9d-3b9d-4b9d3b9d3b9d"]
 
-  metadata:
-    type: array
-    items:
-      type: string
-      format: uuid
-    example: ["2c5f1d4d-3b9d-4b9d-3b9d-4b9d3b9d3b9d", "9c3b8d7f-1a9d-2c9b-3d5f-4a9c8d7f1b2c", "2fe539ab-0d70-4896-9fd9-fca82e5a3237"]
+      metadata:
+        type: array
+        items:
+          type: string
+          format: uuid
+        example: ["2c5f1d4d-3b9d-4b9d-3b9d-4b9d3b9d3b9d", "9c3b8d7f-1a9d-2c9b-3d5f-4a9c8d7f1b2c", "2fe539ab-0d70-4896-9fd9-fca82e5a3237"]
 
-  cover:
-    type: array
-    items:
-      type: string
-      format: uuid
-    example: ["2c5f1d4d-3b9d-4b9d-3b9d-4b9d3b9d3b9d", "8c3b8d7f-1a9d-2c9b-3d5f-4a9c8d7f1b2c"]
+      cover:
+        type: array
+        items:
+          type: string
+          format: uuid
+        example: ["2c5f1d4d-3b9d-4b9d-3b9d-4b9d3b9d3b9d", "8c3b8d7f-1a9d-2c9b-3d5f-4a9c8d7f1b2c"]
 
-  state:
-    type: array
-    items:
-      type: string
-      format: uuid
-    example: ["2c5f1d4d-3b9d-4b9d-3b9d-4b9d3b9d3b9d"]
+      state:
+        type: array
+        items:
+          type: string
+          format: uuid
+        example: ["2c5f1d4d-3b9d-4b9d-3b9d-4b9d3b9d3b9d"]
 
-  deleted:
-    type: array
-    items:
-      type: string
-      format: uuid
-    example: ["3ac123d4b-8c9d-4c9b-3a9d-2d4b9c3a5f3b", "46858af9-6348-4f4b-82f6-f02ca69b58e4"]
-    
+      deleted:
+        type: array
+        items:
+          type: string
+          format: uuid
+        example: ["3ac123d4b-8c9d-4c9b-3a9d-2d4b9c3a5f3b", "46858af9-6348-4f4b-82f6-f02ca69b58e4"]
+
+  shelf:
+    type: object
+    required:
+      - metadata
+      - contents
+      - deleted
+    properties:
+      metadata:
+        type: array
+        items:
+          type: string
+          format: uuid
+        example: ["a1f2e3d4-5678-9abc-def0-1234567890ab"]
+
+      contents:
+        type: array
+        items:
+          type: string
+          format: uuid
+        example: ["b2e3f4a5-6789-0abc-def1-2345678901bc"]
+
+      deleted:
+        type: array
+        items:
+          type: string
+          format: uuid
+        example: ["c3d4e5b6-7890-1abc-def2-3456789012cd", "55439f34-af36-4ed6-b2f0-742bb4625ed1"]
+
 additionalProperties: false

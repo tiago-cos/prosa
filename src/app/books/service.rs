@@ -65,3 +65,7 @@ pub async fn epub_is_in_use(pool: &SqlitePool, epub_id: &str) -> bool {
     let books = data::get_books_by_epub(pool, epub_id).await;
     !books.is_empty()
 }
+
+pub async fn epub_is_in_use_by_user(pool: &SqlitePool, epub_id: &str, user_id: &str) -> bool {
+    data::epub_belongs_to_user(pool, epub_id, user_id).await
+}

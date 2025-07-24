@@ -1,4 +1,4 @@
-pub mod data;
+mod data;
 mod handlers;
 pub mod models;
 pub mod routes;

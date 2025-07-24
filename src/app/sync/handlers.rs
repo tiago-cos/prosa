@@ -1,5 +1,7 @@
 use super::{models::SyncError, service};
-use crate::app::{authentication::models::AuthToken, error::ProsaError, Pool};
+use crate::app::{
+    authentication::models::AuthToken, error::ProsaError, sync::models::UnsyncedResponse, Pool,
+};
 use axum::{
     extract::{Query, State},
     response::IntoResponse,
@@ -31,6 +33,7 @@ pub async fn get_unsynced_handler(
         Some(s) => s,
     };
 
-    let unsynced = service::get_unsynced(&pool, &user_id, since).await?;
-    Ok(Json(unsynced))
+    let book = service::get_unsynced_books(&pool, &user_id, since).await?;
+    let shelf = service::get_unsynced_shelves(&pool, &user_id, since).await?;
+    Ok(Json(UnsyncedResponse { book, shelf }))
 }

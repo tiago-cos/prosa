@@ -3,17 +3,24 @@ get:
     - Sync
   summary: "Sync device"
   description: |
-    Returns a list of book IDs belonging to a given user that have changed since the last sync, categorized into four groups:  
+    Returns a list of book and shelf IDs belonging to a given user that have changed since the last sync. Results are categorized into two top-level groups: `book` and `shelf`.
 
+    **Book categories:**
     - `file`: Newly added books.  
     - `metadata`: Books with updated metadata.  
     - `cover`: Books with updated covers.  
-    - `state`: Books with updated state.
+    - `state`: Books with updated state.  
     - `deleted`: Books that have been removed.
+
+    **Shelf categories:**
+    - `metadata`: Shelves with updated metadata.  
+    - `contents`: Shelves with updated contents.  
+    - `deleted`: Shelves that have been removed.
 
     If no user is specified, the user will be extracted from the authentication process.
 
     **Note:** Only admin users are allowed to retrieve sync information for other users.
+
   operationId: sync
   parameters:
     - name: user_id

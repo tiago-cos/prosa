@@ -50,6 +50,51 @@ get:
     - prosaToken: []
     - apiKey: []
 
+put:
+  tags:
+    - Shelf
+  summary: "Update shelf name"
+  description: |
+    Update the name of a specific shelf by its ID.
+    Only the shelf's owner or an admin can perform this operation.
+  operationId: updateShelfName
+  parameters:
+    - $ref: ../../components/parameters/shelf_id.yaml
+
+  requestBody:
+    required: true
+    description: The new name for the shelf.
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            name:
+              type: string
+              description: The new name to assign to the shelf.
+          required:
+            - name
+        example:
+          name: "Sci-Fi Favorites"
+
+  responses:
+    "204":
+      description: Shelf name updated successfully.
+    "400":
+      description: The provided shelf name is invalid.
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml
+    "404":
+      $ref: ../../components/responses/shelves/ShelfNotFound.yaml
+    "409":
+      $ref: ../../components/responses/shelves/ShelfConflict.yaml
+
+  security:
+    - prosaToken: []
+    - apiKey: []
+
 delete:
   tags:
     - Shelf

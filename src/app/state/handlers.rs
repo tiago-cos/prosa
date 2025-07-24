@@ -11,7 +11,7 @@ pub async fn get_state_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let lock = state.lock_manager.get_lock(&book_id).await;
+    let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.read().await;
 
     let book = books::service::get_book(&state.pool, &book_id).await?;
@@ -25,7 +25,7 @@ pub async fn patch_state_handler(
     Path(book_id): Path<String>,
     Json(state): Json<models::State>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let lock = app_state.lock_manager.get_lock(&book_id).await;
+    let lock = app_state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
     let book = books::service::get_book(&app_state.pool, &book_id).await?;
@@ -40,7 +40,7 @@ pub async fn patch_state_handler(
     )
     .await?;
 
-    sync::service::update_state_timestamp(&app_state.pool, &book.sync_id).await;
+    sync::service::update_state_timestamp(&app_state.pool, &book.book_sync_id).await;
 
     Ok((StatusCode::NO_CONTENT, ()))
 }
@@ -50,7 +50,7 @@ pub async fn update_state_handler(
     Path(book_id): Path<String>,
     Json(state): Json<models::State>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let lock = app_state.lock_manager.get_lock(&book_id).await;
+    let lock = app_state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
     let book = books::service::get_book(&app_state.pool, &book_id).await?;
@@ -65,7 +65,7 @@ pub async fn update_state_handler(
     )
     .await?;
 
-    sync::service::update_state_timestamp(&app_state.pool, &book.sync_id).await;
+    sync::service::update_state_timestamp(&app_state.pool, &book.book_sync_id).await;
 
     Ok((StatusCode::NO_CONTENT, ()))
 }

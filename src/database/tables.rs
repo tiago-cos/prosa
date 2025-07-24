@@ -58,23 +58,23 @@ pub async fn create_tables(pool: &SqlitePool) {
             metadata_id TEXT,
             cover_id TEXT,
             state_id TEXT NOT NULL,
-            sync_id TEXT NOT NULL,
+            book_sync_id TEXT NOT NULL,
             FOREIGN KEY(epub_id) REFERENCES epubs(epub_id) ON DELETE CASCADE,
             FOREIGN KEY(metadata_id) REFERENCES metadata(metadata_id) ON DELETE SET NULL,
             FOREIGN KEY(cover_id) REFERENCES covers(cover_id) ON DELETE SET NULL,
             FOREIGN KEY(owner_id) REFERENCES users(user_id) ON DELETE CASCADE,
             FOREIGN KEY(state_id) REFERENCES state(state_id) ON DELETE CASCADE,
-            FOREIGN KEY(sync_id) REFERENCES sync(sync_id) ON DELETE CASCADE,
+            FOREIGN KEY(book_sync_id) REFERENCES book_sync(book_sync_id) ON DELETE CASCADE,
             UNIQUE(epub_id, owner_id)
         );
 
         CREATE TABLE IF NOT EXISTS deleted_books (
             book_id TEXT NOT NULL PRIMARY KEY,
-            sync_id TEXT NOT NULL,
+            book_sync_id TEXT NOT NULL,
             owner_id TEXT NOT NULL,
-            FOREIGN KEY(sync_id) REFERENCES sync(sync_id) ON DELETE CASCADE,
+            FOREIGN KEY(book_sync_id) REFERENCES book_sync(book_sync_id) ON DELETE CASCADE,
             FOREIGN KEY(owner_id) REFERENCES users(user_id) ON DELETE CASCADE,
-            UNIQUE(book_id, sync_id)
+            UNIQUE(book_id, book_sync_id)
         );
 
         CREATE TABLE IF NOT EXISTS epubs (
@@ -142,13 +142,13 @@ pub async fn create_tables(pool: &SqlitePool) {
             UNIQUE (book_id, source, start_tag, end_tag, start_char, end_char)
         );
 
-        CREATE TABLE IF NOT EXISTS sync (
-            sync_id TEXT PRIMARY KEY NOT NULL,
+        CREATE TABLE IF NOT EXISTS book_sync (
+            book_sync_id TEXT PRIMARY KEY NOT NULL,
             file DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            metadata DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            cover DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            metadata DATETIME,
+            cover DATETIME,
             state DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            annotations DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            annotations DATETIME,
             deleted DATETIME
         );
         "#,
@@ -156,6 +156,48 @@ pub async fn create_tables(pool: &SqlitePool) {
     .execute(pool)
     .await
     .expect("Failed to create book tables");
+
+    // Shelf tables
+    sqlx::query(
+        r#"
+        CREATE TABLE IF NOT EXISTS shelf_sync (
+            shelf_sync_id TEXT PRIMARY KEY NOT NULL,
+            contents DATETIME,
+            metadata DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            deleted DATETIME
+        );
+
+        CREATE TABLE IF NOT EXISTS shelf (
+            shelf_id TEXT PRIMARY KEY NOT NULL,
+            name TEXT NOT NULL,
+            owner_id TEXT NOT NULL,
+            shelf_sync_id TEXT NOT NULL,
+            FOREIGN KEY(owner_id) REFERENCES users(user_id) ON DELETE CASCADE,
+            FOREIGN KEY(shelf_sync_id) REFERENCES shelf_sync(shelf_sync_id) ON DELETE CASCADE,
+            UNIQUE (owner_id, name)
+        );
+
+        CREATE TABLE IF NOT EXISTS is_in_shelf (
+            shelf_id TEXT NOT NULL,
+            book_id TEXT NOT NULL,
+            PRIMARY KEY(shelf_id, book_id),
+            FOREIGN KEY(shelf_id) REFERENCES shelf(shelf_id) ON DELETE CASCADE,
+            FOREIGN KEY(book_id) REFERENCES books(book_id) ON DELETE CASCADE
+        );
+
+        CREATE TABLE IF NOT EXISTS deleted_shelves (
+            shelf_id TEXT NOT NULL PRIMARY KEY,
+            shelf_sync_id TEXT NOT NULL,
+            owner_id TEXT NOT NULL,
+            FOREIGN KEY(owner_id) REFERENCES users(user_id) ON DELETE CASCADE,
+            FOREIGN KEY(shelf_sync_id) REFERENCES shelf_sync(shelf_sync_id) ON DELETE CASCADE,
+            UNIQUE(shelf_id, shelf_sync_id)
+        );
+        "#,
+    )
+    .execute(pool)
+    .await
+    .expect("Failed to create shelf tables");
 }
 
 pub async fn clear_tables(pool: &SqlitePool) {
@@ -164,6 +206,10 @@ pub async fn clear_tables(pool: &SqlitePool) {
         DROP TABLE IF EXISTS key_capabilities;
         DROP TABLE IF EXISTS providers;
         DROP TABLE IF EXISTS refresh_tokens;
+        DROP TABLE IF EXISTS deleted_shelves;
+        DROP TABLE IF EXISTS shelf_sync;
+        DROP TABLE IF EXISTS shelf;
+        DROP TABLE IF EXISTS is_in_shelf;
         DROP TABLE IF EXISTS books;
         DROP TABLE IF EXISTS deleted_books;
         DROP TABLE IF EXISTS series;
@@ -174,7 +220,7 @@ pub async fn clear_tables(pool: &SqlitePool) {
         DROP TABLE IF EXISTS covers;
         DROP TABLE IF EXISTS metadata;
         DROP TABLE IF EXISTS state;
-        DROP TABLE IF EXISTS sync;
+        DROP TABLE IF EXISTS book_sync;
         DROP TABLE IF EXISTS users;
         "#,
     )

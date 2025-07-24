@@ -25,7 +25,7 @@ pub async fn write_epub(
 
     let hash = BASE64_STANDARD.encode(Sha256::digest(epub_data));
 
-    let lock = lock_manager.get_lock(&hash).await;
+    let lock = lock_manager.get_hash_lock(&hash).await;
     let _guard = lock.write().await;
 
     if let Some(epub_id) = data::get_epub_by_hash(pool, &hash).await {

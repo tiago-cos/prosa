@@ -17,10 +17,25 @@ impl ProsaLockManager {
         }
     }
 
-    pub async fn get_lock(&self, id: &str) -> Arc<RwLock<()>> {
+    pub async fn get_hash_lock(&self, key: &str) -> Arc<RwLock<()>> {
+        let key = format!("hash:{}", key);
+        self.get_lock(&key).await
+    }
+
+    pub async fn get_shelf_lock(&self, key: &str) -> Arc<RwLock<()>> {
+        let key = format!("shelf:{}", key);
+        self.get_lock(&key).await
+    }
+
+    pub async fn get_book_lock(&self, key: &str) -> Arc<RwLock<()>> {
+        let key = format!("book:{}", key);
+        self.get_lock(&key).await
+    }
+
+    pub async fn get_lock(&self, key: &str) -> Arc<RwLock<()>> {
         let mut map = self.locks.lock().await;
 
-        if let Some(weak_lock) = map.get(id) {
+        if let Some(weak_lock) = map.get(key) {
             if let Some(strong_lock) = weak_lock.upgrade() {
                 return strong_lock;
             }
@@ -31,7 +46,7 @@ impl ProsaLockManager {
         }
 
         let new_lock = Arc::new(RwLock::new(()));
-        map.insert(id.to_string(), Arc::downgrade(&new_lock));
+        map.insert(key.to_string(), Arc::downgrade(&new_lock));
         new_lock
     }
 }

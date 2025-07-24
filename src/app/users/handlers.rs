@@ -184,8 +184,6 @@ pub async fn update_preferences_handler(
     Ok((StatusCode::NO_CONTENT, ()))
 }
 
-//TODO sanitize username and shelf name input
-
 pub async fn patch_preferences_handler(
     State(pool): State<Pool>,
     Path(user_id): Path<String>,

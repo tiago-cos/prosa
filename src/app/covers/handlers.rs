@@ -11,7 +11,7 @@ pub async fn get_cover_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let lock = state.lock_manager.get_lock(&book_id).await;
+    let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.read().await;
 
     let book = books::service::get_book(&state.pool, &book_id).await?;
@@ -32,12 +32,12 @@ pub async fn add_cover_handler(
     Path(book_id): Path<String>,
     cover_data: Bytes,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let lock = state.lock_manager.get_lock(&book_id).await;
+    let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
     let mut book = books::service::get_book(&state.pool, &book_id).await?;
     let cover_path = &state.config.book_storage.cover_path;
-    let sync_id = book.sync_id.clone();
+    let book_sync_id = book.book_sync_id.clone();
 
     let cover_id = match book.cover_id {
         None => {
@@ -56,7 +56,7 @@ pub async fn add_cover_handler(
     book.cover_id = Some(cover_id);
     books::service::update_book(&state.pool, &book_id, book).await?;
 
-    sync::service::update_cover_timestamp(&state.pool, &sync_id).await;
+    sync::service::update_cover_timestamp(&state.pool, &book_sync_id).await;
 
     Ok((StatusCode::NO_CONTENT, ()))
 }
@@ -65,12 +65,12 @@ pub async fn delete_cover_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let lock = state.lock_manager.get_lock(&book_id).await;
+    let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
     let mut book = books::service::get_book(&state.pool, &book_id).await?;
     let cover_path = &state.config.book_storage.cover_path;
-    let sync_id = book.sync_id.clone();
+    let book_sync_id = book.book_sync_id.clone();
 
     let cover_id = match book.cover_id {
         None => return Err(CoverError::CoverNotFound.into()),
@@ -84,7 +84,7 @@ pub async fn delete_cover_handler(
         service::delete_cover(&state.pool, cover_path, &cover_id, &state.cache.image_cache).await?;
     }
 
-    sync::service::update_cover_timestamp(&state.pool, &sync_id).await;
+    sync::service::update_cover_timestamp(&state.pool, &book_sync_id).await;
 
     Ok((StatusCode::NO_CONTENT, ()))
 }
@@ -94,12 +94,12 @@ pub async fn update_cover_handler(
     Path(book_id): Path<String>,
     cover_data: Bytes,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let lock = state.lock_manager.get_lock(&book_id).await;
+    let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
     let mut book = books::service::get_book(&state.pool, &book_id).await?;
     let cover_path = &state.config.book_storage.cover_path;
-    let sync_id = book.sync_id.clone();
+    let book_sync_id = book.book_sync_id.clone();
 
     let old_cover_id = match book.cover_id {
         None => return Err(CoverError::CoverNotFound.into()),
@@ -121,7 +121,7 @@ pub async fn update_cover_handler(
         service::delete_cover(&state.pool, cover_path, &old_cover_id, &state.cache.image_cache).await?;
     }
 
-    sync::service::update_cover_timestamp(&state.pool, &sync_id).await;
+    sync::service::update_cover_timestamp(&state.pool, &book_sync_id).await;
 
     Ok((StatusCode::NO_CONTENT, ()))
 }

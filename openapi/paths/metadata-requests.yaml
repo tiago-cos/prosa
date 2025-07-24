@@ -1,6 +1,6 @@
 post:
   tags:
-    - Metadata
+    - Book Metadata
   summary: "Enqueue metadata fetch request"
   description: |
     Enqueue a metadata fetch request for a specific book owned by a user.
@@ -36,7 +36,7 @@ post:
 
 get:
   tags:
-    - Metadata
+    - Book Metadata
   summary: "List metadata fetch requests"
   description: |
     Lists metadata fetch requests.

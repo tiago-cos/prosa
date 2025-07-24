@@ -1,5 +1,5 @@
 use super::{annotations, books, covers, metadata, state, sync, users};
-use crate::app::tracing;
+use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
 use axum::middleware::from_fn;
 use axum::Router;
@@ -65,10 +65,7 @@ pub async fn run(config: Configuration, pool: SqlitePool) {
     let host = format!("{}:{}", &state.config.server.host, &state.config.server.port);
 
     tracing::init_logging();
-    info!(
-        "Server started on http://{}",
-        host.replace("0.0.0.0", "localhost")
-    );
+    info!("Server started on http://{}", host);
 
     let app = Router::new()
         .merge(users::routes::get_routes(state.clone()))
@@ -78,6 +75,7 @@ pub async fn run(config: Configuration, pool: SqlitePool) {
         .merge(sync::routes::get_routes(state.clone()))
         .merge(books::routes::get_routes(state.clone()))
         .merge(annotations::routes::get_routes(state.clone()))
+        .merge(shelves::routes::get_routes(state.clone()))
         .layer(from_fn(tracing::log_layer));
 
     let listener = TcpListener::bind(&host).await.unwrap();
