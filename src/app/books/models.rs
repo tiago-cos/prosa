@@ -57,7 +57,7 @@ pub struct Book {
 
 #[derive(TryFromMultipart)]
 pub struct UploadBoodRequest {
-    pub owner_id: String,
+    pub owner_id: Option<String>,
     #[form_data(limit = "30MiB")]
     pub epub: Bytes,
 }

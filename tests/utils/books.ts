@@ -20,11 +20,15 @@ function preloadFiles() {
 
 preloadFiles();
 
-export async function uploadBook(owner_id: string, epub_name: string, auth?: { jwt?: string; apiKey?: string }) {
-  const epubBuffer = bookCache[epub_name];
+export async function uploadBook(owner_id?: string, epub_name?: string, auth?: { jwt?: string; apiKey?: string }) {
+  if (epub_name === undefined) throw new Error('EPUB name is required.');
+
+  const epubBuffer = bookCache[epub_name!];
   if (!epubBuffer) throw new Error(`EPUB file not preloaded: ${epub_name}`);
 
-  let req = request(SERVER_URL).post(`/books`).field('owner_id', owner_id);
+  let req = request(SERVER_URL).post(`/books`);
+
+  if (owner_id !== undefined) req = req.field('owner_id', owner_id);
 
   if (auth?.jwt) req = req.auth(auth.jwt, { type: 'bearer' });
   if (auth?.apiKey) req = req.set('api-key', auth.apiKey);

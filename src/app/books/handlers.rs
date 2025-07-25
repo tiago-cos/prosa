@@ -3,14 +3,14 @@ use super::{
     service,
 };
 use crate::app::{
-    books::models::BookFileMetadata, covers, epubs, error::ProsaError, metadata, state, sync, users,
-    AppState, Pool,
+    authentication::models::AuthToken, books::models::BookFileMetadata, covers, epubs, error::ProsaError,
+    metadata, state, sync, users, AppState, Pool,
 };
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
+    Extension, Json,
 };
 use axum_typed_multipart::TypedMultipart;
 use std::collections::HashMap;
@@ -45,10 +45,16 @@ pub async fn get_book_file_metadata_handler(
 }
 
 pub async fn upload_book_handler(
+    Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     TypedMultipart(data): TypedMultipart<UploadBoodRequest>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let preferences = users::service::get_preferences(&state.pool, &data.owner_id).await?;
+    let owner_id = match data.owner_id.as_deref() {
+        Some(id) => id,
+        None => token.role.get_user(),
+    };
+
+    let preferences = users::service::get_preferences(&state.pool, owner_id).await?;
 
     let epub_id = epubs::service::write_epub(
         &state.pool,
@@ -59,7 +65,7 @@ pub async fn upload_book_handler(
     )
     .await?;
 
-    if service::epub_is_in_use_by_user(&state.pool, &epub_id, &data.owner_id).await {
+    if service::epub_is_in_use_by_user(&state.pool, &epub_id, owner_id).await {
         return Err(BookError::BookConflict.into());
     }
 
@@ -67,7 +73,7 @@ pub async fn upload_book_handler(
     let book_sync_id = sync::service::initialize_book_sync(&state.pool).await;
 
     let book = Book {
-        owner_id: data.owner_id.clone(),
+        owner_id: owner_id.to_string(),
         epub_id,
         metadata_id: None,
         cover_id: None,
@@ -84,7 +90,7 @@ pub async fn upload_book_handler(
         state
             .metadata_manager
             .enqueue_request(
-                &data.owner_id,
+                owner_id,
                 &book_id,
                 preferences.metadata_providers.unwrap_or(vec![]),
             )

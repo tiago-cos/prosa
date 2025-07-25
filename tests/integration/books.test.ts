@@ -26,6 +26,23 @@ describe('Upload book JWT', () => {
     expect(downloadedSize).toBeGreaterThan(originalSize);
   });
 
+  test('Implicit owner', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+
+    const uploadResponse = await uploadBook(undefined, 'The_Great_Gatsby.epub', { jwt: registerResponse.body.jwt_token });
+    expect(uploadResponse.status).toBe(200);
+
+    const downloadResponse = await downloadBook(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    expect(downloadResponse.status).toBe(200);
+
+    let epub = path.join(BOOK_DIR, 'The_Great_Gatsby.epub');
+    let originalSize = fs.statSync(epub).size;
+    let downloadedSize = downloadResponse.body.length;
+
+    expect(downloadedSize).toBeGreaterThan(originalSize);
+  });
+
   test('Repeated book', async () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
@@ -117,6 +134,27 @@ describe('Upload book api key', () => {
     expect(createApiKeyResponse.status).toBe(200);
 
     const uploadResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { apiKey: createApiKeyResponse.body.key });
+    expect(uploadResponse.status).toBe(200);
+
+    const downloadResponse = await downloadBook(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+    expect(downloadResponse.status).toBe(200);
+
+    let epub = path.join(BOOK_DIR, 'The_Great_Gatsby.epub');
+    let originalSize = fs.statSync(epub).size;
+    let downloadedSize = downloadResponse.body.length;
+
+    expect(downloadedSize).toBeGreaterThan(originalSize);
+  });
+
+  test('Implicit owner', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read'], undefined, { jwt: registerResponse.body.jwt_token });
+    expect(createApiKeyResponse.status).toBe(200);
+
+    const uploadResponse = await uploadBook(undefined, 'The_Great_Gatsby.epub', { apiKey: createApiKeyResponse.body.key });
     expect(uploadResponse.status).toBe(200);
 
     const downloadResponse = await downloadBook(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });

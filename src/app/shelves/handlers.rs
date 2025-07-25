@@ -1,5 +1,6 @@
 use super::service;
 use crate::app::{
+    authentication::models::AuthToken,
     error::ProsaError,
     shelves::models::{AddBookToShelfRequest, CreateShelfRequest, Shelf, ShelfError, UpdateShelfRequest},
     sync, users, AppState, Pool,
@@ -8,18 +9,24 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
+    Extension, Json,
 };
 use std::collections::HashMap;
 
 pub async fn add_shelf_handler(
+    Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     Json(request): Json<CreateShelfRequest>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    // Verify user exists
-    users::service::get_user(&state.pool, &request.owner_id).await?;
+    let owner_id = match request.owner_id.as_deref() {
+        Some(id) => id,
+        None => token.role.get_user(),
+    };
 
-    if service::get_shelf_by_name_and_owner(&state.pool, &request.name, &request.owner_id)
+    // Verify user exists
+    users::service::get_user(&state.pool, owner_id).await?;
+
+    if service::get_shelf_by_name_and_owner(&state.pool, &request.name, owner_id)
         .await
         .is_some()
     {
@@ -29,7 +36,7 @@ pub async fn add_shelf_handler(
     let shelf_sync_id = sync::service::initialize_shelf_sync(&state.pool).await;
     let shelf = Shelf {
         name: request.name,
-        owner_id: request.owner_id,
+        owner_id: owner_id.to_string(),
         shelf_sync_id,
     };
 

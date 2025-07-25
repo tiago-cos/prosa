@@ -6,6 +6,8 @@ post:
     Upload a book file (EPUB format) to the server. 
     The uploaded file is associated with the specified user.
     The user must be authenticated and have the appropriate permissions.
+  
+    If `owner_id` is not provided, the user will be inferred from the authentication token.
   operationId: uploadBook
   requestBody:
     required: true
@@ -18,7 +20,9 @@ post:
             owner_id:
               type: string
               format: uuid
-              description: The UUID of the user who owns the book.
+              description: |
+                (Optional) The UUID of the user who owns the book.
+                If not specified, the owner is determined from the authenticated user.
             epub:
               type: string
               format: binary
@@ -26,7 +30,6 @@ post:
                 The book file to be uploaded. 
                 Only files in the `application/epub+zip` format are accepted.
           required:
-            - owner_id
             - epub
         example:
           owner_id: "2c5f1d4d-3b9d-4b9d-3b9d-4b9d3b9d3b9d"

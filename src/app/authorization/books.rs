@@ -46,9 +46,10 @@ pub async fn can_create_book(
         .await
         .expect("Failed to parse request");
 
-    if !user_id_matches(&data.owner_id, &token).await {
-        return Err(AuthError::Forbidden.into());
-    }
+    match data.owner_id.as_deref() {
+        Some(id) if !user_id_matches(id, &token).await => return Err(AuthError::Forbidden.into()),
+        _ => (),
+    };
 
     Ok(next.run(request2).await)
 }

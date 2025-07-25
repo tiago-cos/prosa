@@ -7,16 +7,15 @@ export const SHELF_NOT_FOUND = 'The requested shelf does not exist or is not acc
 export const SHELF_BOOK_CONFLICT = 'The provided book is already present in this shelf.';
 export const SHELF_BOOK_NOT_FOUND = 'The provided book does not exist in this shelf, or is not accessible.';
 
-export async function createShelf(name: string, ownerId: string, auth?: { jwt?: string; apiKey?: string }) {
+export async function createShelf(name: string, ownerId?: string, auth?: { jwt?: string; apiKey?: string }) {
   let req = request(SERVER_URL).post(`/shelves`);
 
   if (auth?.jwt) req = req.auth(auth.jwt, { type: 'bearer' });
   if (auth?.apiKey) req = req.set('api-key', auth.apiKey);
 
-  const body = {
-    name,
-    owner_id: ownerId
-  };
+  const body: any = { name };
+
+  if (ownerId !== undefined) body.owner_id = ownerId;
 
   return req.send(body);
 }

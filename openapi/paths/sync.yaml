@@ -17,7 +17,7 @@ get:
     - `contents`: Shelves with updated contents.  
     - `deleted`: Shelves that have been removed.
 
-    If no user is specified, the user will be extracted from the authentication process.
+    If `user_id` is not provided, the user will be inferred from the authentication token.
 
     **Note:** Only admin users are allowed to retrieve sync information for other users.
 

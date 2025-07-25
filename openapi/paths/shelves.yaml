@@ -5,6 +5,8 @@ post:
   description: |
     Create a new shelf for organizing books.
     The request must include the shelf name and the UUID of the owner.
+
+    If `owner_id` is not provided, the user will be inferred from the authentication token.
     If the authenticated user is not an admin, they can only create shelves for themselves.
   operationId: createShelf
   requestBody:
@@ -21,10 +23,11 @@ post:
             owner_id:
               type: string
               format: uuid
-              description: The UUID of the user who owns the shelf.
+              description: |
+                (Optional) The UUID of the user who owns the shelf.
+                If not specified, the owner is determined from the authenticated user.
           required:
             - name
-            - owner_id
         example:
           name: "Fiction Favorites"
           owner_id: "9b6a18d1-6dc1-43dd-b1a2-6888660e9735"

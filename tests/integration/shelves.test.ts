@@ -33,6 +33,21 @@ describe('Create shelf JWT', () => {
     expect(getShelfMetadataResponse.body.book_count).toBe(0);
   });
 
+  test('Implicit owner', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const createShelfResponse = await createShelf('shelf!', undefined, { jwt: registerResponse.body.jwt_token });
+    expect(createShelfResponse.status).toBe(200);
+
+    const getShelfMetadataResponse = await getShelfMetadata(createShelfResponse.text, { jwt: registerResponse.body.jwt_token });
+    expect(getShelfMetadataResponse.status).toBe(200);
+    expect(getShelfMetadataResponse.body.name).toBe('shelf!');
+    expect(getShelfMetadataResponse.body.owner_id).toBe(userId);
+    expect(getShelfMetadataResponse.body.book_count).toBe(0);
+  });
+
   test('Invalid shelf name', async () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
@@ -121,6 +136,24 @@ describe('Create shelf API key', () => {
     expect(createApiKeyResponse.status).toBe(200);
 
     const createShelfResponse = await createShelf('shelf!', userId, { apiKey: createApiKeyResponse.body.key });
+    expect(createShelfResponse.status).toBe(200);
+
+    const getShelfMetadataResponse = await getShelfMetadata(createShelfResponse.text, { jwt: registerResponse.body.jwt_token });
+    expect(getShelfMetadataResponse.status).toBe(200);
+    expect(getShelfMetadataResponse.body.name).toBe('shelf!');
+    expect(getShelfMetadataResponse.body.owner_id).toBe(userId);
+    expect(getShelfMetadataResponse.body.book_count).toBe(0);
+  });
+
+  test('Implicit owner', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create'], undefined, { jwt: registerResponse.body.jwt_token });
+    expect(createApiKeyResponse.status).toBe(200);
+
+    const createShelfResponse = await createShelf('shelf!', undefined, { apiKey: createApiKeyResponse.body.key });
     expect(createShelfResponse.status).toBe(200);
 
     const getShelfMetadataResponse = await getShelfMetadata(createShelfResponse.text, { jwt: registerResponse.body.jwt_token });

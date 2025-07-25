@@ -107,7 +107,7 @@ pub struct PaginatedShelves {
 #[derive(Deserialize)]
 pub struct CreateShelfRequest {
     pub name: String,
-    pub owner_id: String,
+    pub owner_id: Option<String>,
 }
 
 #[derive(Deserialize)]

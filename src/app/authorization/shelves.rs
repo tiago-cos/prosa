@@ -45,9 +45,10 @@ pub async fn can_create_shelf(
         Err(_) => return Err(ShelfError::InvalidShelfRequest.into()),
     };
 
-    if !user_id_matches(&payload.owner_id, &token).await {
-        return Err(AuthError::Forbidden.into());
-    }
+    match payload.owner_id.as_deref() {
+        Some(id) if !user_id_matches(id, &token).await => return Err(AuthError::Forbidden.into()),
+        _ => (),
+    };
 
     Ok(next.run(request2).await)
 }
