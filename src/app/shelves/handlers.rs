@@ -94,8 +94,8 @@ pub async fn search_shelves_handler(
 ) -> Result<impl IntoResponse, ProsaError> {
     if let Some(username) = params.get("username") {
         // Verify user exists
-        users::service::get_user_by_username(&pool, &username).await?;
-    };
+        users::service::get_user_by_username(&pool, username).await?;
+    }
 
     let page = params.get("page").map(|t| t.parse::<i64>());
     let page = match page {
@@ -113,8 +113,8 @@ pub async fn search_shelves_handler(
 
     let shelves = service::search_shelves(
         &pool,
-        params.get("username").map(|s| s.to_string()),
-        params.get("name").map(|s| s.to_string()),
+        params.get("username").map(ToString::to_string),
+        params.get("name").map(ToString::to_string),
         page,
         size,
     )

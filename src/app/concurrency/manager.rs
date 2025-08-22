@@ -18,17 +18,17 @@ impl ProsaLockManager {
     }
 
     pub async fn get_hash_lock(&self, key: &str) -> Arc<RwLock<()>> {
-        let key = format!("hash:{}", key);
+        let key = format!("hash:{key}");
         self.get_lock(&key).await
     }
 
     pub async fn get_shelf_lock(&self, key: &str) -> Arc<RwLock<()>> {
-        let key = format!("shelf:{}", key);
+        let key = format!("shelf:{key}");
         self.get_lock(&key).await
     }
 
     pub async fn get_book_lock(&self, key: &str) -> Arc<RwLock<()>> {
-        let key = format!("book:{}", key);
+        let key = format!("book:{key}");
         self.get_lock(&key).await
     }
 

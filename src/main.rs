@@ -1,3 +1,14 @@
+#![allow(clippy::too_many_arguments)]
+#![allow(clippy::enum_variant_names)]
+#![allow(clippy::module_inception)]
+#![allow(clippy::struct_field_names)]
+#![allow(clippy::cast_possible_truncation)]
+#![allow(clippy::match_bool)]
+#![allow(clippy::unreadable_literal)]
+#![allow(clippy::similar_names)]
+#![allow(clippy::match_same_arms)]
+#![allow(clippy::too_many_lines)]
+
 use config::Configuration;
 use std::path::Path;
 use tokio::fs::create_dir_all;
@@ -11,9 +22,10 @@ mod metadata_manager;
 async fn main() {
     let config = Configuration::new().unwrap();
     let kepubify = Path::new(&config.kepubify.path);
-    if !kepubify.exists() || !kepubify.is_file() {
-        panic!("Kepubify must be present");
-    }
+    assert!(
+        kepubify.exists() && kepubify.is_file(),
+        "Kepubify must be present"
+    );
 
     create_dir_all(&config.book_storage.epub_path).await.unwrap();
     create_dir_all(&config.book_storage.cover_path).await.unwrap();
@@ -21,7 +33,7 @@ async fn main() {
     let db_pool = database::init(&config.database.file_path).await;
 
     println!(
-        r#"
+        r"
  ───────────────────────────
   ____                      
  |  _ \ _ __ ___  ___  __ _ 
@@ -30,7 +42,7 @@ async fn main() {
  |_|   |_|  \___/|___/\__,_|
 
  ───────────────────────────
-        "#
+        "
     );
 
     app::run(config, db_pool).await;

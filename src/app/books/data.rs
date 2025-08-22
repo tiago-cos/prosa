@@ -3,11 +3,11 @@ use sqlx::SqlitePool;
 
 pub async fn get_book(pool: &SqlitePool, book_id: &str) -> Result<Book, BookError> {
     let book: Book = sqlx::query_as(
-        r#"
+        r"
         SELECT owner_id, epub_id, metadata_id, cover_id, state_id, book_sync_id
         FROM books
         WHERE book_id = $1
-        "#,
+        ",
     )
     .bind(book_id)
     .fetch_one(pool)
@@ -18,10 +18,10 @@ pub async fn get_book(pool: &SqlitePool, book_id: &str) -> Result<Book, BookErro
 
 pub async fn add_book(pool: &SqlitePool, book_id: &str, book: Book) -> Result<(), BookError> {
     sqlx::query(
-        r#"
+        r"
         INSERT INTO books (book_id, owner_id, epub_id, metadata_id, cover_id, state_id, book_sync_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7);
-        "#,
+        ",
     )
     .bind(book_id)
     .bind(book.owner_id)
@@ -38,11 +38,11 @@ pub async fn add_book(pool: &SqlitePool, book_id: &str, book: Book) -> Result<()
 
 pub async fn delete_book(pool: &SqlitePool, book_id: &str) -> Result<(), BookError> {
     let book: Book = sqlx::query_as(
-        r#"
+        r"
         SELECT owner_id, epub_id, metadata_id, cover_id, state_id, book_sync_id
         FROM books
         WHERE book_id = $1
-        "#,
+        ",
     )
     .bind(book_id)
     .fetch_one(pool)
@@ -51,10 +51,10 @@ pub async fn delete_book(pool: &SqlitePool, book_id: &str) -> Result<(), BookErr
     let mut tx = pool.begin().await?;
 
     let result = sqlx::query(
-        r#"
+        r"
         DELETE FROM books
         WHERE book_id = $1;
-        "#,
+        ",
     )
     .bind(book_id)
     .execute(&mut *tx)
@@ -65,10 +65,10 @@ pub async fn delete_book(pool: &SqlitePool, book_id: &str) -> Result<(), BookErr
     }
 
     sqlx::query(
-        r#"
+        r"
         INSERT INTO deleted_books (book_id, book_sync_id, owner_id)
         VALUES ($1, $2, $3);
-        "#,
+        ",
     )
     .bind(book_id)
     .bind(book.book_sync_id)
@@ -83,11 +83,11 @@ pub async fn delete_book(pool: &SqlitePool, book_id: &str) -> Result<(), BookErr
 
 pub async fn update_book(pool: &SqlitePool, book_id: &str, book: Book) -> Result<(), BookError> {
     let result = sqlx::query(
-        r#"
+        r"
         UPDATE books
         SET owner_id = $1, epub_id = $2, metadata_id = $3, cover_id = $4, state_id = $5, book_sync_id = $6
         WHERE book_id = $7;
-        "#,
+        ",
     )
     .bind(book.owner_id)
     .bind(book.epub_id)
@@ -108,11 +108,11 @@ pub async fn update_book(pool: &SqlitePool, book_id: &str, book: Book) -> Result
 
 pub async fn get_books_by_cover(pool: &SqlitePool, cover_id: &str) -> Vec<Book> {
     let books: Vec<Book> = sqlx::query_as(
-        r#"
+        r"
         SELECT owner_id, epub_id, metadata_id, cover_id, state_id, book_sync_id
         FROM books
         WHERE cover_id = $1
-        "#,
+        ",
     )
     .bind(cover_id)
     .fetch_all(pool)
@@ -124,11 +124,11 @@ pub async fn get_books_by_cover(pool: &SqlitePool, cover_id: &str) -> Vec<Book> 
 
 pub async fn get_books_by_epub(pool: &SqlitePool, epub_id: &str) -> Vec<Book> {
     let books: Vec<Book> = sqlx::query_as(
-        r#"
+        r"
         SELECT owner_id, epub_id, metadata_id, cover_id, state_id, book_sync_id
         FROM books
         WHERE epub_id = $1
-        "#,
+        ",
     )
     .bind(epub_id)
     .fetch_all(pool)
@@ -151,25 +151,25 @@ pub async fn get_paginated_books(
     let mut bind_params: Vec<String> = Vec::new();
 
     let mut book_query = String::from(
-        r#"
+        r"
         SELECT DISTINCT book_id
         FROM books b
         INNER JOIN users u ON b.owner_id = u.user_id
         LEFT JOIN metadata m ON b.metadata_id = m.metadata_id
         LEFT JOIN contributors c ON b.metadata_id = c.metadata_id
         WHERE 1=1
-        "#,
+        ",
     );
 
     let mut count_query = String::from(
-        r#"
+        r"
         SELECT COUNT(DISTINCT book_id)
         FROM books b
         INNER JOIN users u ON b.owner_id = u.user_id
         LEFT JOIN metadata m ON b.metadata_id = m.metadata_id
         LEFT JOIN contributors c ON b.metadata_id = c.metadata_id
         WHERE 1=1
-        "#,
+        ",
     );
 
     if let Some(name) = username {
@@ -239,11 +239,11 @@ pub async fn get_paginated_books(
 
 pub async fn epub_belongs_to_user(pool: &SqlitePool, epub_id: &str, user_id: &str) -> bool {
     let exists = sqlx::query_scalar::<_, Option<i64>>(
-        r#"
+        r"
         SELECT 1 FROM books
         WHERE epub_id = $1 AND owner_id = $2
         LIMIT 1
-        "#,
+        ",
     )
     .bind(epub_id)
     .bind(user_id)

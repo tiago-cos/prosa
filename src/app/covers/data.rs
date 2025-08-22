@@ -3,12 +3,12 @@ use sqlx::SqlitePool;
 
 pub async fn add_cover(pool: &SqlitePool, cover_id: &str, hash: &str) -> () {
     sqlx::query(
-        r#"
+        r"
         INSERT INTO covers (cover_id, hash) VALUES
         ($1, $2)
-        "#,
+        ",
     )
-    .bind(&cover_id)
+    .bind(cover_id)
     .bind(hash)
     .execute(pool)
     .await
@@ -17,10 +17,10 @@ pub async fn add_cover(pool: &SqlitePool, cover_id: &str, hash: &str) -> () {
 
 pub async fn delete_cover(pool: &SqlitePool, cover_id: &str) -> Result<(), CoverError> {
     let result = sqlx::query(
-        r#"
+        r"
         DELETE FROM covers
         WHERE cover_id = $1
-        "#,
+        ",
     )
     .bind(cover_id)
     .execute(pool)
@@ -36,11 +36,11 @@ pub async fn delete_cover(pool: &SqlitePool, cover_id: &str) -> Result<(), Cover
 
 pub async fn get_cover_by_hash(pool: &SqlitePool, hash: &str) -> Option<String> {
     sqlx::query_scalar(
-        r#"
+        r"
         SELECT cover_id
         FROM covers
         WHERE hash = $1
-        "#,
+        ",
     )
     .bind(hash)
     .fetch_optional(pool)

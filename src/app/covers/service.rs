@@ -18,7 +18,7 @@ pub async fn write_cover(
     lock_manager: &ProsaLockManager,
     image_cache: &ImageCache,
 ) -> Result<String, CoverError> {
-    if !is_valid_image(cover_data).await {
+    if !is_valid_image(cover_data) {
         return Err(CoverError::InvalidCover);
     }
 
@@ -32,7 +32,7 @@ pub async fn write_cover(
     }
 
     let cover_id = Uuid::new_v4().to_string();
-    let cover_file = format!("{}/{}.jpeg", cover_path, cover_id);
+    let cover_file = format!("{cover_path}/{cover_id}.jpeg");
     let mut file = File::create(cover_file)
         .await
         .expect("Failed to create cover file");
@@ -45,8 +45,8 @@ pub async fn write_cover(
 
     data::add_cover(pool, &cover_id, &hash).await;
 
-    let cache_key = format!("images:{}", cover_id);
-    image_cache.insert(cache_key, Arc::new(cover_data.to_vec()));
+    let cache_key = format!("images:{cover_id}");
+    image_cache.insert(cache_key, Arc::new(cover_data.clone()));
 
     Ok(cover_id)
 }
@@ -56,13 +56,12 @@ pub async fn read_cover(
     cover_id: &str,
     image_cache: &ImageCache,
 ) -> Result<Vec<u8>, CoverError> {
-    let cache_key = format!("images:{}", cover_id);
-    match image_cache.get(&cache_key) {
-        Some(image) => return Ok(image.to_vec()),
-        None => (),
-    };
+    let cache_key = format!("images:{cover_id}");
+    if let Some(image) = image_cache.get(&cache_key) {
+        return Ok(image.to_vec());
+    }
 
-    let cover_file = format!("{}/{}.jpeg", cover_path, cover_id);
+    let cover_file = format!("{cover_path}/{cover_id}.jpeg");
 
     let mut file = File::open(cover_file).await?;
     let mut buffer = Vec::new();
@@ -80,21 +79,20 @@ pub async fn delete_cover(
     cover_id: &str,
     image_cache: &ImageCache,
 ) -> Result<(), CoverError> {
-    let cover_file = format!("{}/{}.jpeg", cover_path, cover_id);
+    let cover_file = format!("{cover_path}/{cover_id}.jpeg");
     remove_file(cover_file).await?;
 
-    data::delete_cover(pool, &cover_id).await?;
+    data::delete_cover(pool, cover_id).await?;
 
-    let cache_key = format!("images:{}", cover_id);
+    let cache_key = format!("images:{cover_id}");
     image_cache.remove(&cache_key);
 
     Ok(())
 }
 
-async fn is_valid_image(cover_data: &Vec<u8>) -> bool {
-    match image::guess_format(&cover_data) {
-        Ok(ImageFormat::Png) => true,
-        Ok(ImageFormat::Jpeg) => true,
-        _ => false,
-    }
+fn is_valid_image(cover_data: &[u8]) -> bool {
+    matches!(
+        image::guess_format(cover_data),
+        Ok(ImageFormat::Png | ImageFormat::Jpeg)
+    )
 }

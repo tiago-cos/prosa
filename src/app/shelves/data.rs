@@ -4,11 +4,11 @@ use sqlx::SqlitePool;
 
 pub async fn get_shelf(pool: &SqlitePool, shelf_id: &str) -> Result<Shelf, ShelfError> {
     let shelf: Shelf = sqlx::query_as(
-        r#"
+        r"
         SELECT name, owner_id, shelf_sync_id
         FROM shelf
         WHERE shelf_id = $1
-        "#,
+        ",
     )
     .bind(shelf_id)
     .fetch_one(pool)
@@ -19,11 +19,11 @@ pub async fn get_shelf(pool: &SqlitePool, shelf_id: &str) -> Result<Shelf, Shelf
 
 pub async fn get_shelf_by_name_and_owner(pool: &SqlitePool, name: &str, owner_id: &str) -> Option<Shelf> {
     let result: Option<Shelf> = sqlx::query_as(
-        r#"
+        r"
         SELECT name, owner_id, shelf_sync_id
         FROM shelf
         WHERE name = $1 AND owner_id = $2
-        "#,
+        ",
     )
     .bind(name)
     .bind(owner_id)
@@ -36,10 +36,10 @@ pub async fn get_shelf_by_name_and_owner(pool: &SqlitePool, name: &str, owner_id
 
 pub async fn add_shelf(pool: &SqlitePool, shelf_id: &str, shelf: Shelf) -> Result<(), ShelfError> {
     sqlx::query(
-        r#"
+        r"
         INSERT INTO shelf (shelf_id, name, owner_id, shelf_sync_id)
         VALUES ($1, $2, $3, $4);
-        "#,
+        ",
     )
     .bind(shelf_id)
     .bind(shelf.name)
@@ -53,11 +53,11 @@ pub async fn add_shelf(pool: &SqlitePool, shelf_id: &str, shelf: Shelf) -> Resul
 
 pub async fn delete_shelf(pool: &SqlitePool, shelf_id: &str) -> Result<(), ShelfError> {
     let shelf: Shelf = sqlx::query_as(
-        r#"
+        r"
         SELECT name, owner_id, shelf_sync_id
         FROM shelf
         WHERE shelf_id = $1
-        "#,
+        ",
     )
     .bind(shelf_id)
     .fetch_one(pool)
@@ -66,10 +66,10 @@ pub async fn delete_shelf(pool: &SqlitePool, shelf_id: &str) -> Result<(), Shelf
     let mut tx = pool.begin().await?;
 
     let result = sqlx::query(
-        r#"
+        r"
         DELETE FROM shelf
         WHERE shelf_id = $1;
-        "#,
+        ",
     )
     .bind(shelf_id)
     .execute(&mut *tx)
@@ -80,10 +80,10 @@ pub async fn delete_shelf(pool: &SqlitePool, shelf_id: &str) -> Result<(), Shelf
     }
 
     sqlx::query(
-        r#"
+        r"
         INSERT INTO deleted_shelves (shelf_id, shelf_sync_id, owner_id)
         VALUES ($1, $2, $3);
-        "#,
+        ",
     )
     .bind(shelf_id)
     .bind(shelf.shelf_sync_id)
@@ -98,11 +98,11 @@ pub async fn delete_shelf(pool: &SqlitePool, shelf_id: &str) -> Result<(), Shelf
 
 pub async fn update_shelf(pool: &SqlitePool, shelf_id: &str, name: &str) -> Result<(), ShelfError> {
     let result = sqlx::query(
-        r#"
+        r"
         UPDATE shelf
         SET name = $1
         WHERE shelf_id = $2;
-        "#,
+        ",
     )
     .bind(name)
     .bind(shelf_id)
@@ -128,21 +128,21 @@ pub async fn get_paginated_shelves(
     let mut bind_params: Vec<String> = Vec::new();
 
     let mut shelf_query = String::from(
-        r#"
+        r"
         SELECT DISTINCT shelf_id
         FROM shelf s
         INNER JOIN users u ON s.owner_id = u.user_id
         WHERE 1=1
-        "#,
+        ",
     );
 
     let mut count_query = String::from(
-        r#"
+        r"
         SELECT COUNT(DISTINCT shelf_id)
         FROM shelf s
         INNER JOIN users u ON s.owner_id = u.user_id
         WHERE 1=1
-        "#,
+        ",
     );
 
     if let Some(username) = username {
@@ -202,11 +202,11 @@ pub async fn get_paginated_shelves(
 
 pub async fn get_shelf_book_count(pool: &SqlitePool, shelf_id: &str) -> i64 {
     let count: (i64,) = sqlx::query_as(
-        r#"
+        r"
         SELECT COUNT(book_id)
         FROM is_in_shelf
         WHERE shelf_id = $1
-        "#,
+        ",
     )
     .bind(shelf_id)
     .fetch_one(pool)
@@ -222,10 +222,10 @@ pub async fn add_book_to_shelf(
     book_id: &str,
 ) -> Result<(), ShelfBookError> {
     sqlx::query(
-        r#"
+        r"
         INSERT INTO is_in_shelf (shelf_id, book_id)
         VALUES ($1, $2);
-        "#,
+        ",
     )
     .bind(shelf_id)
     .bind(book_id)
@@ -237,11 +237,11 @@ pub async fn add_book_to_shelf(
 
 pub async fn get_shelf_books(pool: &SqlitePool, shelf_id: &str) -> Vec<String> {
     let books: Vec<String> = sqlx::query_scalar(
-        r#"
+        r"
         SELECT book_id
         FROM is_in_shelf
         WHERE shelf_id = $1
-        "#,
+        ",
     )
     .bind(shelf_id)
     .fetch_all(pool)
@@ -257,10 +257,10 @@ pub async fn delete_book_from_shelf(
     book_id: &str,
 ) -> Result<(), ShelfBookError> {
     let result = sqlx::query(
-        r#"
+        r"
         DELETE FROM is_in_shelf
         WHERE shelf_id = $1 AND book_id = $2
-        "#,
+        ",
     )
     .bind(shelf_id)
     .bind(book_id)

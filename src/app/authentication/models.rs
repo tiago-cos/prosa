@@ -72,7 +72,7 @@ impl AuthRole {
 
 #[derive(Serialize, Deserialize, Clone, PartialEq)]
 pub enum AuthType {
-    JWT,
+    Jwt,
     ApiKey,
 }
 

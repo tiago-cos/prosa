@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 #[async_trait]
 pub trait MetadataProvider: Send + Sync {
-    async fn fetch_metadata(&mut self, epub_data: &Vec<u8>) -> (Option<Metadata>, Option<Vec<u8>>);
+    async fn fetch_metadata(&mut self, epub_data: &[u8]) -> (Option<Metadata>, Option<Vec<u8>>);
 }
 
 pub struct MetadataFetcher {

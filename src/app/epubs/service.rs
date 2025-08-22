@@ -19,7 +19,7 @@ pub async fn write_epub(
     epub_data: &Vec<u8>,
     lock_manager: &ProsaLockManager,
 ) -> Result<String, EpubError> {
-    if !is_valid_epub(epub_data).await {
+    if !is_valid_epub(epub_data) {
         return Err(EpubError::InvalidEpub);
     }
 
@@ -33,7 +33,7 @@ pub async fn write_epub(
     }
 
     let epub_id = Uuid::new_v4().to_string();
-    let epub_file = format!("{}/{}.epub", epub_path, epub_id);
+    let epub_file = format!("{epub_path}/{epub_id}.epub");
     let mut file = File::create(&epub_file)
         .await
         .expect("Failed to create epub file");
@@ -44,7 +44,7 @@ pub async fn write_epub(
 
     file.sync_all().await.expect("Failed to sync epub file");
 
-    convert_to_kepub(kepubify_path, &epub_path, &epub_file).await;
+    convert_to_kepub(kepubify_path, epub_path, &epub_file).await;
 
     data::add_epub(pool, &epub_id, &hash).await;
 
@@ -65,15 +65,13 @@ async fn convert_to_kepub(kepubify_path: &str, epub_path: &str, epub_file: &str)
         .await
         .expect("Failed to convert to kepub");
 
-    if !output.status.success() {
-        panic!("Failed to convert to kepub");
-    }
+    assert!(output.status.success(), "Failed to convert to kepub");
 
     remove_file(epub_file).await.expect("Failed to convert to kepub");
 }
 
 pub async fn get_file_size(epub_path: &str, epub_id: &str) -> u32 {
-    let epub_file = format!("{}/{}.kepub.epub", epub_path, epub_id);
+    let epub_file = format!("{epub_path}/{epub_id}.kepub.epub");
     let metadata = fs::metadata(epub_file)
         .await
         .expect("Failed to get file metadata");
@@ -81,7 +79,7 @@ pub async fn get_file_size(epub_path: &str, epub_id: &str) -> u32 {
 }
 
 pub async fn read_epub(epub_path: &str, epub_id: &str) -> Result<Vec<u8>, EpubError> {
-    let epub_file = format!("{}/{}.kepub.epub", epub_path, epub_id);
+    let epub_file = format!("{epub_path}/{epub_id}.kepub.epub");
     let mut file = File::open(epub_file).await?;
     let mut buffer = Vec::new();
 
@@ -93,15 +91,15 @@ pub async fn read_epub(epub_path: &str, epub_id: &str) -> Result<Vec<u8>, EpubEr
 }
 
 pub async fn delete_epub(pool: &SqlitePool, epub_path: &str, epub_id: &str) -> Result<(), EpubError> {
-    let epub_file = format!("{}/{}.kepub.epub", epub_path, epub_id);
+    let epub_file = format!("{epub_path}/{epub_id}.kepub.epub");
     remove_file(epub_file).await?;
 
-    data::delete_epub(pool, &epub_id).await?;
+    data::delete_epub(pool, epub_id).await?;
 
     Ok(())
 }
 
-async fn is_valid_epub(epub_data: &Vec<u8>) -> bool {
+fn is_valid_epub(epub_data: &Vec<u8>) -> bool {
     if epub_data.is_empty() {
         return false;
     }

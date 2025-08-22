@@ -22,11 +22,11 @@ impl EpubExtractor {
 
 #[async_trait]
 impl MetadataProvider for EpubExtractor {
-    async fn fetch_metadata(&mut self, epub_data: &Vec<u8>) -> (Option<Metadata>, Option<Vec<u8>>) {
+    async fn fetch_metadata(&mut self, epub_data: &[u8]) -> (Option<Metadata>, Option<Vec<u8>>) {
         self.rate_limiter.cooldown().await;
 
         let epub = Cursor::new(epub_data);
-        let mut epub = EpubDoc::from_reader(epub).ok().expect("Failed to open epub");
+        let mut epub = EpubDoc::from_reader(epub).expect("Failed to open epub");
 
         let title = epub.mdata("title");
         let subtitle = epub.mdata("subtitle");
@@ -57,7 +57,7 @@ impl MetadataProvider for EpubExtractor {
             None => None,
         };
 
-        let genres = epub.metadata.get("subject").map(|g| g.to_owned());
+        let genres = epub.metadata.get("subject").map(ToOwned::to_owned);
 
         let publication_date = epub
             .mdata("date")
@@ -110,13 +110,13 @@ fn parse_date(date_str: &str) -> Result<DateTime<Utc>, String> {
         return Ok(d.with_timezone(&Utc));
     }
 
-    for format in datetime_formats.iter() {
+    for format in &datetime_formats {
         if let Ok(d) = NaiveDateTime::parse_from_str(date_str, format) {
             return Ok(DateTime::from_naive_utc_and_offset(d, Utc));
         }
     }
 
-    for format in date_formats.iter() {
+    for format in &date_formats {
         if let Ok(d) = NaiveDate::parse_from_str(date_str, format) {
             if let Some(dt) = d.and_hms_opt(0, 0, 0) {
                 return Ok(dt.and_utc());
@@ -124,5 +124,5 @@ fn parse_date(date_str: &str) -> Result<DateTime<Utc>, String> {
         }
     }
 
-    return Err("Error parsing date".to_string());
+    Err("Error parsing date".to_string())
 }

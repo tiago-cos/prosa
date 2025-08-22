@@ -35,7 +35,7 @@ pub async fn get_shelf_metadata(pool: &SqlitePool, shelf_id: &str) -> Result<She
 }
 
 pub async fn add_shelf(pool: &SqlitePool, shelf: Shelf) -> Result<String, ProsaError> {
-    verify_shelf_name(&shelf.name).await?;
+    verify_shelf_name(&shelf.name)?;
 
     let shelf_id = Uuid::new_v4().to_string();
     data::add_shelf(pool, &shelf_id, shelf).await?;
@@ -44,7 +44,7 @@ pub async fn add_shelf(pool: &SqlitePool, shelf: Shelf) -> Result<String, ProsaE
 }
 
 pub async fn update_shelf(pool: &SqlitePool, shelf_id: &str, name: &str) -> Result<(), ProsaError> {
-    verify_shelf_name(name).await?;
+    verify_shelf_name(name)?;
     data::update_shelf(pool, shelf_id, name).await?;
 
     Ok(())
@@ -63,15 +63,8 @@ pub async fn search_shelves(
     page: Option<i64>,
     page_size: Option<i64>,
 ) -> Result<PaginatedShelves, ProsaError> {
-    let page = match page {
-        None => 1,
-        Some(page) => page,
-    };
-
-    let page_size = match page_size {
-        None => 10,
-        Some(page_size) => page_size,
-    };
+    let page = page.unwrap_or(1);
+    let page_size = page_size.unwrap_or(10);
 
     if page <= 0 || page_size <= 0 {
         return Err(ShelfError::InvalidPagination.into());
@@ -112,8 +105,8 @@ pub async fn delete_book_from_shelf(
     Ok(())
 }
 
-async fn verify_shelf_name(name: &str) -> Result<(), ShelfError> {
-    if !name.chars().all(|c| c >= ' ' && c <= '~') {
+fn verify_shelf_name(name: &str) -> Result<(), ShelfError> {
+    if !name.chars().all(|c| (' '..='~').contains(&c)) {
         return Err(ShelfError::InvalidName);
     }
 

@@ -67,7 +67,7 @@ pub async fn run(config: Configuration, pool: SqlitePool) {
     let host = format!("{}:{}", &state.config.server.host, &state.config.server.port);
 
     tracing::init_logging();
-    info!("Server started on http://{}", host);
+    info!("Server started on http://{host}");
 
     let app = Router::new()
         .route("/health", get(|| async { StatusCode::NO_CONTENT }))

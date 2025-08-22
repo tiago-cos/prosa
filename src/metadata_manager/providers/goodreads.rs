@@ -26,15 +26,14 @@ impl GoodreadsMetadataScraper {
 
 #[async_trait]
 impl MetadataProvider for GoodreadsMetadataScraper {
-    async fn fetch_metadata(&mut self, epub_data: &Vec<u8>) -> (Option<Metadata>, Option<Vec<u8>>) {
+    async fn fetch_metadata(&mut self, epub_data: &[u8]) -> (Option<Metadata>, Option<Vec<u8>>) {
         self.rate_limiter.cooldown().await;
 
         let epub = Cursor::new(epub_data);
         let epub = EpubDoc::from_reader(epub).unwrap();
 
-        let title = match epub.mdata("title") {
-            Some(title) => title,
-            None => return (None, None),
+        let Some(title) = epub.mdata("title") else {
+            return (None, None);
         };
         let author = epub.mdata("creator");
 
@@ -44,14 +43,12 @@ impl MetadataProvider for GoodreadsMetadataScraper {
             None => builder.execute().await,
         };
 
-        let metadata = match metadata {
-            Ok(Some(metadata)) => metadata,
-            _ => return (None, None),
+        let Ok(Some(metadata)) = metadata else {
+            return (None, None);
         };
 
-        let image_url = match &metadata.image_url {
-            Some(url) => url,
-            None => return (Some(metadata.into()), None),
+        let Some(image_url) = &metadata.image_url else {
+            return (Some(metadata.into()), None);
         };
 
         let image = ureq::get(image_url)

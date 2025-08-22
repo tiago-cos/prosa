@@ -16,9 +16,9 @@ use axum::{
     response::IntoResponse,
 };
 use axum_typed_multipart::TypedMultipart;
-use std::{collections::HashMap, usize};
+use std::collections::HashMap;
 
-async fn user_id_matches(user_id: &str, token: &AuthToken) -> bool {
+fn user_id_matches(user_id: &str, token: &AuthToken) -> bool {
     let token_user_id = match &token.role {
         AuthRole::Admin(_) => return true,
         AuthRole::User(id) => id,
@@ -48,9 +48,9 @@ pub async fn can_create_book(
         .expect("Failed to parse request");
 
     match data.owner_id.as_deref() {
-        Some(id) if !user_id_matches(id, &token).await => return Err(AuthError::Forbidden.into()),
+        Some(id) if !user_id_matches(id, &token) => return Err(AuthError::Forbidden.into()),
         _ => (),
-    };
+    }
 
     Ok(next.run(request2).await)
 }
@@ -68,7 +68,7 @@ pub async fn can_read_book(
 
     let book = books::service::get_book(&pool, &book_id).await?;
 
-    if !user_id_matches(&book.owner_id, &token).await {
+    if !user_id_matches(&book.owner_id, &token) {
         return Err(BookError::BookNotFound.into());
     }
 
@@ -87,11 +87,11 @@ pub async fn can_search_books(
     }
 
     let user_id = match params.get("username") {
-        None => "".to_string(),
+        None => String::new(),
         Some(u) => users::service::get_user_by_username(&pool, u).await?.user_id,
     };
 
-    if !user_id_matches(&user_id, &token).await {
+    if !user_id_matches(&user_id, &token) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -111,7 +111,7 @@ pub async fn can_delete_book(
 
     let book = books::service::get_book(&pool, &book_id).await?;
 
-    if !user_id_matches(&book.owner_id, &token).await {
+    if !user_id_matches(&book.owner_id, &token) {
         return Err(BookError::BookNotFound.into());
     }
 
@@ -131,7 +131,7 @@ pub async fn can_update_book(
 
     let book = books::service::get_book(&pool, &book_id).await?;
 
-    if !user_id_matches(&book.owner_id, &token).await {
+    if !user_id_matches(&book.owner_id, &token) {
         return Err(BookError::BookNotFound.into());
     }
 

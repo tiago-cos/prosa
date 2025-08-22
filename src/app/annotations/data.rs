@@ -8,10 +8,10 @@ pub async fn add_annotation(
     annotation: NewAnnotationRequest,
 ) -> Result<(), AnnotationError> {
     sqlx::query(
-        r#"
+        r"
         INSERT INTO annotations (annotation_id, book_id, source, start_tag, end_tag, start_char, end_char, note) VALUES
         ($1, $2, $3, $4, $5, $6, $7, $8)
-        "#,
+        ",
     )
     .bind(annotation_id)
     .bind(book_id)
@@ -29,11 +29,11 @@ pub async fn add_annotation(
 
 pub async fn get_annotation(pool: &SqlitePool, annotation_id: &str) -> Result<Annotation, AnnotationError> {
     let annotation: Annotation = sqlx::query_as(
-        r#"
+        r"
         SELECT annotation_id, source, start_tag, end_tag, start_char, end_char, note
         FROM annotations
         WHERE annotation_id = $1
-        "#,
+        ",
     )
     .bind(annotation_id)
     .fetch_one(pool)
@@ -44,11 +44,11 @@ pub async fn get_annotation(pool: &SqlitePool, annotation_id: &str) -> Result<An
 
 pub async fn get_annotations(pool: &SqlitePool, book_id: &str) -> Vec<String> {
     let annotations: Vec<String> = sqlx::query_scalar(
-        r#"
+        r"
         SELECT annotation_id
         FROM annotations
         WHERE book_id = $1
-        "#,
+        ",
     )
     .bind(book_id)
     .fetch_all(pool)
@@ -60,10 +60,10 @@ pub async fn get_annotations(pool: &SqlitePool, book_id: &str) -> Vec<String> {
 
 pub async fn delete_annotation(pool: &SqlitePool, annotation_id: &str) -> Result<(), AnnotationError> {
     let result = sqlx::query(
-        r#"
+        r"
         DELETE FROM annotations
         WHERE annotation_id = $1
-        "#,
+        ",
     )
     .bind(annotation_id)
     .execute(pool)
@@ -83,11 +83,11 @@ pub async fn patch_annotation(
     note: Option<String>,
 ) -> Result<(), AnnotationError> {
     let result = sqlx::query(
-        r#"
+        r"
         UPDATE annotations
         SET note = $1
         WHERE annotation_id = $2
-        "#,
+        ",
     )
     .bind(note)
     .bind(annotation_id)

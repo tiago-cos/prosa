@@ -35,8 +35,7 @@ pub async fn register_user_handler(
         &user_id,
         is_admin,
         state.config.auth.jwt_token_duration,
-    )
-    .await;
+    );
 
     let refresh_token = authentication::service::generate_refresh_token(
         &state.pool,
@@ -63,8 +62,7 @@ pub async fn login_user_handler(
         &user.user_id,
         user.is_admin,
         state.config.auth.jwt_token_duration,
-    )
-    .await;
+    );
 
     let refresh_token = authentication::service::generate_refresh_token(
         &state.pool,
@@ -100,9 +98,8 @@ pub async fn refresh_token_handler(
     )
     .await?;
 
-    let user = match service::get_user(&state.pool, &refresh_token.user_id).await {
-        Ok(u) => u,
-        Err(_) => return Err(AuthError::InvalidToken.into()),
+    let Ok(user) = service::get_user(&state.pool, &refresh_token.user_id).await else {
+        return Err(AuthError::InvalidToken.into());
     };
 
     let jwt_token = authentication::service::generate_jwt(
@@ -110,8 +107,7 @@ pub async fn refresh_token_handler(
         &user.user_id,
         user.is_admin,
         state.config.auth.jwt_token_duration,
-    )
-    .await;
+    );
 
     Ok(Json(AuthenticationResponse {
         jwt_token,

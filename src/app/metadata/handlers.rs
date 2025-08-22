@@ -159,7 +159,7 @@ pub async fn list_metadata_requests_handler(
     State(state): State<AppState>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let user_id = params.get("user_id").map(|u| u.to_string());
+    let user_id = params.get("user_id").map(ToString::to_string);
     let enqueued = state.metadata_manager.get_enqueued(user_id).await;
 
     Ok(Json(enqueued))

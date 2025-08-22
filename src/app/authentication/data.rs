@@ -9,10 +9,10 @@ pub async fn add_refresh_token(
     expiration: DateTime<Utc>,
 ) -> () {
     sqlx::query(
-        r#"
+        r"
         INSERT INTO refresh_tokens (user_id, refresh_token_hash, expiration)
         VALUES ($1, $2, $3)
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(refresh_token_hash)
@@ -24,14 +24,14 @@ pub async fn add_refresh_token(
 
 pub async fn get_refresh_token_by_hash(pool: &SqlitePool, refresh_token_hash: &str) -> Option<RefreshToken> {
     let token: Option<RefreshToken> = sqlx::query_as(
-        r#"
+        r"
         SELECT 
             user_id,
             refresh_token_hash,
             expiration
         FROM refresh_tokens
         WHERE refresh_token_hash = $1
-        "#,
+        ",
     )
     .bind(refresh_token_hash)
     .fetch_optional(pool)
@@ -43,10 +43,10 @@ pub async fn get_refresh_token_by_hash(pool: &SqlitePool, refresh_token_hash: &s
 
 pub async fn delete_refresh_token(pool: &SqlitePool, token_hash: &str) -> Result<(), AuthError> {
     let result = sqlx::query(
-        r#"
+        r"
         DELETE FROM refresh_tokens
         WHERE refresh_token_hash = $1
-        "#,
+        ",
     )
     .bind(token_hash)
     .execute(pool)

@@ -14,7 +14,7 @@ use axum::{
 };
 use std::collections::HashMap;
 
-async fn user_id_matches(user_id: &str, token: &AuthToken) -> bool {
+fn user_id_matches(user_id: &str, token: &AuthToken) -> bool {
     let token_user_id = match &token.role {
         AuthRole::Admin(_) => return true,
         AuthRole::User(id) => id,
@@ -33,17 +33,14 @@ pub async fn can_list_metadata_requests(
         return Err(AuthError::Forbidden.into());
     }
 
-    let is_admin = match &token.role {
-        AuthRole::Admin(_) => true,
-        _ => false,
-    };
+    let is_admin = matches!(&token.role, AuthRole::Admin(_));
 
     match params.get("user_id") {
-        Some(id) if !user_id_matches(&id, &token).await => return Err(AuthError::Forbidden.into()),
-        Some(id) if user_id_matches(&id, &token).await => return Ok(next.run(request).await),
-        None if is_admin => return Ok(next.run(request).await),
-        _ => return Err(AuthError::Forbidden.into()),
-    };
+        Some(id) if !user_id_matches(id, &token) => Err(AuthError::Forbidden.into()),
+        Some(id) if user_id_matches(id, &token) => Ok(next.run(request).await),
+        None if is_admin => Ok(next.run(request).await),
+        _ => Err(AuthError::Forbidden.into()),
+    }
 }
 
 pub async fn can_add_metadata_request(
@@ -68,7 +65,7 @@ pub async fn can_add_metadata_request(
 
     let book = books::service::get_book(&pool, &payload.book_id).await?;
 
-    if !user_id_matches(&book.owner_id, &token).await {
+    if !user_id_matches(&book.owner_id, &token) {
         return Err(BookError::BookNotFound.into());
     }
 

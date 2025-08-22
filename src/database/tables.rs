@@ -3,7 +3,7 @@ use sqlx::SqlitePool;
 pub async fn create_tables(pool: &SqlitePool) {
     // User tables
     sqlx::query(
-        r#"
+        r"
         CREATE TABLE IF NOT EXISTS users (
             user_id TEXT PRIMARY KEY NOT NULL,
             username TEXT NOT NULL UNIQUE,
@@ -42,7 +42,7 @@ pub async fn create_tables(pool: &SqlitePool) {
             FOREIGN KEY(key_id) REFERENCES api_keys(key_id) ON DELETE CASCADE,
             PRIMARY KEY(key_id, capability)
         );
-        "#,
+        ",
     )
     .execute(pool)
     .await
@@ -50,7 +50,7 @@ pub async fn create_tables(pool: &SqlitePool) {
 
     // Book tables
     sqlx::query(
-        r#"
+        r"
         CREATE TABLE IF NOT EXISTS books (
             book_id TEXT NOT NULL PRIMARY KEY,
             owner_id TEXT NOT NULL,
@@ -151,7 +151,7 @@ pub async fn create_tables(pool: &SqlitePool) {
             annotations DATETIME,
             deleted DATETIME
         );
-        "#,
+        ",
     )
     .execute(pool)
     .await
@@ -159,7 +159,7 @@ pub async fn create_tables(pool: &SqlitePool) {
 
     // Shelf tables
     sqlx::query(
-        r#"
+        r"
         CREATE TABLE IF NOT EXISTS shelf_sync (
             shelf_sync_id TEXT PRIMARY KEY NOT NULL,
             contents DATETIME,
@@ -193,7 +193,7 @@ pub async fn create_tables(pool: &SqlitePool) {
             FOREIGN KEY(shelf_sync_id) REFERENCES shelf_sync(shelf_sync_id) ON DELETE CASCADE,
             UNIQUE(shelf_id, shelf_sync_id)
         );
-        "#,
+        ",
     )
     .execute(pool)
     .await
@@ -202,7 +202,7 @@ pub async fn create_tables(pool: &SqlitePool) {
 
 pub async fn clear_tables(pool: &SqlitePool) {
     sqlx::query(
-        r#"
+        r"
         DROP TABLE IF EXISTS key_capabilities;
         DROP TABLE IF EXISTS providers;
         DROP TABLE IF EXISTS refresh_tokens;
@@ -222,7 +222,7 @@ pub async fn clear_tables(pool: &SqlitePool) {
         DROP TABLE IF EXISTS state;
         DROP TABLE IF EXISTS book_sync;
         DROP TABLE IF EXISTS users;
-        "#,
+        ",
     )
     .execute(pool)
     .await

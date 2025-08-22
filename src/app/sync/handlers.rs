@@ -33,7 +33,7 @@ pub async fn get_unsynced_handler(
         Some(s) => s,
     };
 
-    let book = service::get_unsynced_books(&pool, &user_id, since).await?;
-    let shelf = service::get_unsynced_shelves(&pool, &user_id, since).await?;
+    let book = service::get_unsynced_books(&pool, user_id, since).await?;
+    let shelf = service::get_unsynced_shelves(&pool, user_id, since).await?;
     Ok(Json(UnsyncedResponse { book, shelf }))
 }

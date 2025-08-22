@@ -9,7 +9,7 @@ use axum::{
     response::IntoResponse,
 };
 
-async fn user_id_matches(user_id: &str, token: AuthToken) -> bool {
+fn user_id_matches(user_id: &str, token: AuthToken) -> bool {
     let token_user_id = match token.role {
         AuthRole::Admin(_) => return true,
         AuthRole::User(id) => id,
@@ -24,7 +24,7 @@ pub async fn can_create_api_key(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if token.auth_type != AuthType::JWT {
+    if token.auth_type != AuthType::Jwt {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -32,7 +32,7 @@ pub async fn can_create_api_key(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !user_id_matches(&user_id, token).await {
+    if !user_id_matches(&user_id, token) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -45,7 +45,7 @@ pub async fn can_read_api_key(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if token.auth_type != AuthType::JWT {
+    if token.auth_type != AuthType::Jwt {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -53,7 +53,7 @@ pub async fn can_read_api_key(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !user_id_matches(&user_id, token).await {
+    if !user_id_matches(&user_id, token) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -66,7 +66,7 @@ pub async fn can_read_api_keys(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if token.auth_type != AuthType::JWT {
+    if token.auth_type != AuthType::Jwt {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -74,7 +74,7 @@ pub async fn can_read_api_keys(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !user_id_matches(&user_id, token).await {
+    if !user_id_matches(&user_id, token) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -87,7 +87,7 @@ pub async fn can_delete_api_key(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if token.auth_type != AuthType::JWT {
+    if token.auth_type != AuthType::Jwt {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -95,7 +95,7 @@ pub async fn can_delete_api_key(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !user_id_matches(&user_id, token).await {
+    if !user_id_matches(&user_id, token) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -108,7 +108,7 @@ pub async fn can_update_preferences(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if token.auth_type != AuthType::JWT {
+    if token.auth_type != AuthType::Jwt {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -116,7 +116,7 @@ pub async fn can_update_preferences(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !user_id_matches(&user_id, token).await {
+    if !user_id_matches(&user_id, token) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -129,7 +129,7 @@ pub async fn can_read_preferences(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if token.auth_type != AuthType::JWT {
+    if token.auth_type != AuthType::Jwt {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -137,7 +137,7 @@ pub async fn can_read_preferences(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !user_id_matches(&user_id, token).await {
+    if !user_id_matches(&user_id, token) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -150,7 +150,7 @@ pub async fn can_read_profile(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if token.auth_type != AuthType::JWT {
+    if token.auth_type != AuthType::Jwt {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -158,7 +158,7 @@ pub async fn can_read_profile(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !user_id_matches(&user_id, token).await {
+    if !user_id_matches(&user_id, token) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -171,7 +171,7 @@ pub async fn can_update_profile(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if token.auth_type != AuthType::JWT {
+    if token.auth_type != AuthType::Jwt {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -179,7 +179,7 @@ pub async fn can_update_profile(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !user_id_matches(&user_id, token).await {
+    if !user_id_matches(&user_id, token) {
         return Err(AuthError::Forbidden.into());
     }
 

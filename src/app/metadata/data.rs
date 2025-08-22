@@ -3,22 +3,22 @@ use sqlx::{QueryBuilder, SqlitePool};
 
 pub async fn get_metadata(pool: &SqlitePool, metadata_id: &str) -> Result<Metadata, MetadataError> {
     let mut metadata: Metadata = sqlx::query_as(
-        r#"
+        r"
         SELECT title, subtitle, description, publisher, publication_date, isbn, page_count, language
         FROM metadata
         WHERE metadata_id = $1
-        "#,
+        ",
     )
     .bind(metadata_id)
     .fetch_one(pool)
     .await?;
 
     let contributors: Vec<Contributor> = sqlx::query_as(
-        r#"
+        r"
         SELECT role, name
         FROM contributors
         WHERE metadata_id = $1;
-        "#,
+        ",
     )
     .bind(metadata_id)
     .fetch_all(pool)
@@ -27,22 +27,22 @@ pub async fn get_metadata(pool: &SqlitePool, metadata_id: &str) -> Result<Metada
     let contributors = Some(contributors).filter(|c| !c.is_empty());
 
     let series: Option<Series> = sqlx::query_as(
-        r#"
+        r"
         SELECT title, number
         FROM series
         WHERE metadata_id = $1;
-        "#,
+        ",
     )
     .bind(metadata_id)
     .fetch_optional(pool)
     .await?;
 
     let genres: Vec<String> = sqlx::query_scalar(
-        r#"
+        r"
         SELECT genre
         FROM genres
         WHERE metadata_id = $1;
-        "#,
+        ",
     )
     .bind(metadata_id)
     .fetch_all(pool)
@@ -65,10 +65,10 @@ pub async fn add_metadata(
     let mut tx = pool.begin().await?;
 
     sqlx::query(
-        r#"
+        r"
         INSERT INTO metadata (metadata_id, title, subtitle, description, publisher, publication_date, isbn, page_count, language)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
-        "#,
+        ",
     )
     .bind(metadata_id)
     .bind(metadata.title)
@@ -92,14 +92,14 @@ pub async fn add_metadata(
         });
 
         query.build().execute(&mut *tx).await?;
-    };
+    }
 
     if let Some(series) = metadata.series {
         sqlx::query(
-            r#"
+            r"
             INSERT INTO series (metadata_id, title, number)
             VALUES ($1, $2, $3);
-            "#,
+            ",
         )
         .bind(metadata_id)
         .bind(series.title)
@@ -116,7 +116,7 @@ pub async fn add_metadata(
         });
 
         query.build().execute(&mut *tx).await?;
-    };
+    }
 
     tx.commit().await?;
 
@@ -125,10 +125,10 @@ pub async fn add_metadata(
 
 pub async fn delete_metadata(pool: &SqlitePool, metadata_id: &str) -> Result<(), MetadataError> {
     let result = sqlx::query(
-        r#"
+        r"
         DELETE FROM metadata
         WHERE metadata_id = $1;
-        "#,
+        ",
     )
     .bind(metadata_id)
     .execute(pool)
@@ -149,7 +149,7 @@ pub async fn update_metadata(
     let mut tx = pool.begin().await?;
 
     let result = sqlx::query(
-        r#"
+        r"
         UPDATE metadata SET
             title = $2,
             subtitle = $3,
@@ -160,7 +160,7 @@ pub async fn update_metadata(
             page_count = $8,
             language = $9
         WHERE metadata_id = $1;
-        "#,
+        ",
     )
     .bind(metadata_id)
     .bind(metadata.title)
@@ -203,14 +203,14 @@ pub async fn update_metadata(
         });
 
         query.build().execute(&mut *tx).await?;
-    };
+    }
 
     if let Some(series) = metadata.series {
         sqlx::query(
-            r#"
+            r"
             INSERT INTO series (metadata_id, title, number)
             VALUES ($1, $2, $3);
-            "#,
+            ",
         )
         .bind(metadata_id)
         .bind(series.title)
@@ -227,7 +227,7 @@ pub async fn update_metadata(
         });
 
         query.build().execute(&mut *tx).await?;
-    };
+    }
 
     tx.commit().await?;
 

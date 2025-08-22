@@ -39,15 +39,8 @@ pub async fn search_books(
     page: Option<i64>,
     page_size: Option<i64>,
 ) -> Result<PaginatedBooks, ProsaError> {
-    let page = match page {
-        None => 1,
-        Some(page) => page,
-    };
-
-    let page_size = match page_size {
-        None => 10,
-        Some(page_size) => page_size,
-    };
+    let page = page.unwrap_or(1);
+    let page_size = page_size.unwrap_or(10);
 
     if page <= 0 || page_size <= 0 {
         return Err(BookError::InvalidPagination.into());

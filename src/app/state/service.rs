@@ -26,9 +26,7 @@ pub async fn initialize_state(pool: &SqlitePool) -> String {
 }
 
 pub async fn get_state(pool: &SqlitePool, state_id: &str) -> State {
-    let state = data::get_state(pool, state_id).await;
-
-    state
+    data::get_state(pool, state_id).await
 }
 
 pub async fn patch_state(
@@ -47,7 +45,7 @@ pub async fn patch_state(
     let original = data::get_state(pool, state_id).await;
     state.merge(original);
 
-    validate_state(&state, epub_path, epub_id, source_cache, tag_cache).await?;
+    validate_state(&state, epub_path, epub_id, source_cache, tag_cache)?;
     data::update_state(pool, state_id, state).await;
 
     Ok(())
@@ -62,13 +60,13 @@ pub async fn update_state(
     tag_cache: &TagCache,
     state: State,
 ) -> Result<(), ProsaError> {
-    validate_state(&state, epub_path, epub_id, source_cache, tag_cache).await?;
+    validate_state(&state, epub_path, epub_id, source_cache, tag_cache)?;
     data::update_state(pool, state_id, state).await;
 
     Ok(())
 }
 
-pub async fn validate_state(
+pub fn validate_state(
     state: &State,
     epub_path: &str,
     epub_id: &str,
@@ -76,23 +74,22 @@ pub async fn validate_state(
     tag_cache: &TagCache,
 ) -> Result<(), ProsaError> {
     match &state.statistics {
-        Some(s) => validate_statistics(s).await?,
+        Some(s) => validate_statistics(s)?,
         None => return Err(StateError::InvalidState.into()),
-    };
+    }
 
-    match &state.location {
-        Some(l) => validate_location(l, epub_path, epub_id, source_cache, tag_cache).await?,
-        _ => (),
-    };
+    if let Some(l) = &state.location {
+        validate_location(l, epub_path, epub_id, source_cache, tag_cache)?;
+    }
 
     Ok(())
 }
 
-async fn validate_statistics(stats: &Statistics) -> Result<(), ProsaError> {
+fn validate_statistics(stats: &Statistics) -> Result<(), ProsaError> {
     match stats.rating {
-        Some(rating) if rating < 0.0 || rating > 5.0 => return Err(StateError::InvalidRating.into()),
+        Some(rating) if !(0.0..=5.0).contains(&rating) => return Err(StateError::InvalidRating.into()),
         _ => (),
-    };
+    }
 
     match stats.reading_status.as_deref() {
         None => return Err(StateError::InvalidReadingStatus.into()),
@@ -105,20 +102,19 @@ async fn validate_statistics(stats: &Statistics) -> Result<(), ProsaError> {
     Ok(())
 }
 
-async fn validate_location(
+fn validate_location(
     location: &Location,
     epub_path: &str,
     epub_id: &str,
     source_cache: &SourceCache,
     tag_cache: &TagCache,
 ) -> Result<(), ProsaError> {
-    let (source, tag) = match (&location.source, &location.tag) {
-        (Some(s), Some(t)) => (s, t),
-        _ => return Err(StateError::InvalidLocation.into()),
+    let (Some(source), Some(tag)) = (&location.source, &location.tag) else {
+        return Err(StateError::InvalidLocation.into());
     };
 
-    let source_cache_key = format!("sources:{}", epub_id);
-    let tag_cache_key = format!("tags:{}:{}", epub_id, source);
+    let source_cache_key = format!("sources:{epub_id}");
+    let tag_cache_key = format!("tags:{epub_id}:{source}");
 
     if let (Some(sources), Some(tags)) = (source_cache.get(&source_cache_key), tag_cache.get(&tag_cache_key))
     {
@@ -127,14 +123,14 @@ async fn validate_location(
         }
     }
 
-    let epub_file = format!("{}/{}.kepub.epub", epub_path, epub_id);
+    let epub_file = format!("{epub_path}/{epub_id}.kepub.epub");
     let mut doc = EpubDoc::new(epub_file).expect("Error opening epub");
 
     let sources = source_cache.get(&source_cache_key).unwrap_or_else(|| {
         let sources: HashSet<String> = doc
             .resources
             .iter()
-            .filter_map(|r| r.1.0.to_str().map(|s| s.to_string()))
+            .filter_map(|r| r.1.0.to_str().map(ToString::to_string))
             .collect();
         let sources = Arc::new(sources);
         source_cache.insert(source_cache_key, sources.clone());

@@ -4,11 +4,11 @@ use sqlx::SqlitePool;
 pub async fn get_state(pool: &SqlitePool, state_id: &str) -> State {
     let (tag, source, rating, reading_status): (Option<String>, Option<String>, Option<f32>, String) =
         sqlx::query_as(
-            r#"
+            r"
             SELECT tag, source, rating, reading_status
             FROM state
             WHERE state_id = $1
-            "#,
+            ",
         )
         .bind(state_id)
         .fetch_one(pool)
@@ -27,17 +27,17 @@ pub async fn get_state(pool: &SqlitePool, state_id: &str) -> State {
 }
 
 pub async fn add_state(pool: &SqlitePool, state_id: &str, state: State) -> () {
-    let (tag, source) = state.location.map(|l| (l.tag, l.source)).unwrap_or((None, None));
+    let (tag, source) = state.location.map_or((None, None), |l| (l.tag, l.source));
     let statistics = state.statistics.expect("Statistics should be present");
     let reading_status = statistics
         .reading_status
         .expect("Reading status should be present");
 
     sqlx::query(
-        r#"
+        r"
         INSERT INTO state (state_id, tag, source, rating, reading_status) VALUES
         ($1, $2, $3, $4, $5)
-        "#,
+        ",
     )
     .bind(state_id)
     .bind(tag)
@@ -50,18 +50,18 @@ pub async fn add_state(pool: &SqlitePool, state_id: &str, state: State) -> () {
 }
 
 pub async fn update_state(pool: &SqlitePool, state_id: &str, state: State) -> () {
-    let (tag, source) = state.location.map(|l| (l.tag, l.source)).unwrap_or((None, None));
+    let (tag, source) = state.location.map_or((None, None), |l| (l.tag, l.source));
     let statistics = state.statistics.expect("Statistics should be present");
     let reading_status = statistics
         .reading_status
         .expect("Reading status should be present");
 
     sqlx::query(
-        r#"
+        r"
         UPDATE state
         SET tag = $1, source = $2, rating = $3, reading_status = $4
         WHERE state_id = $5
-        "#,
+        ",
     )
     .bind(tag)
     .bind(source)

@@ -21,7 +21,7 @@ pub async fn extract_token_middleware(
     let api_key_header = headers.get("api-key");
 
     let token = match (jwt_header, api_key_header) {
-        (Some(header), _) => handle_jwt(&state.config.auth.secret_key, header).await?,
+        (Some(header), _) => handle_jwt(&state.config.auth.secret_key, header)?,
         (_, Some(header)) => handle_api_key(&state.pool, header).await?,
         _ => Err(AuthError::MissingAuth)?,
     };
@@ -30,17 +30,17 @@ pub async fn extract_token_middleware(
     Ok(next.run(request).await)
 }
 
-async fn handle_jwt(secret: &str, header: &HeaderValue) -> Result<AuthToken, AuthError> {
+fn handle_jwt(secret: &str, header: &HeaderValue) -> Result<AuthToken, AuthError> {
     let header = header.to_str().expect("Failed to convert jwt header to string");
 
     let (_, token) = header
         .split_whitespace()
         .collect::<Vec<_>>()
         .get(0..2)
-        .and_then(|parts| Some((parts[0], parts[1])))
+        .map(|parts| (parts[0], parts[1]))
         .ok_or(AuthError::InvalidAuthHeader)?;
 
-    let token = service::verify_jwt(token, secret).await?;
+    let token = service::verify_jwt(token, secret)?;
 
     Ok(token)
 }

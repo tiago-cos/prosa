@@ -18,7 +18,7 @@ use sqlx::SqlitePool;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[rustfmt::skip]
-pub async fn generate_jwt(secret: &str, user_id: &str, is_admin: bool, duration: u64) -> String {
+pub fn generate_jwt(secret: &str, user_id: &str, is_admin: bool, duration: u64) -> String {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Failed to get time since epoch")
@@ -38,11 +38,11 @@ pub async fn generate_jwt(secret: &str, user_id: &str, is_admin: bool, duration:
     BASE64_STANDARD.encode(token)
 }
 
-pub async fn generate_api_key() -> (String, String) {
+pub fn generate_api_key() -> (String, String) {
     let mut key = [0u8; 32];
     OsRng.fill_bytes(&mut key);
     let encoded_key = BASE64_STANDARD.encode(key);
-    let hash = BASE64_STANDARD.encode(Sha256::digest(&key));
+    let hash = BASE64_STANDARD.encode(Sha256::digest(key));
 
     (encoded_key, hash)
 }
@@ -51,7 +51,7 @@ pub async fn generate_refresh_token(pool: &SqlitePool, user_id: &str, duration: 
     let mut token = [0u8; 128];
     OsRng.fill_bytes(&mut token);
     let encoded_token = BASE64_STANDARD.encode(token);
-    let hash = BASE64_STANDARD.encode(Sha256::digest(&token));
+    let hash = BASE64_STANDARD.encode(Sha256::digest(token));
 
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -66,7 +66,7 @@ pub async fn generate_refresh_token(pool: &SqlitePool, user_id: &str, duration: 
     encoded_token
 }
 
-pub async fn verify_jwt(token: &str, secret: &str) -> Result<AuthToken, AuthError> {
+pub fn verify_jwt(token: &str, secret: &str) -> Result<AuthToken, AuthError> {
     let token = BASE64_STANDARD.decode(token).or(Err(AuthError::InvalidToken))?;
     let token = String::from_utf8(token).or(Err(AuthError::InvalidToken))?;
     let key = DecodingKey::from_secret(secret.as_ref());
@@ -76,7 +76,7 @@ pub async fn verify_jwt(token: &str, secret: &str) -> Result<AuthToken, AuthErro
     let token = AuthToken {
         role: token.claims.role,
         capabilities: token.claims.capabilities,
-        auth_type: AuthType::JWT,
+        auth_type: AuthType::Jwt,
     };
 
     Ok(token)

@@ -20,8 +20,8 @@ pub async fn register_user(
     password: &str,
     is_admin: bool,
 ) -> Result<String, ProsaError> {
-    verify_username(username).await?;
-    verify_password(password).await?;
+    verify_username(username)?;
+    verify_password(password)?;
 
     let user_id = Uuid::new_v4().to_string();
     let password_hash = hash_secret(password).await;
@@ -65,7 +65,7 @@ pub async fn update_user_profile(
     user_id: &str,
     profile: UserProfile,
 ) -> Result<(), ProsaError> {
-    verify_username(&profile.username).await?;
+    verify_username(&profile.username)?;
     data::update_user_profile(pool, user_id, profile).await?;
     Ok(())
 }
@@ -82,7 +82,7 @@ pub async fn create_api_key(
     }
 
     let expiration = expiration
-        .map(|date| DateTime::<Utc>::from_timestamp_millis(date))
+        .map(DateTime::<Utc>::from_timestamp_millis)
         .map(|result| result.ok_or(ApiKeyError::InvalidTimestamp))
         .transpose()?;
 
@@ -91,7 +91,7 @@ pub async fn create_api_key(
     }
 
     let key_id = Uuid::new_v4().to_string();
-    let (key, hash) = authentication::service::generate_api_key().await;
+    let (key, hash) = authentication::service::generate_api_key();
 
     data::add_api_key(pool, &key_id, user_id, &hash, key_name, expiration, capabilities).await?;
     Ok((key_id, key))
@@ -163,10 +163,10 @@ pub async fn patch_preferences(
     Ok(())
 }
 
-async fn verify_username(username: &str) -> Result<(), UserError> {
+fn verify_username(username: &str) -> Result<(), UserError> {
     let filter = Regex::new(r"^[\w.!@-]+$").unwrap();
     if !filter.is_match(username) {
-        return Err(UserError::InvalidInput.into());
+        return Err(UserError::InvalidInput);
     }
 
     if username.len() > 20 {
@@ -176,10 +176,10 @@ async fn verify_username(username: &str) -> Result<(), UserError> {
     Ok(())
 }
 
-async fn verify_password(password: &str) -> Result<(), UserError> {
+fn verify_password(password: &str) -> Result<(), UserError> {
     let filter = Regex::new(r"^[\w.!@#$%^&*-]+$").unwrap();
     if !filter.is_match(password) {
-        return Err(UserError::InvalidInput.into());
+        return Err(UserError::InvalidInput);
     }
 
     if password.len() > 256 {

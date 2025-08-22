@@ -12,10 +12,10 @@ pub async fn add_user(
     is_admin: bool,
 ) -> Result<(), UserError> {
     sqlx::query(
-        r#"
+        r"
         INSERT INTO users (user_id, username, password_hash, is_admin, automatic_metadata)
         VALUES ($1, $2, $3, $4, $5)
-        "#,
+        ",
     )
     .bind(user_id)
     .bind(username)
@@ -30,11 +30,11 @@ pub async fn add_user(
 
 pub async fn get_user(pool: &SqlitePool, user_id: &str) -> Result<User, UserError> {
     let user = sqlx::query_as(
-        r#"
+        r"
         SELECT user_id, username, password_hash, is_admin
         FROM users
         WHERE user_id = $1
-        "#,
+        ",
     )
     .bind(user_id)
     .fetch_one(pool)
@@ -49,11 +49,11 @@ pub async fn update_user_profile(
     profile: UserProfile,
 ) -> Result<(), UserError> {
     let result = sqlx::query(
-        r#"
+        r"
         UPDATE users
         SET username = $1
         WHERE user_id = $2
-        "#,
+        ",
     )
     .bind(profile.username)
     .bind(user_id)
@@ -69,11 +69,11 @@ pub async fn update_user_profile(
 
 pub async fn get_user_by_username(pool: &SqlitePool, username: &str) -> Result<User, UserError> {
     let user = sqlx::query_as(
-        r#"
+        r"
         SELECT user_id, username, password_hash, is_admin
         FROM users
         WHERE username = $1
-        "#,
+        ",
     )
     .bind(username)
     .fetch_one(pool)
@@ -94,10 +94,10 @@ pub async fn add_api_key(
     let mut tx = pool.begin().await?;
 
     sqlx::query(
-        r#"
+        r"
         INSERT INTO api_keys (key_id, user_id, key_hash, name, expiration)
         VALUES (?1, ?2, ?3, ?4, ?5)
-        "#,
+        ",
     )
     .bind(key_id)
     .bind(user_id)
@@ -121,7 +121,7 @@ pub async fn add_api_key(
 
 pub async fn get_api_key(pool: &SqlitePool, user_id: &str, key_id: &str) -> Result<ApiKey, ApiKeyError> {
     let mut key: ApiKey = sqlx::query_as(
-        r#"
+        r"
         SELECT 
             key_id,
             user_id,
@@ -129,7 +129,7 @@ pub async fn get_api_key(pool: &SqlitePool, user_id: &str, key_id: &str) -> Resu
             expiration
         FROM api_keys
         WHERE key_id = $1 AND user_id = $2
-        "#,
+        ",
     )
     .bind(key_id)
     .bind(user_id)
@@ -137,11 +137,11 @@ pub async fn get_api_key(pool: &SqlitePool, user_id: &str, key_id: &str) -> Resu
     .await?;
 
     let capabilities: Vec<String> = sqlx::query_scalar(
-        r#"
+        r"
         SELECT capability
         FROM key_capabilities
         WHERE key_id = $1
-        "#,
+        ",
     )
     .bind(key_id)
     .fetch_all(pool)
@@ -154,7 +154,7 @@ pub async fn get_api_key(pool: &SqlitePool, user_id: &str, key_id: &str) -> Resu
 
 pub async fn get_api_key_by_hash(pool: &SqlitePool, key_hash: &str) -> Option<ApiKey> {
     let mut key: ApiKey = sqlx::query_as(
-        r#"
+        r"
         SELECT 
             key_id,
             user_id,
@@ -162,7 +162,7 @@ pub async fn get_api_key_by_hash(pool: &SqlitePool, key_hash: &str) -> Option<Ap
             expiration
         FROM api_keys
         WHERE key_hash = ?1
-        "#,
+        ",
     )
     .bind(key_hash)
     .fetch_optional(pool)
@@ -170,11 +170,11 @@ pub async fn get_api_key_by_hash(pool: &SqlitePool, key_hash: &str) -> Option<Ap
     .expect("Failed to get api key by hash")?;
 
     let capabilities: Vec<String> = sqlx::query_scalar(
-        r#"
+        r"
         SELECT capability
         FROM key_capabilities
         WHERE key_id = $1
-        "#,
+        ",
     )
     .bind(&key.key_id)
     .fetch_all(pool)
@@ -188,11 +188,11 @@ pub async fn get_api_key_by_hash(pool: &SqlitePool, key_hash: &str) -> Option<Ap
 
 pub async fn get_api_keys(pool: &SqlitePool, user_id: &str) -> Result<Vec<String>, ApiKeyError> {
     let keys: Vec<String> = sqlx::query_scalar(
-        r#"
+        r"
         SELECT key_id
         FROM api_keys
         WHERE user_id = $1
-        "#,
+        ",
     )
     .bind(user_id)
     .fetch_all(pool)
@@ -203,11 +203,11 @@ pub async fn get_api_keys(pool: &SqlitePool, user_id: &str) -> Result<Vec<String
 
 pub async fn delete_api_key(pool: &SqlitePool, user_id: &str, key_id: &str) -> Result<(), ApiKeyError> {
     let result = sqlx::query(
-        r#"
+        r"
         DELETE
         FROM api_keys
         WHERE key_id = $1 AND user_id = $2
-        "#,
+        ",
     )
     .bind(key_id)
     .bind(user_id)
@@ -227,7 +227,7 @@ pub async fn add_providers(pool: &SqlitePool, user_id: &str, providers: Vec<Stri
 
     query.push_values(providers, |mut b, provider| {
         b.push_bind(provider).push_bind(index).push_bind(user_id);
-        index = index + 1;
+        index += 1;
     });
     query
         .build()
@@ -238,23 +238,23 @@ pub async fn add_providers(pool: &SqlitePool, user_id: &str, providers: Vec<Stri
 
 pub async fn get_preferences(pool: &SqlitePool, user_id: &str) -> Result<Preferences, PreferencesError> {
     let providers: Vec<String> = sqlx::query_scalar(
-        r#"
+        r"
         SELECT provider_type
         FROM providers
         WHERE user_id = $1
         ORDER BY priority
-        "#,
+        ",
     )
     .bind(user_id)
     .fetch_all(pool)
     .await?;
 
     let automatic_metadata: bool = sqlx::query_scalar(
-        r#"
+        r"
         SELECT automatic_metadata
         FROM users
         WHERE user_id = $1
-        "#,
+        ",
     )
     .bind(user_id)
     .fetch_one(pool)
@@ -281,11 +281,11 @@ pub async fn update_preferences(
     let mut tx = pool.begin().await?;
 
     sqlx::query(
-        r#"
+        r"
         UPDATE users
         SET automatic_metadata = $1
         WHERE user_id = $2
-        "#,
+        ",
     )
     .bind(automatic_metadata)
     .bind(user_id)
@@ -293,11 +293,11 @@ pub async fn update_preferences(
     .await?;
 
     sqlx::query(
-        r#"
+        r"
         DELETE
         FROM providers
         WHERE user_id = $1
-        "#,
+        ",
     )
     .bind(user_id)
     .execute(&mut *tx)
@@ -313,7 +313,7 @@ pub async fn update_preferences(
 
     query.push_values(providers, |mut b, provider| {
         b.push_bind(provider).push_bind(index).push_bind(user_id);
-        index = index + 1;
+        index += 1;
     });
     query.build().execute(&mut *tx).await?;
 

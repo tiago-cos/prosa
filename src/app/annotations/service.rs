@@ -26,9 +26,7 @@ pub async fn add_annotation(
         source_cache,
         tag_cache,
         tag_length_cache,
-    )
-    .await
-    {
+    ) {
         return Err(AnnotationError::InvalidAnnotation);
     }
 
@@ -45,9 +43,7 @@ pub async fn get_annotation(pool: &SqlitePool, annotation_id: &str) -> Result<An
 }
 
 pub async fn get_annotations(pool: &SqlitePool, book_id: &str) -> Vec<String> {
-    let annotations = data::get_annotations(pool, book_id).await;
-
-    annotations
+    data::get_annotations(pool, book_id).await
 }
 
 pub async fn delete_annotation(pool: &SqlitePool, annotation_id: &str) -> Result<(), ProsaError> {
@@ -67,7 +63,7 @@ pub async fn patch_annotation(
     Ok(())
 }
 
-async fn validate_annotation(
+fn validate_annotation(
     annotation: &NewAnnotationRequest,
     epub_path: &str,
     epub_id: &str,
@@ -75,11 +71,11 @@ async fn validate_annotation(
     tag_cache: &TagCache,
     tag_length_cache: &TagLengthCache,
 ) -> bool {
-    if !validate_tags(&annotation.start_tag, &annotation.end_tag).await {
+    if !validate_tags(&annotation.start_tag, &annotation.end_tag) {
         return false;
     }
 
-    let source_cache_key = format!("sources:{}", epub_id);
+    let source_cache_key = format!("sources:{epub_id}");
     let tag_cache_key = format!("tags:{}:{}", epub_id, &annotation.source);
     let start_tag_length_cache_key = format!(
         "tag_lengths:{}:{}:{}",
@@ -103,14 +99,14 @@ async fn validate_annotation(
             && annotation.end_char < end_length;
     }
 
-    let epub_file = format!("{}/{}.kepub.epub", epub_path, epub_id);
+    let epub_file = format!("{epub_path}/{epub_id}.kepub.epub");
     let mut doc = EpubDoc::new(epub_file).expect("Error opening epub");
 
     let sources = source_cache.get(&source_cache_key).unwrap_or_else(|| {
         let sources: HashSet<String> = doc
             .resources
             .iter()
-            .filter_map(|r| r.1.0.to_str().map(|s| s.to_string()))
+            .filter_map(|r| r.1.0.to_str().map(ToString::to_string))
             .collect();
         let sources = Arc::new(sources);
         source_cache.insert(source_cache_key, sources.clone());
@@ -156,14 +152,14 @@ async fn validate_annotation(
 }
 
 fn get_tag_length(tag_id: &str, text: &str) -> Option<u32> {
-    let tag = format!("<span class=\"koboSpan\" id=\"{}\">", tag_id);
+    let tag = format!("<span class=\"koboSpan\" id=\"{tag_id}\">");
     let start_pos = text.find(&tag)?;
     let content_start = start_pos + tag.len();
     let content_end = text[content_start..].find("</span>")? + content_start;
     Some(text[content_start..content_end].chars().count() as u32)
 }
 
-async fn validate_tags(start: &str, end: &str) -> bool {
+fn validate_tags(start: &str, end: &str) -> bool {
     let parse = |tag: &str| -> Option<(u32, u32)> {
         let raw = tag.strip_prefix("kobo.")?;
         let mut it = raw.split('.');
@@ -175,7 +171,7 @@ async fn validate_tags(start: &str, end: &str) -> bool {
         Some((hi, lo))
     };
 
-    parse(start).zip(parse(end)).map_or(false, |(s, e)| s <= e)
+    parse(start).zip(parse(end)).is_some_and(|(s, e)| s <= e)
 }
 
 fn extract_tags(text: &str) -> HashSet<String> {
