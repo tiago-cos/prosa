@@ -19,7 +19,7 @@ jobs:
         run: npm install -g @redocly/cli@latest
 
       - name: Build page with OpenAPI spec
-        run: redocly build-docs openapi/openapi.yaml --output=docs/index.html
+        run: redocly build-docs openapi/openapi.yaml --theme.openapi.theme.spacing.sectionVertical=25 --output=docs/index.html
 
       - name: Upload static files as artifact
         uses: actions/upload-pages-artifact@v3
