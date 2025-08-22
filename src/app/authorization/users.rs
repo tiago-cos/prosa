@@ -3,10 +3,10 @@ use crate::app::{
     error::ProsaError,
 };
 use axum::{
+    Extension,
     extract::{Path, Request},
     middleware::Next,
     response::IntoResponse,
-    Extension,
 };
 
 async fn user_id_matches(user_id: &str, token: AuthToken) -> bool {

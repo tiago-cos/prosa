@@ -7,7 +7,6 @@ properties:
     example: "The Great Gatsby"
   subtitle:
     type: string
-    format: uuid
     description: The subtitle of the book.
     example: "A novel by F. Scott Fitzgerald"
   description:

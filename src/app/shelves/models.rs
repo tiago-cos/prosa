@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use sqlx::{
+    FromRow,
     error::{DatabaseError, ErrorKind},
     sqlite::SqliteError,
-    FromRow,
 };
 use strum_macros::{EnumMessage, EnumProperty};
 

@@ -4,7 +4,6 @@ get:
   summary: Get user profile
   description: |
     Retrieve profile information for a user by their internal UUID.
-    The authenticated user must have permission to access this user's data.
   operationId: getUserById
 
   parameters:
@@ -12,7 +11,7 @@ get:
 
   responses:
     "200":
-      description: Profile of the specified user
+      description: Profile of the specified user.
       content:
         application/json:
           schema:
@@ -20,7 +19,7 @@ get:
             properties:
               username:
                 type: string
-                description: The username of the user
+                description: The username of the user.
             required:
               - username
           examples:
@@ -44,7 +43,6 @@ put:
   summary: Update user profile
   description: |
     Replace all profile information for the specified user.
-    The authenticated user must be the user themself or an admin.
   operationId: updateUserById
 
   parameters:
@@ -60,7 +58,7 @@ put:
           properties:
             username:
               type: string
-              description: The new username for the user
+              description: The new username for the user.
           required:
             - username
         examples:
@@ -71,7 +69,7 @@ put:
 
   responses:
     "204":
-      description: Profile updated successfully
+      description: Profile updated successfully.
     "400":
       $ref: ../../components/responses/users/InvalidUsername.yaml
     "401":

@@ -2,7 +2,7 @@ get:
   tags:
     - Preferences
   summary: "Get preferences"
-  description: Get a user's preferences
+  description: Get a user's preferences.
   operationId: getPreferences
 
   parameters:
@@ -30,7 +30,7 @@ put:
     - Preferences
   summary: "Update preferences"
   description: |
-    Update a user's preferences
+    Update a user's preferences.  
     The existing preferences will be completely replaced by the new ones.
   operationId: updatePreferences
   parameters:
@@ -67,9 +67,8 @@ patch:
     - Preferences
   summary: "Patch preferences"
   description: |
-    Partially update a user's preferences.
+    Partially update a user's preferences.  
     Only the fields specified in the request body will be updated.
-    At least one field must be provided.
   operationId: patchPreferences
   parameters:
     - $ref: ../../../components/parameters/user_id.yaml

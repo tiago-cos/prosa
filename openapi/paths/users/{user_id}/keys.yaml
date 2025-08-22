@@ -3,7 +3,7 @@ post:
     - API Keys
   summary: "Create API key"
   description: |
-    Create an API key for a user.
+    Create an API key for a user.  
     This key can be used to authenticate requests to the API.
   operationId: createApiKey
   parameters:

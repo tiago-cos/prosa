@@ -3,10 +3,10 @@ use crate::app::{
     error::ProsaError,
 };
 use axum::{
+    Extension,
     extract::{Query, Request},
     middleware::Next,
     response::IntoResponse,
-    Extension,
 };
 use std::collections::HashMap;
 

@@ -1,4 +1,4 @@
-use tokio::time::{sleep, Duration, Instant};
+use tokio::time::{Duration, Instant, sleep};
 
 pub struct RateLimiter {
     last_request: Instant,

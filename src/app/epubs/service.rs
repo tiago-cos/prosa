@@ -1,12 +1,12 @@
 use super::{data, models::EpubError};
 use crate::app::concurrency::manager::ProsaLockManager;
-use base64::{prelude::BASE64_STANDARD, Engine};
+use base64::{Engine, prelude::BASE64_STANDARD};
 use epub::doc::EpubDoc;
 use sha2::{Digest, Sha256};
 use sqlx::SqlitePool;
 use std::io::Cursor;
 use tokio::{
-    fs::{self, remove_file, File},
+    fs::{self, File, remove_file},
     io::{AsyncReadExt, AsyncWriteExt},
     process::Command,
 };

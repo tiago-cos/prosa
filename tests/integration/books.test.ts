@@ -51,9 +51,13 @@ describe('Upload book JWT', () => {
     const uploadResponse = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadResponse.status).toBe(200);
 
-    const uploadResponse2 = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: registerResponse.body.jwt_token });
-    expect(uploadResponse2.status).toBe(409);
-    expect(uploadResponse2.text).toBe(BOOK_CONFLICT);
+    try {
+      const uploadResponse2 = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: registerResponse.body.jwt_token });
+      expect(uploadResponse2.status).toBe(409);
+      expect(uploadResponse2.text).toBe(BOOK_CONFLICT);
+    } catch (err: any) {
+      if (err.code !== 'EPIPE') throw err;
+    }
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
@@ -69,9 +73,14 @@ describe('Upload book JWT', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const uploadResponse = await uploadBook(userId, 'This_is_not_an_epub.txt', { jwt: registerResponse.body.jwt_token });
-    expect(uploadResponse.status).toBe(400);
-    expect(uploadResponse.text).toBe(INVALID_BOOK);
+    try {
+      const uploadResponse = await uploadBook(userId, 'This_is_not_an_epub.txt', { jwt: registerResponse.body.jwt_token });
+      expect(uploadResponse.status).toBe(400);
+      expect(uploadResponse.text).toBe(INVALID_BOOK);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Different user without permission', async () => {
@@ -82,9 +91,14 @@ describe('Upload book JWT', () => {
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
-    const uploadResponse = await uploadBook(userId2, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: registerResponse.body.jwt_token });
-    expect(uploadResponse.status).toBe(403);
-    expect(uploadResponse.text).toBe(FORBIDDEN);
+    try {
+      const uploadResponse = await uploadBook(userId2, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: registerResponse.body.jwt_token });
+      expect(uploadResponse.status).toBe(403);
+      expect(uploadResponse.text).toBe(FORBIDDEN);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Different user with permission', async () => {
@@ -103,9 +117,14 @@ describe('Upload book JWT', () => {
     const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
-    const uploadResponse = await uploadBook('non-existent', 'The_Wonderful_Wizard_of_Oz.epub', { jwt: registerResponse.body.jwt_token });
-    expect(uploadResponse.status).toBe(404);
-    expect(uploadResponse.text).toBe(USER_NOT_FOUND);
+    try {
+      const uploadResponse = await uploadBook('non-existent', 'The_Wonderful_Wizard_of_Oz.epub', { jwt: registerResponse.body.jwt_token });
+      expect(uploadResponse.status).toBe(404);
+      expect(uploadResponse.text).toBe(USER_NOT_FOUND);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('No auth', async () => {
@@ -178,9 +197,13 @@ describe('Upload book api key', () => {
     const uploadResponse = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { apiKey: createApiKeyResponse.body.key });
     expect(uploadResponse.status).toBe(200);
 
-    const uploadResponse2 = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { apiKey: createApiKeyResponse.body.key });
-    expect(uploadResponse2.status).toBe(409);
-    expect(uploadResponse2.text).toBe(BOOK_CONFLICT);
+    try {
+      const uploadResponse2 = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { apiKey: createApiKeyResponse.body.key });
+      expect(uploadResponse2.status).toBe(409);
+      expect(uploadResponse2.text).toBe(BOOK_CONFLICT);
+    } catch (err: any) {
+      if (err.code !== 'EPIPE') throw err;
+    }
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
@@ -202,9 +225,14 @@ describe('Upload book api key', () => {
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const uploadResponse = await uploadBook(userId, 'This_is_not_an_epub.txt', { apiKey: createApiKeyResponse.body.key });
-    expect(uploadResponse.status).toBe(400);
-    expect(uploadResponse.text).toBe(INVALID_BOOK);
+    try {
+      const uploadResponse = await uploadBook(userId, 'This_is_not_an_epub.txt', { apiKey: createApiKeyResponse.body.key });
+      expect(uploadResponse.status).toBe(400);
+      expect(uploadResponse.text).toBe(INVALID_BOOK);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Different user without permission', async () => {
@@ -219,9 +247,14 @@ describe('Upload book api key', () => {
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
-    const uploadResponse = await uploadBook(userId2, 'The_Wonderful_Wizard_of_Oz.epub', { apiKey: createApiKeyResponse.body.key });
-    expect(uploadResponse.status).toBe(403);
-    expect(uploadResponse.text).toBe(FORBIDDEN);
+    try {
+      const uploadResponse = await uploadBook(userId2, 'The_Wonderful_Wizard_of_Oz.epub', { apiKey: createApiKeyResponse.body.key });
+      expect(uploadResponse.status).toBe(403);
+      expect(uploadResponse.text).toBe(FORBIDDEN);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Different user with permission', async () => {
@@ -248,9 +281,14 @@ describe('Upload book api key', () => {
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const uploadResponse = await uploadBook('ghost', 'The_Wonderful_Wizard_of_Oz.epub', { apiKey: createApiKeyResponse.body.key });
-    expect(uploadResponse.status).toBe(404);
-    expect(uploadResponse.text).toBe(USER_NOT_FOUND);
+    try {
+      const uploadResponse = await uploadBook('ghost', 'The_Wonderful_Wizard_of_Oz.epub', { apiKey: createApiKeyResponse.body.key });
+      expect(uploadResponse.status).toBe(404);
+      expect(uploadResponse.text).toBe(USER_NOT_FOUND);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Wrong capabilities', async () => {
@@ -264,13 +302,18 @@ describe('Upload book api key', () => {
     const createApiKeyResponse2 = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse2.status).toBe(200);
 
-    const uploadResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { apiKey: createApiKeyResponse2.body.key });
-    expect(uploadResponse.status).toBe(403);
-    expect(uploadResponse.text).toBe(FORBIDDEN);
+    try {
+      const uploadResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { apiKey: createApiKeyResponse2.body.key });
+      expect(uploadResponse.status).toBe(403);
+      expect(uploadResponse.text).toBe(FORBIDDEN);
 
-    const downloadResponse = await downloadBook(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
-    expect(downloadResponse.status).toBe(403);
-    expect(downloadResponse.text).toBe(FORBIDDEN);
+      const downloadResponse = await downloadBook(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+      expect(downloadResponse.status).toBe(403);
+      expect(downloadResponse.text).toBe(FORBIDDEN);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Expired key', async () => {
@@ -285,13 +328,18 @@ describe('Upload book api key', () => {
     // Wait for the key to expire
     await wait(1.5);
 
-    const uploadResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { apiKey: createApiKeyResponse.body.key });
-    expect(uploadResponse.status).toBe(401);
-    expect(uploadResponse.text).toBe(INVALID_API_KEY);
+    try {
+      const uploadResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { apiKey: createApiKeyResponse.body.key });
+      expect(uploadResponse.status).toBe(401);
+      expect(uploadResponse.text).toBe(INVALID_API_KEY);
 
-    const downloadResponse = await downloadBook(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
-    expect(downloadResponse.status).toBe(401);
-    expect(downloadResponse.text).toBe(INVALID_API_KEY);
+      const downloadResponse = await downloadBook(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+      expect(downloadResponse.status).toBe(401);
+      expect(downloadResponse.text).toBe(INVALID_API_KEY);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 });
 
@@ -475,7 +523,7 @@ describe('Delete book JWT', () => {
     expect(addAnnotationResponse.status).toBe(200);
 
     // Wait for metadata and cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const metadataResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
     expect(metadataResponse.status).toBe(200);

@@ -2,7 +2,7 @@ use super::{
     models::{AuthError, AuthToken},
     service,
 };
-use crate::app::{error::ProsaError, AppState};
+use crate::app::{AppState, error::ProsaError};
 use axum::{
     extract::{Request, State},
     http::{HeaderMap, HeaderValue},

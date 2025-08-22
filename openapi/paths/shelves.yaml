@@ -1,13 +1,12 @@
 post:
   tags:
-    - Shelf
+    - Shelves
   summary: "Create a shelf"
   description: |
     Create a new shelf for organizing books.
-    The request must include the shelf name and the UUID of the owner.
 
-    If `owner_id` is not provided, the user will be inferred from the authentication token.
-    If the authenticated user is not an admin, they can only create shelves for themselves.
+    **Note:** If `owner_id` is not provided, the user will be inferred from the authentication token.  
+    **Another note:** If the authenticated user is not an admin, they can only create shelves for themselves.
   operationId: createShelf
   requestBody:
     required: true
@@ -24,7 +23,7 @@ post:
               type: string
               format: uuid
               description: |
-                (Optional) The UUID of the user who owns the shelf.
+                _(Optional)_ The UUID of the user who owns the shelf.
                 If not specified, the owner is determined from the authenticated user.
           required:
             - name
@@ -65,8 +64,8 @@ get:
   summary: "Search for shelves"
   description: |
     Retrieve a paginated list of shelves that match the search criteria.
-    The user must be authenticated and have the appropriate permissions.
-    Only users with admin privileges can search without user-based filtering.
+
+    **Note:** Only users with admin privileges can search without user-based filtering.
   operationId: searchShelves
   parameters:
     - name: username

@@ -4,7 +4,6 @@ get:
   summary: "Get book file metadata"
   description: |
     Retrieve metadata for a specific book file, including its owner and size.
-    The user must be authenticated and have the appropriate permissions.
   operationId: getBookFileMetadata
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml

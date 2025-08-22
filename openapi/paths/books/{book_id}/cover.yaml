@@ -4,7 +4,6 @@ post:
   summary: "Add book cover"
   description: |
     Add a cover for a specific book owned by a user.
-    The user must be authenticated and have the appropriate permissions.
   operationId: addBookCover
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml
@@ -13,10 +12,8 @@ post:
     required: true
     description: The cover image to add.
     content:
-      image/jpeg:
-        schema:
-          type: string
-          format: binary
+      'image/jpeg': {}
+      'image/png': {}
 
   responses:
     "204":
@@ -42,7 +39,6 @@ get:
   summary: "Get book cover"
   description: |
     Get the cover of a specific book owned by a user.
-    The user must be authenticated and have the appropriate permissions.
   operationId: getBookCover
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml
@@ -72,7 +68,6 @@ put:
   summary: "Update book cover"
   description: |
     Update the cover of a specific book owned by a user.
-    The user must be authenticated and have the appropriate permissions.
   operationId: updateBookCover
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml
@@ -81,10 +76,8 @@ put:
     required: true
     description: The cover image to change to.
     content:
-      image/jpeg:
-        schema:
-          type: string
-          format: binary
+      'image/jpeg': {}
+      'image/png': {}
 
   responses:
     "204":
@@ -108,7 +101,6 @@ delete:
   summary: "Delete book cover"
   description: |
     Delete the cover of a specific book owned by a user.
-    The user must be authenticated and have the appropriate permissions.
   operationId: deleteBookCover
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml

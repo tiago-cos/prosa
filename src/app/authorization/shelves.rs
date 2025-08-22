@@ -1,4 +1,5 @@
 use crate::app::{
+    Pool,
     authentication::models::{AuthError, AuthRole, AuthToken, CREATE, DELETE, READ, UPDATE},
     books::{self, models::BookError},
     error::ProsaError,
@@ -6,14 +7,14 @@ use crate::app::{
         self,
         models::{AddBookToShelfRequest, CreateShelfRequest, ShelfBookError, ShelfError},
     },
-    users, Pool,
+    users,
 };
 use axum::{
-    body::{to_bytes, Body},
+    Extension, Json,
+    body::{Body, to_bytes},
     extract::{FromRequest, Path, Query, Request, State},
     middleware::Next,
     response::IntoResponse,
-    Extension, Json,
 };
 use std::collections::HashMap;
 

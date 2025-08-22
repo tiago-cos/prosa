@@ -1,15 +1,16 @@
 use super::service;
 use crate::app::{
+    AppState, Pool,
     authentication::models::AuthToken,
     error::ProsaError,
     shelves::models::{AddBookToShelfRequest, CreateShelfRequest, Shelf, ShelfError, UpdateShelfRequest},
-    sync, users, AppState, Pool,
+    sync, users,
 };
 use axum::{
+    Extension, Json,
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Extension, Json,
 };
 use std::collections::HashMap;
 

@@ -13,7 +13,7 @@ describe('Get metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const downloadResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
     expect(downloadResponse.status).toBe(200);
@@ -33,7 +33,7 @@ describe('Get metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const downloadResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
     expect(downloadResponse.status).toBe(404);
@@ -50,7 +50,7 @@ describe('Get metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const downloadResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
     expect(downloadResponse.status).toBe(404);
@@ -75,7 +75,7 @@ describe('Get metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
@@ -94,7 +94,7 @@ describe('Get metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
@@ -112,7 +112,7 @@ describe('Get metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const downloadResponse = await getMetadata(uploadResponse.text);
     expect(downloadResponse.status).toBe(401);
@@ -130,7 +130,7 @@ describe('Get metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -151,7 +151,7 @@ describe('Get metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -183,7 +183,7 @@ describe('Get metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
@@ -206,7 +206,7 @@ describe('Get metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
@@ -228,7 +228,7 @@ describe('Get metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Update', 'Delete'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -247,7 +247,7 @@ describe('Get metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const timestamp = Date.now() + 1000;
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], timestamp, { jwt: registerResponse.body.jwt_token });
@@ -272,7 +272,7 @@ describe('Add metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const addResponse = await addMetadata(uploadResponse.text, EXAMPLE_METADATA, { jwt: registerResponse.body.jwt_token });
     expect(addResponse.status).toBe(204);
@@ -292,7 +292,7 @@ describe('Add metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const metadata = {
       contributors: [
@@ -321,7 +321,7 @@ describe('Add metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const addResponse = await addMetadata(uploadResponse.text, {}, { jwt: registerResponse.body.jwt_token });
     expect(addResponse.status).toBe(400);
@@ -337,7 +337,7 @@ describe('Add metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const addResponse = await addMetadata(uploadResponse.text, EXAMPLE_METADATA, { jwt: registerResponse.body.jwt_token });
     expect(addResponse.status).toBe(409);
@@ -362,7 +362,7 @@ describe('Add metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
@@ -381,7 +381,7 @@ describe('Add metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
@@ -399,7 +399,7 @@ describe('Add metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const addResponse = await addMetadata(uploadResponse.text, EXAMPLE_METADATA);
     expect(addResponse.status).toBe(401);
@@ -417,7 +417,7 @@ describe('Add metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -440,7 +440,7 @@ describe('Add metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -472,7 +472,7 @@ describe('Add metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -491,7 +491,7 @@ describe('Add metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -523,7 +523,7 @@ describe('Add metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
@@ -546,7 +546,7 @@ describe('Add metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
@@ -568,7 +568,7 @@ describe('Add metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read', 'Delete'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -587,7 +587,7 @@ describe('Add metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const timestamp = Date.now() + 1000;
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], timestamp, { jwt: registerResponse.body.jwt_token });
@@ -612,7 +612,7 @@ describe('Delete metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const deleteResponse = await deleteMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
     expect(deleteResponse.status).toBe(204);
@@ -632,7 +632,7 @@ describe('Delete metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const deleteResponse = await deleteMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
     expect(deleteResponse.status).toBe(404);
@@ -657,7 +657,7 @@ describe('Delete metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
@@ -676,7 +676,7 @@ describe('Delete metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
@@ -694,7 +694,7 @@ describe('Delete metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const deleteResponse = await deleteMetadata(uploadResponse.text);
     expect(deleteResponse.status).toBe(401);
@@ -712,7 +712,7 @@ describe('Delete metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Delete'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -735,7 +735,7 @@ describe('Delete metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Delete'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -767,7 +767,7 @@ describe('Delete metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
@@ -790,7 +790,7 @@ describe('Delete metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
@@ -812,7 +812,7 @@ describe('Delete metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read', 'Create', 'Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -831,7 +831,7 @@ describe('Delete metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const timestamp = Date.now() + 1000;
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Delete'], timestamp, { jwt: registerResponse.body.jwt_token });
@@ -856,7 +856,7 @@ describe('Update metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const updateResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA, { jwt: registerResponse.body.jwt_token });
     expect(updateResponse.status).toBe(204);
@@ -877,7 +877,7 @@ describe('Update metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const updateResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA, { jwt: registerResponse.body.jwt_token });
     expect(updateResponse.status).toBe(404);
@@ -902,7 +902,7 @@ describe('Update metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const updateResponse = await updateMetadata(uploadResponse.text, {}, { jwt: registerResponse.body.jwt_token });
     expect(updateResponse.status).toBe(400);
@@ -918,7 +918,7 @@ describe('Update metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
@@ -937,7 +937,7 @@ describe('Update metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
@@ -955,7 +955,7 @@ describe('Update metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const updateResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA);
     expect(updateResponse.status).toBe(401);
@@ -973,7 +973,7 @@ describe('Update metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -997,7 +997,7 @@ describe('Update metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -1029,7 +1029,7 @@ describe('Update metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -1048,7 +1048,7 @@ describe('Update metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
@@ -1071,7 +1071,7 @@ describe('Update metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
@@ -1093,7 +1093,7 @@ describe('Update metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read', 'Delete'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -1112,7 +1112,7 @@ describe('Update metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const timestamp = Date.now() + 1000;
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], timestamp, { jwt: registerResponse.body.jwt_token });
@@ -1137,7 +1137,7 @@ describe('Patch metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const patchResponse = await patchMetadata(uploadResponse.text, { title: 'title test' }, { jwt: registerResponse.body.jwt_token });
     expect(patchResponse.status).toBe(204);
@@ -1161,7 +1161,7 @@ describe('Patch metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const patchResponse = await patchMetadata(uploadResponse.text, { title: 'title test' }, { jwt: registerResponse.body.jwt_token });
     expect(patchResponse.status).toBe(404);
@@ -1186,7 +1186,7 @@ describe('Patch metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const patchResponse = await patchMetadata(uploadResponse.text, {}, { jwt: registerResponse.body.jwt_token });
     expect(patchResponse.status).toBe(400);
@@ -1202,7 +1202,7 @@ describe('Patch metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
@@ -1221,7 +1221,7 @@ describe('Patch metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
@@ -1239,7 +1239,7 @@ describe('Patch metadata JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const patchResponse = await patchMetadata(uploadResponse.text, { title: 'title test' });
     expect(patchResponse.status).toBe(401);
@@ -1257,7 +1257,7 @@ describe('Patch metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -1284,7 +1284,7 @@ describe('Patch metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -1316,7 +1316,7 @@ describe('Patch metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -1335,7 +1335,7 @@ describe('Patch metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
@@ -1358,7 +1358,7 @@ describe('Patch metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
@@ -1380,7 +1380,7 @@ describe('Patch metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read', 'Delete'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -1399,7 +1399,7 @@ describe('Patch metadata api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const timestamp = Date.now() + 1000;
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], timestamp, { jwt: registerResponse.body.jwt_token });
@@ -1433,7 +1433,7 @@ describe('Add metadata request JWT', () => {
     expect(addResponse.status).toBe(204);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
     expect(getResponse.status).toBe(200);
@@ -1520,7 +1520,7 @@ describe('Add metadata request JWT', () => {
     expect(addResponse.text).toBe(BOOK_NOT_FOUND);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
     expect(getResponse.status).toBe(404);
@@ -1545,7 +1545,7 @@ describe('Add metadata request JWT', () => {
     expect(addResponse.status).toBe(204);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
     expect(getResponse.status).toBe(200);
@@ -1590,7 +1590,7 @@ describe('Add metadata request api key', () => {
     expect(addResponse.status).toBe(204);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
     expect(getResponse.status).toBe(200);
@@ -1691,7 +1691,7 @@ describe('Add metadata request api key', () => {
     expect(addResponse.text).toBe(BOOK_NOT_FOUND);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
     expect(getResponse.status).toBe(404);
@@ -1720,7 +1720,7 @@ describe('Add metadata request api key', () => {
     expect(addResponse.status).toBe(204);
 
     // Wait for metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
     expect(getResponse.status).toBe(200);

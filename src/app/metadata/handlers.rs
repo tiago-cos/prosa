@@ -3,7 +3,7 @@ use super::{
     service,
 };
 use crate::app::{
-    books,
+    AppState, books,
     error::ProsaError,
     metadata::models::MetadataFetchRequest,
     sync,
@@ -11,13 +11,12 @@ use crate::app::{
         self,
         models::{PreferencesError, VALID_PROVIDERS},
     },
-    AppState,
 };
 use axum::{
+    Json,
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
 };
 use std::collections::HashMap;
 

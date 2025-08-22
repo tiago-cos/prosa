@@ -1,14 +1,14 @@
 use super::handlers;
 use crate::app::{
+    AppState,
     authentication::middleware::extract_token_middleware,
     authorization::books::{can_create_book, can_delete_book, can_read_book, can_search_books},
-    AppState,
 };
 use axum::{
+    Router,
     extract::DefaultBodyLimit,
     middleware::from_fn_with_state,
     routing::{delete, get, post},
-    Router,
 };
 
 #[rustfmt::skip]

@@ -1,13 +1,10 @@
 post:
   tags:
-    - Book Metadata
+    - Metadata
   summary: "Enqueue metadata fetch request"
   description: |
     Enqueue a metadata fetch request for a specific book owned by a user.
-    The user must be authenticated and have the appropriate permissions.
   operationId: enqueueMetadataRequest
-  parameters:
-    - $ref: ../components/parameters/book_id.yaml
 
   requestBody:
     required: true
@@ -36,10 +33,11 @@ post:
 
 get:
   tags:
-    - Book Metadata
+    - Metadata
   summary: "List metadata fetch requests"
   description: |
-    Lists metadata fetch requests.
+    Returns a list of metadata fetch requests that are currently in progress.  
+    Completed or past requests are not included in the response.
 
     - **Regular users** must include their own `user_id` in the query parameter.
     - **Admin users** can list requests for any user using the `user_id` parameter.

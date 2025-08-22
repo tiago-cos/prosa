@@ -1,13 +1,11 @@
 post:
   tags:
-    - Book
+    - Books
   summary: "Add book to a shelf"
   description: |
-    Add a single book to the specified shelf.
-    Only the shelf's owner or an admin can perform this operation.
+    Add a book to the specified shelf.
     
-    **Note:** Even if you are an admin, you cannot add a book that the user does not own to one of their shelves. 
-    In such cases, the operation will be rejected with a `403 Forbidden` response.
+    **Note:** Even if you are an admin, you cannot add a book that the user does not own to one of their shelves.
   operationId: addBookToShelf
   parameters:
     - $ref: ../../../components/parameters/shelf_id.yaml
@@ -47,11 +45,10 @@ post:
 
 get:
   tags:
-    - Book
+    - Books
   summary: "List books in a shelf"
   description: |
     Retrieve the list of book UUIDs in the specified shelf.
-    Only the shelf's owner or an admin can access this list.
   operationId: listBooksInShelf
   parameters:
     - $ref: ../../../components/parameters/shelf_id.yaml

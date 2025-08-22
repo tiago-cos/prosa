@@ -8,9 +8,9 @@ use crate::app::{
     server::AppState,
 };
 use axum::{
+    Router,
     middleware::{from_fn, from_fn_with_state},
     routing::{delete, get, patch, post, put},
-    Router,
 };
 
 #[rustfmt::skip]

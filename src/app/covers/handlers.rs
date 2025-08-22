@@ -1,11 +1,13 @@
 use super::{models::CoverError, service};
-use crate::app::{books, error::ProsaError, sync, AppState};
+use crate::app::{AppState, books, error::ProsaError, sync};
 use axum::{
     body::Bytes,
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
 };
+
+// TODO add a config option to only allow admin registers
 
 pub async fn get_cover_handler(
     State(state): State<AppState>,

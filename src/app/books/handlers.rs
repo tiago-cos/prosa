@@ -3,14 +3,14 @@ use super::{
     service,
 };
 use crate::app::{
-    authentication::models::AuthToken, books::models::BookFileMetadata, covers, epubs, error::ProsaError,
-    metadata, state, sync, users, AppState, Pool,
+    AppState, Pool, authentication::models::AuthToken, books::models::BookFileMetadata, covers, epubs,
+    error::ProsaError, metadata, state, sync, users,
 };
 use axum::{
+    Extension, Json,
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    Extension, Json,
 };
 use axum_typed_multipart::TypedMultipart;
 use std::collections::HashMap;
@@ -82,6 +82,9 @@ pub async fn upload_book_handler(
     };
 
     let book_id = service::add_book(&state.pool, book).await?;
+
+    let lock = state.lock_manager.get_book_lock(&book_id).await;
+    let _guard = lock.write().await;
 
     let automatic_metadata = preferences
         .automatic_metadata

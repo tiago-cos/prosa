@@ -3,9 +3,14 @@ post:
     - Authentication
   summary: "Register"
   description: |
-    Register a new user.
-    The new user can either be an admin or a regular user.
+    Register a new user.  
+    The new user can either be an admin or a regular user.  
     To register an admin user, the admin key must be provided in the request body.
+
+    **Note:**  
+    - The username and password must not contain special characters.  
+    - The username must not exceed 20 characters.  
+    - The password must not exceed 256 characters.
   operationId: register
   requestBody:
     required: true
@@ -17,13 +22,13 @@ post:
           properties:
             username:
               type: string
-              description: The username of the new user
+              description: The username of the new user.
             password:
               type: string
-              description: The password of the new user
+              description: The password of the new user.
             admin_key:
               type: string
-              description: The admin key to register an admin user
+              description: The admin key to register an admin user.
           required:
             - username
             - password
@@ -50,14 +55,14 @@ post:
             properties:
               jwt_token:
                 type: string
-                description: Base64-encoded JWT access token
+                description: Base64-encoded JWT access token.
               refresh_token:
                 type: string
-                description: Refresh token used to obtain new JWTs
+                description: Refresh token used to obtain new JWTs.
               user_id:
                 type: string
                 format: uuid
-                description: UUID of the authenticated user
+                description: UUID of the authenticated user.
             required:
               - jwt_token
               - refresh_token

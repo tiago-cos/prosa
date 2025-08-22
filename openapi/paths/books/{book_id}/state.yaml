@@ -4,7 +4,6 @@ get:
   summary: "Get book state"
   description: |
     Retrieve state for a specific book owned by a user.
-    The user must be authenticated and have the appropriate permissions.
   operationId: getBookState
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml
@@ -32,9 +31,8 @@ put:
     - State
   summary: "Update book state"
   description: |
-    Update state for a specific book owned by a user.
+    Update state for a specific book owned by a user.  
     The existing state will be completely replaced by the new one.
-    The user must be authenticated and have the appropriate permissions.
   operationId: updateBookState
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml
@@ -67,9 +65,8 @@ patch:
     - State
   summary: "Patch book state"
   description: |
-    Update state for a specific book owned by a user.
+    Update state for a specific book owned by a user.  
     Only the fields specified in the request body will be updated.
-    The user must be authenticated and have the appropriate permissions.
   operationId: patchBookState
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml

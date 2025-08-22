@@ -3,7 +3,8 @@ get:
     - Sync
   summary: "Sync device"
   description: |
-    Returns a list of book and shelf IDs belonging to a given user that have changed since the last sync. Results are categorized into two top-level groups: `book` and `shelf`.
+    Returns a list of book and shelf IDs belonging to a given user that have changed since the last sync.  
+    Results are categorized into two top-level groups: `book` and `shelf`.
 
     **Book categories:**
     - `file`: Newly added books.  
@@ -17,15 +18,14 @@ get:
     - `contents`: Shelves with updated contents.  
     - `deleted`: Shelves that have been removed.
 
-    If `user_id` is not provided, the user will be inferred from the authentication token.
-
-    **Note:** Only admin users are allowed to retrieve sync information for other users.
+    **Note:** If `user_id` is not provided, the user will be inferred from the authentication token.  
+    **Another note:** Only admin users are allowed to retrieve sync information for other users.
 
   operationId: sync
   parameters:
     - name: user_id
       in: query
-      description: Optional user ID for sync. If not provided, it will be extracted from the authentication process.
+      description: _(Optional)_ User ID for sync. If not provided, it will be extracted from the authentication process.
       required: false
       schema:
         type: string
@@ -34,7 +34,7 @@ get:
 
     - name: since
       in: query
-      description: The UNIX timestamp (milliseconds) of the last sync. If empty, assumes first sync.
+      description: _(Optional)_ The UNIX timestamp (milliseconds) of the last sync. If empty, assumes first sync.
       required: false
       schema:
         type: integer

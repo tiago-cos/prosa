@@ -8,7 +8,6 @@ post:
 
   requestBody:
     required: true
-    description: The refresh token to invalidate.
     content:
       application/json:
         schema:
@@ -21,7 +20,7 @@ post:
             - refresh_token
         examples:
           example1:
-            summary: Valid refresh token
+            summary: Valid refresh token.
             value:
               refresh_token: "eKxEETPjUDfvvY1oxcCRboHn88GsggBoyoyiSAUJ37FAeZquv8BwruAl6I6Pc8wJ"
 

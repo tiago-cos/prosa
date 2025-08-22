@@ -7,7 +7,7 @@ properties:
     example: "1e841a44-feb4-489c-8f1e-cb0e4b1c8ed2"
   metadata_providers:
     type: array
-    description: Optional ordered list of metadata providers to use. If not provided, will use the user's default selection of providers.
+    description: _(Optional)_ Ordered list of metadata providers to use. If not provided, will use the user's default selection of providers.
     items:
       type: string
       enum:

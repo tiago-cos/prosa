@@ -1,8 +1,10 @@
 use super::{annotations, books, covers, metadata, state, sync, users};
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
-use axum::middleware::from_fn;
 use axum::Router;
+use axum::http::StatusCode;
+use axum::middleware::from_fn;
+use axum::routing::get;
 use log::info;
 use quick_cache::sync::Cache;
 use sqlx::SqlitePool;
@@ -68,6 +70,7 @@ pub async fn run(config: Configuration, pool: SqlitePool) {
     info!("Server started on http://{}", host);
 
     let app = Router::new()
+        .route("/health", get(|| async { StatusCode::NO_CONTENT }))
         .merge(users::routes::get_routes(state.clone()))
         .merge(metadata::routes::get_routes(state.clone()))
         .merge(covers::routes::get_routes(state.clone()))

@@ -3,11 +3,10 @@ post:
     - File
   summary: "Upload a book"
   description: |
-    Upload a book file (EPUB format) to the server. 
-    The uploaded file is associated with the specified user.
-    The user must be authenticated and have the appropriate permissions.
+    Upload a book file (EPUB format) to the server.  
+    The uploaded file is associated with the specified user.  
   
-    If `owner_id` is not provided, the user will be inferred from the authentication token.
+    **Note:** If `owner_id` is not provided, the user will be inferred from the authentication token.
   operationId: uploadBook
   requestBody:
     required: true
@@ -21,7 +20,7 @@ post:
               type: string
               format: uuid
               description: |
-                (Optional) The UUID of the user who owns the book.
+                _(Optional)_ The UUID of the user who owns the book.
                 If not specified, the owner is determined from the authenticated user.
             epub:
               type: string
@@ -31,9 +30,6 @@ post:
                 Only files in the `application/epub+zip` format are accepted.
           required:
             - epub
-        example:
-          owner_id: "2c5f1d4d-3b9d-4b9d-3b9d-4b9d3b9d3b9d"
-          epub: "(binary data)"
 
   responses:
     "200":
@@ -68,8 +64,8 @@ get:
   summary: "Search for books"
   description: |
     Retrieve a paginated list of books that match the search criteria.
-    The user must be authenticated and have the appropriate permissions.
-    Only users with admin privileges can search without user-based filtering.
+    
+    **Note:** Only users with admin privileges can search without user-based filtering.
   operationId: searchBooks
   parameters:
     - name: username

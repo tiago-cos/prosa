@@ -2,9 +2,9 @@ use axum::body::Bytes;
 use axum_typed_multipart::TryFromMultipart;
 use serde::Serialize;
 use sqlx::{
+    FromRow,
     error::{DatabaseError, ErrorKind},
     sqlite::SqliteError,
-    FromRow,
 };
 use strum_macros::{EnumMessage, EnumProperty};
 

@@ -1,16 +1,16 @@
-use super::models::{AuthError, AuthRole, AuthToken, AuthType, JWTClaims, CAPABILITIES};
+use super::models::{AuthError, AuthRole, AuthToken, AuthType, CAPABILITIES, JWTClaims};
 use crate::app::{
     authentication::{data, models::RefreshToken},
     users,
 };
 use argon2::{
-    password_hash::{
-        rand_core::{OsRng, RngCore},
-        SaltString,
-    },
     Argon2, PasswordHasher,
+    password_hash::{
+        SaltString,
+        rand_core::{OsRng, RngCore},
+    },
 };
-use base64::{prelude::BASE64_STANDARD, Engine};
+use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::{DateTime, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
 use sha2::{Digest, Sha256};

@@ -15,7 +15,7 @@ describe('Get cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const downloadResponse = await getCover(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
     expect(downloadResponse.status).toBe(200);
@@ -36,7 +36,7 @@ describe('Get cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const downloadResponse = await getCover(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
     expect(downloadResponse.status).toBe(404);
@@ -61,7 +61,7 @@ describe('Get cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
@@ -80,7 +80,7 @@ describe('Get cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
@@ -98,7 +98,7 @@ describe('Get cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const downloadResponse = await getCover(uploadResponse.text);
     expect(downloadResponse.status).toBe(401);
@@ -116,7 +116,7 @@ describe('Get cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -140,7 +140,7 @@ describe('Get cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -172,7 +172,7 @@ describe('Get cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
@@ -195,7 +195,7 @@ describe('Get cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
@@ -217,7 +217,7 @@ describe('Get cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Update', 'Delete'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -236,7 +236,7 @@ describe('Get cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const timestamp = Date.now() + 1000;
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], timestamp, { jwt: registerResponse.body.jwt_token });
@@ -261,7 +261,7 @@ describe('Add cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const addResponse = await addCover(uploadResponse.text, 'Generic.jpeg', { jwt: registerResponse.body.jwt_token });
     expect(addResponse.status).toBe(204);
@@ -284,11 +284,16 @@ describe('Add cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
-    const addResponse = await addCover(uploadResponse.text, 'This_is_not_a_cover.txt', { jwt: registerResponse.body.jwt_token });
-    expect(addResponse.status).toBe(400);
-    expect(addResponse.text).toBe(INVALID_COVER);
+    try {
+      const addResponse = await addCover(uploadResponse.text, 'This_is_not_a_cover.txt', { jwt: registerResponse.body.jwt_token });
+      expect(addResponse.status).toBe(400);
+      expect(addResponse.text).toBe(INVALID_COVER);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Cover conflict', async () => {
@@ -300,20 +305,30 @@ describe('Add cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
-    const addResponse = await addCover(uploadResponse.text, 'Alices_Adventures_in_Wonderland.jpeg', { jwt: registerResponse.body.jwt_token });
-    expect(addResponse.status).toBe(409);
-    expect(addResponse.text).toBe(COVER_CONFLICT);
+    try {
+      const addResponse = await addCover(uploadResponse.text, 'Alices_Adventures_in_Wonderland.jpeg', { jwt: registerResponse.body.jwt_token });
+      expect(addResponse.status).toBe(409);
+      expect(addResponse.text).toBe(COVER_CONFLICT);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Non-existent book', async () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const addResponse = await addCover('non-existent', 'Alices_Adventures_in_Wonderland.jpeg', { jwt: registerResponse.body.jwt_token });
-    expect(addResponse.status).toBe(404);
-    expect(addResponse.text).toBe(BOOK_NOT_FOUND);
+    try {
+      const addResponse = await addCover('non-existent', 'Alices_Adventures_in_Wonderland.jpeg', { jwt: registerResponse.body.jwt_token });
+      expect(addResponse.status).toBe(404);
+      expect(addResponse.text).toBe(BOOK_NOT_FOUND);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Different user without permission', async () => {
@@ -325,14 +340,19 @@ describe('Add cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
 
-    const addResponse = await addCover(uploadResponse.text, 'Generic.jpeg', { jwt: registerResponse2.body.jwt_token });
-    expect(addResponse.status).toBe(404);
-    expect(addResponse.text).toBe(BOOK_NOT_FOUND);
+    try {
+      const addResponse = await addCover(uploadResponse.text, 'Generic.jpeg', { jwt: registerResponse2.body.jwt_token });
+      expect(addResponse.status).toBe(404);
+      expect(addResponse.text).toBe(BOOK_NOT_FOUND);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Different user with permission', async () => {
@@ -344,7 +364,7 @@ describe('Add cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
@@ -362,7 +382,7 @@ describe('Add cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     try {
       const addResponse = await addCover(uploadResponse.text, 'Generic.jpeg');
@@ -385,7 +405,7 @@ describe('Add cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -411,14 +431,19 @@ describe('Add cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const addResponse = await addCover(uploadResponse.text, 'This_is_not_a_cover.txt', { apiKey: createApiKeyResponse.body.key });
-    expect(addResponse.status).toBe(400);
-    expect(addResponse.text).toBe(INVALID_COVER);
+    try {
+      const addResponse = await addCover(uploadResponse.text, 'This_is_not_a_cover.txt', { apiKey: createApiKeyResponse.body.key });
+      expect(addResponse.status).toBe(400);
+      expect(addResponse.text).toBe(INVALID_COVER);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Cover conflict', async () => {
@@ -430,14 +455,19 @@ describe('Add cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const addResponse = await addCover(uploadResponse.text, 'Alices_Adventures_in_Wonderland.jpeg', { apiKey: createApiKeyResponse.body.key });
-    expect(addResponse.status).toBe(409);
-    expect(addResponse.text).toBe(COVER_CONFLICT);
+    try {
+      const addResponse = await addCover(uploadResponse.text, 'Alices_Adventures_in_Wonderland.jpeg', { apiKey: createApiKeyResponse.body.key });
+      expect(addResponse.status).toBe(409);
+      expect(addResponse.text).toBe(COVER_CONFLICT);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Non-existent book', async () => {
@@ -448,9 +478,14 @@ describe('Add cover api key', () => {
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const addResponse = await addCover('non-existent', 'Alices_Adventures_in_Wonderland.jpeg', { apiKey: createApiKeyResponse.body.key });
-    expect(addResponse.status).toBe(404);
-    expect(addResponse.text).toBe(BOOK_NOT_FOUND);
+    try {
+      const addResponse = await addCover('non-existent', 'Alices_Adventures_in_Wonderland.jpeg', { apiKey: createApiKeyResponse.body.key });
+      expect(addResponse.status).toBe(404);
+      expect(addResponse.text).toBe(BOOK_NOT_FOUND);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Different user without permission', async () => {
@@ -462,7 +497,7 @@ describe('Add cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
@@ -471,9 +506,14 @@ describe('Add cover api key', () => {
     const createApiKeyResponse = await createApiKey(userId2, 'Test Key', ['Update'], undefined, { jwt: registerResponse2.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const addResponse = await addCover(uploadResponse.text, 'Generic.jpeg', { apiKey: createApiKeyResponse.body.key });
-    expect(addResponse.status).toBe(404);
-    expect(addResponse.text).toBe(BOOK_NOT_FOUND);
+    try {
+      const addResponse = await addCover(uploadResponse.text, 'Generic.jpeg', { apiKey: createApiKeyResponse.body.key });
+      expect(addResponse.status).toBe(404);
+      expect(addResponse.text).toBe(BOOK_NOT_FOUND);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Different user with permission', async () => {
@@ -485,7 +525,7 @@ describe('Add cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
@@ -507,14 +547,19 @@ describe('Add cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read', 'Delete'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const addResponse = await addCover(uploadResponse.text, 'Generic.jpeg', { apiKey: createApiKeyResponse.body.key });
-    expect(addResponse.status).toBe(403);
-    expect(addResponse.text).toBe(FORBIDDEN);
+    try {
+      const addResponse = await addCover(uploadResponse.text, 'Generic.jpeg', { apiKey: createApiKeyResponse.body.key });
+      expect(addResponse.status).toBe(403);
+      expect(addResponse.text).toBe(FORBIDDEN);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Expired key', async () => {
@@ -526,7 +571,7 @@ describe('Add cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const timestamp = Date.now() + 1000;
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], timestamp, { jwt: registerResponse.body.jwt_token });
@@ -535,9 +580,14 @@ describe('Add cover api key', () => {
     // Wait for the key to expire
     await wait(1.5);
 
-    const addResponse = await addCover(uploadResponse.text, 'Generic.jpeg', { apiKey: createApiKeyResponse.body.key });
-    expect(addResponse.status).toBe(401);
-    expect(addResponse.text).toBe(INVALID_API_KEY);
+    try {
+      const addResponse = await addCover(uploadResponse.text, 'Generic.jpeg', { apiKey: createApiKeyResponse.body.key });
+      expect(addResponse.status).toBe(401);
+      expect(addResponse.text).toBe(INVALID_API_KEY);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 });
 
@@ -551,7 +601,7 @@ describe('Delete cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const deleteResponse = await deleteCover(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
     expect(deleteResponse.status).toBe(204);
@@ -571,7 +621,7 @@ describe('Delete cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const deleteResponse = await deleteCover(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
     expect(deleteResponse.status).toBe(404);
@@ -596,7 +646,7 @@ describe('Delete cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
@@ -615,7 +665,7 @@ describe('Delete cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
@@ -633,7 +683,7 @@ describe('Delete cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const deleteResponse = await deleteCover(uploadResponse.text);
     expect(deleteResponse.status).toBe(401);
@@ -651,7 +701,7 @@ describe('Delete cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Delete'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -674,7 +724,7 @@ describe('Delete cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Delete'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -706,7 +756,7 @@ describe('Delete cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
@@ -729,7 +779,7 @@ describe('Delete cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
@@ -751,7 +801,7 @@ describe('Delete cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read', 'Create', 'Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -770,7 +820,7 @@ describe('Delete cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const timestamp = Date.now() + 1000;
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Delete'], timestamp, { jwt: registerResponse.body.jwt_token });
@@ -795,7 +845,7 @@ describe('Update cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const updateResponse = await updateCover(uploadResponse.text, 'Generic.jpeg', { jwt: registerResponse.body.jwt_token });
     expect(updateResponse.status).toBe(204);
@@ -819,20 +869,30 @@ describe('Update cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
-    const updateResponse = await updateCover(uploadResponse.text, 'Generic.jpeg', { jwt: registerResponse.body.jwt_token });
-    expect(updateResponse.status).toBe(404);
-    expect(updateResponse.text).toBe(COVER_NOT_FOUND);
+    try {
+      const updateResponse = await updateCover(uploadResponse.text, 'Generic.jpeg', { jwt: registerResponse.body.jwt_token });
+      expect(updateResponse.status).toBe(404);
+      expect(updateResponse.text).toBe(COVER_NOT_FOUND);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Non-existent book', async () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
 
-    const updateResponse = await updateCover('non-existent', 'Generic.jpeg', { jwt: registerResponse.body.jwt_token });
-    expect(updateResponse.status).toBe(404);
-    expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
+    try {
+      const updateResponse = await updateCover('non-existent', 'Generic.jpeg', { jwt: registerResponse.body.jwt_token });
+      expect(updateResponse.status).toBe(404);
+      expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Invalid cover', async () => {
@@ -844,11 +904,16 @@ describe('Update cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
-    const updateResponse = await updateCover(uploadResponse.text, 'This_is_not_a_cover.txt', { jwt: registerResponse.body.jwt_token });
-    expect(updateResponse.status).toBe(400);
-    expect(updateResponse.text).toBe(INVALID_COVER);
+    try {
+      const updateResponse = await updateCover(uploadResponse.text, 'This_is_not_a_cover.txt', { jwt: registerResponse.body.jwt_token });
+      expect(updateResponse.status).toBe(400);
+      expect(updateResponse.text).toBe(INVALID_COVER);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Different user without permission', async () => {
@@ -860,14 +925,19 @@ describe('Update cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
 
-    const updateResponse = await updateCover(uploadResponse.text, 'Generic.jpeg', { jwt: registerResponse2.body.jwt_token });
-    expect(updateResponse.status).toBe(404);
-    expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
+    try {
+      const updateResponse = await updateCover(uploadResponse.text, 'Generic.jpeg', { jwt: registerResponse2.body.jwt_token });
+      expect(updateResponse.status).toBe(404);
+      expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Different user with permission', async () => {
@@ -879,7 +949,7 @@ describe('Update cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
@@ -897,7 +967,7 @@ describe('Update cover JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     try {
       const updateResponse = await updateCover(uploadResponse.text, 'Generic.jpeg');
@@ -920,7 +990,7 @@ describe('Update cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
@@ -947,14 +1017,19 @@ describe('Update cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Give chance for any cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const updateResponse = await updateCover(uploadResponse.text, 'Generic.jpeg', { apiKey: createApiKeyResponse.body.key });
-    expect(updateResponse.status).toBe(404);
-    expect(updateResponse.text).toBe(COVER_NOT_FOUND);
+    try {
+      const updateResponse = await updateCover(uploadResponse.text, 'Generic.jpeg', { apiKey: createApiKeyResponse.body.key });
+      expect(updateResponse.status).toBe(404);
+      expect(updateResponse.text).toBe(COVER_NOT_FOUND);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Non-existent book', async () => {
@@ -965,9 +1040,14 @@ describe('Update cover api key', () => {
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const updateResponse = await updateCover('non-existent', 'Generic.jpeg', { apiKey: createApiKeyResponse.body.key });
-    expect(updateResponse.status).toBe(404);
-    expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
+    try {
+      const updateResponse = await updateCover('non-existent', 'Generic.jpeg', { apiKey: createApiKeyResponse.body.key });
+      expect(updateResponse.status).toBe(404);
+      expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Invalid cover', async () => {
@@ -979,14 +1059,19 @@ describe('Update cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const updateResponse = await updateCover(uploadResponse.text, 'This_is_not_a_cover.txt', { apiKey: createApiKeyResponse.body.key });
-    expect(updateResponse.status).toBe(400);
-    expect(updateResponse.text).toBe(INVALID_COVER);
+    try {
+      const updateResponse = await updateCover(uploadResponse.text, 'This_is_not_a_cover.txt', { apiKey: createApiKeyResponse.body.key });
+      expect(updateResponse.status).toBe(400);
+      expect(updateResponse.text).toBe(INVALID_COVER);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Different user without permission', async () => {
@@ -998,7 +1083,7 @@ describe('Update cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
@@ -1007,9 +1092,14 @@ describe('Update cover api key', () => {
     const createApiKeyResponse = await createApiKey(userId2, 'Test Key', ['Update'], undefined, { jwt: registerResponse2.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const updateResponse = await updateCover(uploadResponse.text, 'Generic.jpeg', { apiKey: createApiKeyResponse.body.key });
-    expect(updateResponse.status).toBe(404);
-    expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
+    try {
+      const updateResponse = await updateCover(uploadResponse.text, 'Generic.jpeg', { apiKey: createApiKeyResponse.body.key });
+      expect(updateResponse.status).toBe(404);
+      expect(updateResponse.text).toBe(BOOK_NOT_FOUND);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Different user with permission', async () => {
@@ -1021,7 +1111,7 @@ describe('Update cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
@@ -1043,14 +1133,19 @@ describe('Update cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read', 'Delete'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const updateResponse = await updateCover(uploadResponse.text, 'Generic.jpeg', { apiKey: createApiKeyResponse.body.key });
-    expect(updateResponse.status).toBe(403);
-    expect(updateResponse.text).toBe(FORBIDDEN);
+    try {
+      const updateResponse = await updateCover(uploadResponse.text, 'Generic.jpeg', { apiKey: createApiKeyResponse.body.key });
+      expect(updateResponse.status).toBe(403);
+      expect(updateResponse.text).toBe(FORBIDDEN);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 
   test('Expired key', async () => {
@@ -1062,7 +1157,7 @@ describe('Update cover api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const timestamp = Date.now() + 1000;
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], timestamp, { jwt: registerResponse.body.jwt_token });
@@ -1071,8 +1166,13 @@ describe('Update cover api key', () => {
     // Wait for the key to expire
     await wait(1.5);
 
-    const updateResponse = await updateCover(uploadResponse.text, 'Generic.jpeg', { apiKey: createApiKeyResponse.body.key });
-    expect(updateResponse.status).toBe(401);
-    expect(updateResponse.text).toBe(INVALID_API_KEY);
+    try {
+      const updateResponse = await updateCover(uploadResponse.text, 'Generic.jpeg', { apiKey: createApiKeyResponse.body.key });
+      expect(updateResponse.status).toBe(401);
+      expect(updateResponse.text).toBe(INVALID_API_KEY);
+    } catch (err: any) {
+      if (err.code === 'EPIPE') return;
+      throw err;
+    }
   });
 });

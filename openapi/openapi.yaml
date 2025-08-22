@@ -9,80 +9,245 @@ info:
   license:
     name: GPL-3.0
     url: https://www.gnu.org/licenses/gpl-3.0.en.html
+
   description: |
-    # Prosa API Documentation
+    # Overview
 
-    ### Overview
-    Prosa is a self-hosted book server that allows users to manage their digital book collection. This API provides comprehensive endpoints for book management, user administration, and metadata synchronization.
+    Prosa is a self-hosted book server for managing and reading your personal collection.
 
-    ### Authentication
-    Authentication can be performed in two ways:
-    1. **JWT Token**: Users can include a bearer token in the `Authorization` header.
-    2. **API Key**: Users can generate API keys with specific capabilities to be used by external applications.
+    ## Main Features
 
-    ### User Types
-    The system supports two types of users:
-    - **Regular Users**: Can perform operations only on their own books.
-    - **Admin Users**: Have full access to perform any operation on any book in the system.
+    ### Book Management
 
-    ### Core Features
+    - Manage EPUB files, including metadata and cover images
+    - Organize books into shelves
 
-    #### Book Management
-    Our system enables users to manage EPUB files, book covers, and metadata, including uploading, downloading, modifying, and removing them as needed.
+    ### Reading, Annotations & Ratings
 
-    #### Automatic Metadata Fetching
-    The system automatically fetches book metadata upon upload using two providers:
-    1. **Goodreads Metadata Scraper**
-    2. **Embedded Metadata Extractor** (extracts metadata directly from EPUB files)
+    - Track and store reading progress for each book
+    - Add and manage book annotations
+    - Rate books
 
-    Users can configure their metadata provider preferences, defining the order of retrieval or disabling it entirely.
+    ### Automatic Metadata Fetching
+
+    - Automatically extract book metadata from various providers
+
+    ### User & Device Support
+
+    - Support multiple users with different roles (regular and admin)
+    - Sync books, annotations, and reading progress across multiple devices
+
+    ## User Types
+
+    - **Regular Users** – Can perform operations only on their own books.
+    - **Admin Users** – Have full access to perform any operation on any book in the system.
+
+    ## Authentication
+
+    - **JWT tokens** – Obtain from the authentication endpoint
+    - **API keys** – Create in your user preferences
+
+    # Configuration
+
+    Prosa can be configured in two ways:
+
+    1. **Configuration files (TOML)**
+    2. **Environment variables**
+
+    The configuration system is layered, meaning defaults are loaded first and then overridden by local configuration or environment variables.
+
+    ## Default Configuration
+
+    Prosa ships with a default configuration file located at `src/config/default.toml`.
+
+    This file is always loaded when the program starts.  
+    You can change the path where Prosa looks for the default configuration by setting the `PROSA_DEFAULT_CONFIGURATION` environment variable. If not specified, it defaults to `src/config/default.toml`.
+
+    ### Example `default.toml`
+
+    ```toml
+    [server]
+    host = "0.0.0.0"
+    port = 5000
+
+    [auth]
+    secret_key = "jwt_secret_key"
+    admin_key = "admin_key"
+    jwt_token_duration = 900
+    refresh_token_duration = 604800
+
+    [book_storage]
+    epub_path = "library/epubs"
+    cover_path = "library/covers"
+
+    [metadata_cooldown]
+    goodreads = 1000
+    epub_extractor = 0
+
+    [database]
+    file_path = "library/database.db"
+
+    [kepubify]
+    path = "kepubify/kepubify"
+
+    ```
+
+    ## Local Configuration
+
+    Any value from the default configuration can be overridden by creating a local configuration file.
+
+    By default, Prosa looks for `src/config/local.toml`.
+
+    You can change this path using the `PROSA_LOCAL_CONFIGURATION` environment variable.  
+    Values defined in `local.toml` will take precedence over `default.toml`.
+
+    ## Environment Variables
+
+    All configuration values can also be controlled directly through environment variables.  
+    The format is `PROSA__<SECTION>__<KEY>`.
+
+    -   Sections map to the `[section]` headers in the TOML file.
+        
+    -   Keys map to the field names inside each section.
+
+    **Important:**
+
+    - Sections and keys are separated using **double underscores (`__`)**.
+        
+    - Single underscores (`_`) inside a key name (e.g. `admin_key`) remain as-is and **are not separators**.
+        
+    For example:
+
+    - To set the server port (`[server].port`):
+        
+      ```bash
+      export PROSA__SERVER__PORT=8080
+      ```
+
+    - To set the admin key (`[auth].admin_key`):  
+      _(notice there is only **one underscore** between `ADMIN` and `KEY` because the field name itself has an underscore)_
+        
+      ```bash
+      export PROSA__AUTH__ADMIN_KEY=super_secret_key
+      ```
+
+    ## Configuration Reference
+
+    -   **[server]**
+        
+        -   `host`: Network interface where the server will listen.
+            
+        -   `port`: Port number the server will listen on.
+            
+    -   **[auth]**
+        
+        -   `secret_key`: Secret key used for JWT encoding.
+            
+        -   `admin_key`: Secret used to register admin users.
+            
+        -   `jwt_token_duration`: Expiration duration for JWT tokens (seconds).
+            
+        -   `refresh_token_duration`: Expiration duration for refresh tokens (seconds).
+            
+    -   **[book_storage]**
+        
+        -   `epub_path`: Directory where EPUB files are stored.
+            
+        -   `cover_path`: Directory where cover images are stored.
+            
+    -   **[metadata_cooldown]**
+        
+        -   `goodreads`: Minimum delay (ms) between Goodreads metadata fetch attempts.
+            
+        -   `epub_extractor`: Minimum delay (ms) between EPUB extractor metadata fetch attempts.
+            
+    -   **[database]**
+        
+        -   `file_path`: Path to the SQLite database file.
+            
+    -   **[kepubify]**
+        
+        -   `path`: Path to the `kepubify` binary.
+
+    ## Logging
+
+    You can control the logging level using the standard `RUST_LOG` environment variable.  
+    Supported values include `error`, `warn`, `info`, `debug`, and `trace`.
+
+    - Default:
+      ```bash
+      RUST_LOG=info
+      ```
+        
+    - Example (set log level to warn):
+      ```bash
+      export RUST_LOG=warn
+      ```
+
+    # Getting Started
+
+    Follow these steps to get up and running with Prosa:
+
+    ### 0. Ensure Kepubify is Installed
+
+    Before running the server, make sure the `kepubify` binary is downloaded and its path is configured:  
+
+    - Download the latest **kepubify-linux-64bit** release from [GitHub](https://github.com/tiago-cos/kepubify/releases/latest).  
+    - Place the binary somewhere accessible on your system.  
+    - Configure the path in Prosa using the [Local Configuration](#section/Configuration/Local-Configuration) under `[kepubify].path`.
+
+    ### 1. Create a User
+
+    Register a new user using the [Register User](#tag/Authentication/operation/register) endpoint.
+
+    ### 2. (Optional) Enable Goodreads Metadata Extraction
+
+    If you want Prosa to automatically fetch metadata from Goodreads:
+
+    - Update your user preferences via the [Patch User Preferences](#tag/Preferences/operation/patchPreferences) endpoint.  
+    - Add `"goodreads_metadata_extractor"` to the `metadata_providers` array.
+
+    ### 3. Upload Your First Book
+
+    Add a book to your library using the [Upload Book](#tag/File/operation/uploadBook) endpoint. You can manage metadata and cover images as part of this process.
+
+    You're now ready to browse, read, and annotate your books!
 
 externalDocs:
   description: "Checkout the project repository for more information."
   url: "https://github.com/tiago-cos/prosa"
+
 tags:
   - name: File
-    description: "Operations about book files."
   - name: Cover
-    description: "Operations about book covers."
-  - name: Book Metadata
-    description: "Operations about book metadata."
+  - name: Metadata
   - name: Annotations
-    description: "Operations about book annotations."
   - name: State
-    description: "Operations about book state."
-  - name: Shelf
-    description: "Operations about book collections (shelves)."
+  - name: Shelves
+  - name: Books
   - name: Search Shelves
-    description: "Operations about searching shelves."
   - name: Search Books
-    description: "Operations about searching books."
   - name: Sync
-    description: "Operations about synchronization."
   - name: Authentication
-    description: "Operations about user authentication."
   - name: User Profile
-    description: "Operations about user profile."
   - name: Preferences
-    description: "Operations about user preferences."
   - name: API Keys
-    description: "Operations about user API keys."
 
 x-tagGroups:
   - name: Book Management
     tags:
       - File
       - Cover
-      - Book Metadata
+      - Metadata
       - Annotations
       - State
       - Search Books
   - name: Shelf Management
     tags:
-      - Shelf
-      - Book
+      - Shelves
+      - Books
       - Search Shelves
-  - name: Sync
+  - name: Syncing Devices
     tags:
       - Sync
   - name: User Management
@@ -157,4 +322,3 @@ components:
       type: apiKey
       name: api-key
       in: header
-      format: password

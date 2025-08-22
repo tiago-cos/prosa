@@ -1,16 +1,16 @@
 use crate::app::{
+    Pool,
     authentication::models::{AuthError, AuthRole, AuthToken, READ, UPDATE},
     books::{self, models::BookError},
     error::ProsaError,
     metadata::models::{MetadataError, MetadataFetchRequest},
-    Pool,
 };
 use axum::{
-    body::{to_bytes, Body},
+    Extension, Json,
+    body::{Body, to_bytes},
     extract::{FromRequest, Query, Request, State},
     middleware::Next,
     response::IntoResponse,
-    Extension, Json,
 };
 use std::collections::HashMap;
 

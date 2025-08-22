@@ -2,7 +2,7 @@ use super::{
     data,
     models::{Annotation, AnnotationError, NewAnnotationRequest},
 };
-use crate::app::{error::ProsaError, SourceCache, TagCache, TagLengthCache};
+use crate::app::{SourceCache, TagCache, TagLengthCache, error::ProsaError};
 use epub::doc::EpubDoc;
 use regex::Regex;
 use sqlx::SqlitePool;
@@ -110,7 +110,7 @@ async fn validate_annotation(
         let sources: HashSet<String> = doc
             .resources
             .iter()
-            .filter_map(|r| r.1 .0.to_str().map(|s| s.to_string()))
+            .filter_map(|r| r.1.0.to_str().map(|s| s.to_string()))
             .collect();
         let sources = Arc::new(sources);
         source_cache.insert(source_cache_key, sources.clone());

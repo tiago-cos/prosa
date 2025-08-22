@@ -4,7 +4,6 @@ get:
   summary: "Download book"
   description: |
     Download a book owned by a user.
-    The user must be authenticated and have the appropriate permissions.
   operationId: downloadBook
   parameters:
     - $ref: ../../components/parameters/book_id.yaml
@@ -34,7 +33,6 @@ delete:
   summary: "Delete book"
   description: |
     Delete a book owned by a user.
-    The user must be authenticated and have the appropriate permissions.
   operationId: deleteBook
   parameters:
     - $ref: ../../components/parameters/book_id.yaml

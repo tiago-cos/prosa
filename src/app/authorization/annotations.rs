@@ -1,14 +1,14 @@
 use crate::app::{
+    Pool,
     authentication::models::{AuthError, AuthRole, AuthToken, READ, UPDATE},
     books::{self, models::BookError},
     error::ProsaError,
-    Pool,
 };
 use axum::{
+    Extension,
     extract::{Path, Request, State},
     middleware::Next,
     response::IntoResponse,
-    Extension,
 };
 
 async fn user_id_matches(user_id: &str, token: &AuthToken) -> bool {

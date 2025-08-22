@@ -6,16 +6,16 @@ use super::{
     service,
 };
 use crate::app::{
+    AppState, Pool,
     authentication::{self, models::AuthError},
     error::ProsaError,
     users::models::{AuthenticationResponse, RefreshTokenRequest, UserProfile},
-    AppState, Pool,
 };
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
 };
 
 pub async fn register_user_handler(

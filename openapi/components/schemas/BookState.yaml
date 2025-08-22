@@ -3,11 +3,11 @@ description: Contains the current state of a book.
 properties:
   location:
     type: object
-    description: The current location of the book.
+    description: The location in the book where the reader last left off.
     properties:
       tag: 
         type: string
-        description: The `id` attribute of the XHTML tag of the current location.
+        description: The `id` attribute of the `koboSpan` XHTML tag of the location.
         example: "kobo.41.1"
       source:
         type: string

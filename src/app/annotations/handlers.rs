@@ -2,12 +2,12 @@ use super::{
     models::{NewAnnotationRequest, PatchAnnotationRequest},
     service,
 };
-use crate::app::{books, error::ProsaError, sync, AppState};
+use crate::app::{AppState, books, error::ProsaError, sync};
 use axum::{
+    Json,
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
-    Json,
 };
 
 pub async fn add_annotation_handler(

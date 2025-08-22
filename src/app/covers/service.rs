@@ -1,12 +1,12 @@
 use super::{data, models::CoverError};
-use crate::app::{concurrency::manager::ProsaLockManager, ImageCache};
-use base64::{prelude::BASE64_STANDARD, Engine};
+use crate::app::{ImageCache, concurrency::manager::ProsaLockManager};
+use base64::{Engine, prelude::BASE64_STANDARD};
 use image::ImageFormat;
 use sha2::{Digest, Sha256};
 use sqlx::SqlitePool;
 use std::sync::Arc;
 use tokio::{
-    fs::{remove_file, File},
+    fs::{File, remove_file},
     io::{AsyncReadExt, AsyncWriteExt},
 };
 use uuid::Uuid;

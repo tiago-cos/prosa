@@ -177,7 +177,7 @@ async fn verify_username(username: &str) -> Result<(), UserError> {
 }
 
 async fn verify_password(password: &str) -> Result<(), UserError> {
-    let filter = Regex::new(r"^[\w.!@-]+$").unwrap();
+    let filter = Regex::new(r"^[\w.!@#$%^&*-]+$").unwrap();
     if !filter.is_match(password) {
         return Err(UserError::InvalidInput.into());
     }

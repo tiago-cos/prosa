@@ -3,8 +3,8 @@ post:
     - Authentication
   summary: Refresh access token
   description: |
-    Exchange a valid refresh token for a new access token and a rotated refresh token.
-    The old refresh token becomes invalid after use.
+    Exchange a valid refresh token for a new access token and a rotated refresh token.  
+    The old token becomes invalid after refreshing.
   operationId: refreshAccessToken
   requestBody:
     required: true
@@ -32,14 +32,14 @@ post:
             properties:
               jwt_token:
                 type: string
-                description: Base64-encoded JWT access token
+                description: Base64-encoded JWT access token.
               refresh_token:
                 type: string
-                description: Refresh token used to obtain new JWTs
+                description: Refresh token used to obtain new JWTs.
               user_id:
                 type: string
                 format: uuid
-                description: UUID of the authenticated user
+                description: UUID of the authenticated user.
             required:
               - jwt_token
               - refresh_token

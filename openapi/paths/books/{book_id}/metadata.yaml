@@ -1,10 +1,9 @@
 post:
   tags:
-    - Book Metadata
+    - Metadata
   summary: "Add book metadata"
   description: |
     Add metadata for a specific book owned by a user.
-    The user must be authenticated and have the appropriate permissions.
   operationId: addBookMetadata
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml
@@ -38,11 +37,10 @@ post:
 
 get:
   tags:
-    - Book Metadata
+    - Metadata
   summary: "Get book metadata"
   description: |
     Retrieve metadata for a specific book owned by a user.
-    The user must be authenticated and have the appropriate permissions.
   operationId: getBookMetadata
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml
@@ -69,12 +67,11 @@ get:
 
 put:
   tags:
-    - Book Metadata
+    - Metadata
   summary: "Update book metadata"
   description: |
-    Update metadata for a specific book owned by a user.
+    Update metadata for a specific book owned by a user.  
     The existing metadata will be completely replaced by the new one.
-    The user must be authenticated and have the appropriate permissions.
   operationId: updateBookMetadata
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml
@@ -106,11 +103,10 @@ put:
 
 delete:
   tags:
-    - Book Metadata
+    - Metadata
   summary: "Delete book metadata"
   description: |
     Delete metadata for a specific book owned by a user.
-    The user must be authenticated and have the appropriate permissions.
   operationId: deleteBookMetadata
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml
@@ -131,12 +127,11 @@ delete:
 
 patch:
   tags:
-    - Book Metadata
+    - Metadata
   summary: "Patch book metadata"
   description: |
-    Patch metadata for a specific book owned by a user.
+    Patch metadata for a specific book owned by a user.  
     Only the fields specified in the request body will be updated.
-    The user must be authenticated and have the appropriate permissions.
   operationId: patchBookMetadata
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml

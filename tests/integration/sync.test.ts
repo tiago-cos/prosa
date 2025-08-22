@@ -18,7 +18,7 @@ describe('Sync JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     let syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(syncResponse.status).toBe(200);
@@ -71,7 +71,7 @@ describe('Sync JWT', () => {
     expect(uploadResponse2.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     syncResponse = await sync(userId, now, { jwt: registerResponse.body.jwt_token });
     expect(syncResponse.status).toBe(200);
@@ -151,7 +151,7 @@ describe('Sync JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     let syncResponse = await sync(undefined, undefined, { jwt: registerResponse.body.jwt_token });
     expect(syncResponse.status).toBe(200);
@@ -204,7 +204,7 @@ describe('Sync JWT', () => {
     expect(uploadResponse2.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     syncResponse = await sync(undefined, now, { jwt: registerResponse.body.jwt_token });
     expect(syncResponse.status).toBe(200);
@@ -284,7 +284,7 @@ describe('Sync JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     let syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(syncResponse.status).toBe(200);
@@ -338,7 +338,7 @@ describe('Sync JWT', () => {
     expect(uploadResponse3.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(syncResponse.status).toBe(200);
@@ -371,7 +371,7 @@ describe('Sync JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
     expect(addShelfResponse.status).toBe(200);
@@ -434,7 +434,7 @@ describe('Sync JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     let syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(syncResponse.status).toBe(200);
@@ -545,7 +545,7 @@ describe('Sync JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     let syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(syncResponse.status).toBe(200);
@@ -630,7 +630,7 @@ describe('Sync JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     let syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(syncResponse.status).toBe(200);
@@ -715,7 +715,7 @@ describe('Sync JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     let syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(syncResponse.status).toBe(200);
@@ -826,7 +826,7 @@ describe('Sync JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
     expect(addShelfResponse.status).toBe(200);
@@ -914,7 +914,7 @@ describe('Sync JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
     expect(addShelfResponse.status).toBe(200);
@@ -930,7 +930,7 @@ describe('Sync JWT', () => {
     expect(uploadResponse2.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const addShelfResponse2 = await createShelf('shelf', userId2, { jwt: registerResponse2.body.jwt_token });
     expect(addShelfResponse2.status).toBe(200);
@@ -990,7 +990,7 @@ describe('Sync JWT', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
     expect(addShelfResponse.status).toBe(200);
@@ -1006,7 +1006,7 @@ describe('Sync JWT', () => {
     expect(uploadResponse2.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const addShelfResponse2 = await createShelf('shelf', userId2, { jwt: registerResponse2.body.jwt_token });
     expect(addShelfResponse2.status).toBe(200);
@@ -1125,7 +1125,7 @@ describe('Sync api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     let syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
     expect(syncResponse.status).toBe(200);
@@ -1178,7 +1178,7 @@ describe('Sync api key', () => {
     expect(uploadResponse2.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     syncResponse = await sync(userId, now, { apiKey: createApiKeyResponse.body.key });
     expect(syncResponse.status).toBe(200);
@@ -1261,7 +1261,7 @@ describe('Sync api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     let syncResponse = await sync(undefined, undefined, { apiKey: createApiKeyResponse.body.key });
     expect(syncResponse.status).toBe(200);
@@ -1314,7 +1314,7 @@ describe('Sync api key', () => {
     expect(uploadResponse2.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     syncResponse = await sync(undefined, now, { apiKey: createApiKeyResponse.body.key });
     expect(syncResponse.status).toBe(200);
@@ -1397,7 +1397,7 @@ describe('Sync api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     let syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
     expect(syncResponse.status).toBe(200);
@@ -1451,7 +1451,7 @@ describe('Sync api key', () => {
     expect(uploadResponse3.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
     expect(syncResponse.status).toBe(200);
@@ -1487,7 +1487,7 @@ describe('Sync api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
     expect(addShelfResponse.status).toBe(200);
@@ -1553,7 +1553,7 @@ describe('Sync api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     let syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
     expect(syncResponse.status).toBe(200);
@@ -1667,7 +1667,7 @@ describe('Sync api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     let syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
     expect(syncResponse.status).toBe(200);
@@ -1755,7 +1755,7 @@ describe('Sync api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     let syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
     expect(syncResponse.status).toBe(200);
@@ -1843,7 +1843,7 @@ describe('Sync api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     let syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
     expect(syncResponse.status).toBe(200);
@@ -1957,7 +1957,7 @@ describe('Sync api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
     expect(addShelfResponse.status).toBe(200);
@@ -2048,7 +2048,7 @@ describe('Sync api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
     expect(addShelfResponse.status).toBe(200);
@@ -2067,7 +2067,7 @@ describe('Sync api key', () => {
     expect(uploadResponse2.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const addShelfResponse2 = await createShelf('shelf', userId2, { jwt: registerResponse2.body.jwt_token });
     expect(addShelfResponse2.status).toBe(200);
@@ -2130,7 +2130,7 @@ describe('Sync api key', () => {
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
     expect(addShelfResponse.status).toBe(200);
@@ -2149,7 +2149,7 @@ describe('Sync api key', () => {
     expect(uploadResponse2.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
-    await wait(0.5);
+    await wait(1);
 
     const addShelfResponse2 = await createShelf('shelf', userId2, { jwt: registerResponse2.body.jwt_token });
     expect(addShelfResponse2.status).toBe(200);

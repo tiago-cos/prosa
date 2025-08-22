@@ -1,11 +1,10 @@
 get:
   tags:
-    - Shelf
+    - Shelves
   summary: "Get shelf metadata"
   description: |
-    Retrieve metadata for a specific shelf by its ID.
+    Retrieve metadata for a specific shelf by its ID.  
     Includes the shelf's name, owner, and number of books in it.
-    Only the shelf's owner or an admin can access this information.
   operationId: getShelf
   parameters:
     - $ref: ../../components/parameters/shelf_id.yaml
@@ -52,11 +51,10 @@ get:
 
 put:
   tags:
-    - Shelf
+    - Shelves
   summary: "Update shelf name"
   description: |
     Update the name of a specific shelf by its ID.
-    Only the shelf's owner or an admin can perform this operation.
   operationId: updateShelfName
   parameters:
     - $ref: ../../components/parameters/shelf_id.yaml
@@ -97,15 +95,14 @@ put:
 
 delete:
   tags:
-    - Shelf
+    - Shelves
   summary: "Delete a shelf"
   description: |
-    Delete a shelf by its ID.
-    Only the shelf's owner or an admin may delete a shelf.
+    Delete a shelf by its ID.  
     Deleting a shelf does not delete the books it contains.
   operationId: deleteShelf
   parameters:
-    - $ref: ../../components/parameters/book_id.yaml
+    - $ref: ../../components/parameters/shelf_id.yaml
 
   responses:
     "204":

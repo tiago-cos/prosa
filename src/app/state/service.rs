@@ -2,7 +2,7 @@ use super::{
     data,
     models::{Location, State, StateError, Statistics, VALID_READING_STATUS},
 };
-use crate::app::{error::ProsaError, SourceCache, TagCache};
+use crate::app::{SourceCache, TagCache, error::ProsaError};
 use epub::doc::EpubDoc;
 use merge::Merge;
 use regex::Regex;
@@ -97,7 +97,7 @@ async fn validate_statistics(stats: &Statistics) -> Result<(), ProsaError> {
     match stats.reading_status.as_deref() {
         None => return Err(StateError::InvalidReadingStatus.into()),
         Some(status) if !VALID_READING_STATUS.contains(&status) => {
-            return Err(StateError::InvalidReadingStatus.into())
+            return Err(StateError::InvalidReadingStatus.into());
         }
         _ => (),
     }
@@ -134,7 +134,7 @@ async fn validate_location(
         let sources: HashSet<String> = doc
             .resources
             .iter()
-            .filter_map(|r| r.1 .0.to_str().map(|s| s.to_string()))
+            .filter_map(|r| r.1.0.to_str().map(|s| s.to_string()))
             .collect();
         let sources = Arc::new(sources);
         source_cache.insert(source_cache_key, sources.clone());

@@ -1,10 +1,9 @@
 delete:
   tags:
-    - Book
+    - Books
   summary: "Remove a book from a shelf"
   description: |
     Remove a specific book from the specified shelf.
-    Only the shelf owner or an admin can perform this operation.
   operationId: removeBookFromShelf
   parameters:
     - $ref: ../../../../components/parameters/shelf_id.yaml

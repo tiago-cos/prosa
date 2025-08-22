@@ -1,6 +1,6 @@
 use super::fetcher::MetadataFetcher;
 use crate::app::{
-    books,
+    Config, ImageCache, books,
     concurrency::manager::ProsaLockManager,
     covers, epubs,
     error::ProsaError,
@@ -8,7 +8,7 @@ use crate::app::{
         self,
         models::{Metadata, MetadataError},
     },
-    sync, Config, ImageCache,
+    sync,
 };
 use log::warn;
 use serde::Serialize;

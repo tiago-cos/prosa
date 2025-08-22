@@ -1,17 +1,17 @@
 use super::handlers;
 use crate::app::{
+    AppState,
     authentication::middleware::extract_token_middleware,
     authorization::shelves::{
         can_add_book_to_shelf, can_create_shelf, can_delete_book_from_shelf, can_delete_shelf,
         can_read_shelf, can_search_shelves, can_update_shelf,
     },
-    AppState,
 };
 use axum::{
+    Router,
     extract::DefaultBodyLimit,
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
-    Router,
 };
 
 #[rustfmt::skip]

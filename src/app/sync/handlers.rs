@@ -1,11 +1,11 @@
 use super::{models::SyncError, service};
 use crate::app::{
-    authentication::models::AuthToken, error::ProsaError, sync::models::UnsyncedResponse, Pool,
+    Pool, authentication::models::AuthToken, error::ProsaError, sync::models::UnsyncedResponse,
 };
 use axum::{
+    Extension, Json,
     extract::{Query, State},
     response::IntoResponse,
-    Extension, Json,
 };
 use chrono::{DateTime, Utc};
 use std::collections::HashMap;

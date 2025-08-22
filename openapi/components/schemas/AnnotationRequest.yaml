@@ -7,11 +7,11 @@ properties:
     example: "OEBPS/chapter-1.htm.xhtml"
   start_tag:
     type: string
-    description: The `id` attribute of the XHTML tag where the annotation begins.
+    description: The `id` attribute of the XHTML `koboSpan` tag where the annotation begins.
     example: "kobo.74.3"
   end_tag:
     type: string
-    description: The `id` attribute of the XHTML tag where the annotation ends.
+    description: The `id` attribute of the XHTML `koboSpan` tag where the annotation ends.
     example: "kobo.74.5"
   start_char:
     type: integer
@@ -25,7 +25,6 @@ properties:
     example: 42
   note:
     type: string
-    nullable: true
     description: An optional user-provided note attached to the annotation.
     example: "Important point about the plot."
 required:

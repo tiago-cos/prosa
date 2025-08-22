@@ -1,13 +1,13 @@
 use super::handlers;
 use crate::app::{
+    AppState,
     authentication::middleware::extract_token_middleware,
     authorization::books::{can_read_book, can_update_book},
-    AppState,
 };
 use axum::{
+    Router,
     middleware::from_fn_with_state,
     routing::{get, patch, put},
-    Router,
 };
 
 #[rustfmt::skip]

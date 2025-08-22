@@ -4,7 +4,6 @@ post:
   summary: "Add book annotation"
   description: |
     Add an annotation to a specific book in the user's library.
-    The user must be authenticated and have the appropriate permissions.
   operationId: addBookAnnotation
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml
@@ -49,7 +48,6 @@ get:
   summary: "List book annotations"
   description: |
     List all annotations for a specific book owned by the user.
-    The user must be authenticated and have the appropriate permissions.
   operationId: listBookAnnotations
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml
