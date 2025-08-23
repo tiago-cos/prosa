@@ -82,7 +82,7 @@ describe('Get cover JWT', () => {
     // Wait for cover to be extracted
     await wait(1);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const downloadResponse = await getCover(uploadResponse.text, { jwt: registerResponse2.body.jwt_token });
@@ -197,7 +197,7 @@ describe('Get cover api key', () => {
     // Wait for cover to be extracted
     await wait(1);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
@@ -366,7 +366,7 @@ describe('Add cover JWT', () => {
     // Give chance for any cover to be extracted
     await wait(1);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const addResponse = await addCover(uploadResponse.text, 'Generic.jpeg', { jwt: registerResponse2.body.jwt_token });
@@ -527,7 +527,7 @@ describe('Add cover api key', () => {
     // Give chance for any cover to be extracted
     await wait(1);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
@@ -667,7 +667,7 @@ describe('Delete cover JWT', () => {
     // Wait for cover to be extracted
     await wait(1);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const deleteResponse = await deleteCover(uploadResponse.text, { jwt: registerResponse2.body.jwt_token });
@@ -781,7 +781,7 @@ describe('Delete cover api key', () => {
     // Wait for cover to be extracted
     await wait(1);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
@@ -951,7 +951,7 @@ describe('Update cover JWT', () => {
     // Wait for cover to be extracted
     await wait(1);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const updateResponse = await updateCover(uploadResponse.text, 'Generic.jpeg', { jwt: registerResponse2.body.jwt_token });
@@ -1113,7 +1113,7 @@ describe('Update cover api key', () => {
     // Wait for cover to be extracted
     await wait(1);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 

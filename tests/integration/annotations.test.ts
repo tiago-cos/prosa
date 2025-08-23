@@ -126,7 +126,7 @@ describe('Add annotation JWT', () => {
     const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const addAnnotationResponse = await addAnnotation(uploadResponse.text, ALICE_NOTE, { jwt: registerResponse2.body.jwt_token });
@@ -287,7 +287,7 @@ describe('Add annotation api key', () => {
     const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
@@ -407,7 +407,7 @@ describe('Get annotation JWT', () => {
     const addAnnotationResponse = await addAnnotation(uploadResponse.text, ALICE_NOTE, { jwt: registerResponse.body.jwt_token });
     expect(addAnnotationResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const getAnnotationResponse = await getAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse2.body.jwt_token });
@@ -517,7 +517,7 @@ describe('Get annotation api key', () => {
     const addAnnotationResponse = await addAnnotation(uploadResponse.text, ALICE_NOTE, { jwt: registerResponse.body.jwt_token });
     expect(addAnnotationResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
@@ -625,7 +625,7 @@ describe('List annotations JWT', () => {
     const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const listAnnotationsResponse = await listAnnotations(uploadResponse.text, { jwt: registerResponse2.body.jwt_token });
@@ -711,7 +711,7 @@ describe('List annotations api key', () => {
     const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
@@ -834,7 +834,7 @@ describe('Delete annotation JWT', () => {
     const addAnnotationResponse = await addAnnotation(uploadResponse.text, ALICE_NOTE, { jwt: registerResponse.body.jwt_token });
     expect(addAnnotationResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const deleteAnnotationResponse = await deleteAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse2.body.jwt_token });
@@ -951,7 +951,7 @@ describe('Delete annotation api key', () => {
     const addAnnotationResponse = await addAnnotation(uploadResponse.text, ALICE_NOTE, { jwt: registerResponse.body.jwt_token });
     expect(addAnnotationResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
@@ -1095,7 +1095,7 @@ describe('Patch annotation JWT', () => {
     const addAnnotationResponse = await addAnnotation(uploadResponse.text, ALICE_NOTE, { jwt: registerResponse.body.jwt_token });
     expect(addAnnotationResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const patchAnnotationResponse = await patchAnnotation(uploadResponse.text, addAnnotationResponse.text, 'note', { jwt: registerResponse2.body.jwt_token });
@@ -1223,7 +1223,7 @@ describe('Delete annotation api key', () => {
     const addAnnotationResponse = await addAnnotation(uploadResponse.text, ALICE_NOTE, { jwt: registerResponse.body.jwt_token });
     expect(addAnnotationResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 

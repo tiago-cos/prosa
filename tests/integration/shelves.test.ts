@@ -95,7 +95,7 @@ describe('Create shelf JWT', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const shelfName = randomString(20);
@@ -105,7 +105,7 @@ describe('Create shelf JWT', () => {
   });
 
   test('Non-existent user', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
     const createShelfResponse = await createShelf('shelf', 'non-existent', { jwt: registerResponse.body.jwt_token });
@@ -220,7 +220,7 @@ describe('Create shelf API key', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
@@ -234,7 +234,7 @@ describe('Create shelf API key', () => {
   });
 
   test('Non-existent user', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
@@ -315,7 +315,7 @@ describe('Get shelf metadata JWT', () => {
     const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const getShelfMetadataResponse = await getShelfMetadata(createShelfResponse.text, { jwt: registerResponse2.body.jwt_token });
@@ -378,7 +378,7 @@ describe('Get shelf metadata API key', () => {
     const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
@@ -510,7 +510,7 @@ describe('Update shelf JWT', () => {
     const createShelfResponse = await createShelf(shelfName, userId, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const updateShelfResponse = await updateShelf(createShelfResponse.text, 'new-name', { jwt: registerResponse2.body.jwt_token });
@@ -522,7 +522,7 @@ describe('Update shelf JWT', () => {
   });
 
   test('Non-existent shelf', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
     const updateShelfResponse = await updateShelf('non-existent', 'new-name', { jwt: registerResponse.body.jwt_token });
@@ -641,7 +641,7 @@ describe('Update shelf API key', () => {
     const createShelfResponse = await createShelf(shelfName, userId, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
@@ -657,7 +657,7 @@ describe('Update shelf API key', () => {
   });
 
   test('Non-existent shelf', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
@@ -792,7 +792,7 @@ describe('Delete shelf JWT', () => {
     const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const deleteShelfResponse = await deleteShelf(createShelfResponse.text, { jwt: registerResponse2.body.jwt_token });
@@ -876,7 +876,7 @@ describe('Delete shelf API key', () => {
     const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
@@ -1073,7 +1073,7 @@ describe('Search shelves JWT', () => {
   });
 
   test('Non-existent user', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
     let searchResponse = await searchShelves('non-existent', undefined, undefined, undefined, { jwt: registerResponse.body.jwt_token });
@@ -1094,7 +1094,7 @@ describe('Search shelves JWT', () => {
   });
 
   test('Different user with permission', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
     const { response: registerResponse2, username: username2 } = await registerUser();
@@ -1115,7 +1115,7 @@ describe('Search shelves JWT', () => {
   });
 
   test('All books with permission', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
@@ -1313,7 +1313,7 @@ describe('Search shelves API key', () => {
   });
 
   test('Non-existent user', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
@@ -1342,7 +1342,7 @@ describe('Search shelves API key', () => {
   });
 
   test('Different user with permission', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
@@ -1371,7 +1371,7 @@ describe('Search shelves API key', () => {
   });
 
   test('All books with permission', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
@@ -1538,7 +1538,7 @@ describe('Add book to shelf JWT', () => {
   });
 
   test('Different user with permission', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
@@ -1715,7 +1715,7 @@ describe('Add book to shelf API key', () => {
   });
 
   test('Different user with permission', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
@@ -1861,7 +1861,7 @@ describe('List shelf books JWT', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
@@ -1962,7 +1962,7 @@ describe('List shelf books API key', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
@@ -2100,7 +2100,7 @@ describe('Delete book from shelf JWT', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
@@ -2161,7 +2161,7 @@ describe('Delete book from shelf JWT', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const uploadBookResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { jwt: registerResponse.body.jwt_token });
@@ -2291,7 +2291,7 @@ describe('Delete book from shelf API key', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
@@ -2359,7 +2359,7 @@ describe('Delete book from shelf API key', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 

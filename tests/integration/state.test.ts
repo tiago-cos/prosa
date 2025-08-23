@@ -51,7 +51,7 @@ describe('Get state JWT', () => {
     const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const downloadResponse = await getState(uploadResponse.text, { jwt: registerResponse2.body.jwt_token });
@@ -131,7 +131,7 @@ describe('Get state api key', () => {
     const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
@@ -297,7 +297,7 @@ describe('Update state JWT', () => {
     const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const updateResponse = await updateState(uploadResponse.text, ALICE_STATE, { jwt: registerResponse2.body.jwt_token });
@@ -450,7 +450,7 @@ describe('Update state api key', () => {
     const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
@@ -621,7 +621,7 @@ describe('Patch state JWT', () => {
     const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const patchResponse = await patchState(uploadResponse.text, ALICE_STATE, { jwt: registerResponse2.body.jwt_token });
@@ -775,7 +775,7 @@ describe('Patch state api key', () => {
     const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 

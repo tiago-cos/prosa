@@ -16,16 +16,22 @@ export const INVALID_PREFERENCES = 'Invalid or unsupported preferences provided.
 export const INVALID_TOKEN = 'The provided token is invalid.';
 export const TOKEN_NOT_FOUND = 'The refresh token was not found or cannot be accessed.';
 
-export async function registerUser(username?: string, password?: string, adminKey?: string) {
+export async function registerUser(username?: string, password?: string, admin = false, adminKey?: string) {
   username = username ?? randomString(16);
   password = password ?? randomString(16);
 
-  const payload: Record<string, string> = { username, password };
-  if (adminKey) {
-    payload.admin_key = adminKey;
+  const payload: any = { username, password };
+  if (admin) {
+    payload.admin = true;
   }
 
-  const response = await request(SERVER_URL).post('/auth/register').send(payload);
+  const req = request(SERVER_URL).post('/auth/register');
+
+  if (adminKey !== undefined) {
+    req.set('admin-key', adminKey);
+  }
+
+  const response = await req.send(payload);
 
   return { response, username, password };
 }

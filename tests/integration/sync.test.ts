@@ -1068,7 +1068,7 @@ describe('Sync JWT', () => {
   });
 
   test('Non-existent user', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
     let syncResponse = await sync('non-existent', undefined, { jwt: registerResponse.body.jwt_token });
@@ -1094,7 +1094,7 @@ describe('Sync JWT', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     let syncResponse = await sync(userId, undefined, { jwt: registerResponse2.body.jwt_token });
@@ -2214,7 +2214,7 @@ describe('Sync api key', () => {
   });
 
   test('Non-existent user', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
@@ -2248,7 +2248,7 @@ describe('Sync api key', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 

@@ -40,7 +40,7 @@ describe('Register', () => {
   });
 
   test('Admin user', async () => {
-    const { response: registerResponse, username, password } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse, username, password } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
     const loginResponse = await loginUser(username, password);
@@ -76,9 +76,17 @@ describe('Register', () => {
   test('Invalid admin key', async () => {
     const adminKey = 'invalid_admin_key';
 
-    const { response: registerResponse } = await registerUser(undefined, undefined, adminKey);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, adminKey);
     expect(registerResponse.status).toBe(403);
     expect(registerResponse.text).toBe(INVALID_CREDENTIALS);
+
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, false, adminKey);
+    expect(registerResponse2.status).toBe(403);
+    expect(registerResponse2.text).toBe(INVALID_CREDENTIALS);
+
+    const { response: registerResponse3 } = await registerUser(undefined, undefined, true);
+    expect(registerResponse3.status).toBe(403);
+    expect(registerResponse3.text).toBe(INVALID_CREDENTIALS);
   });
 
   test('User conflict', async () => {
@@ -218,7 +226,7 @@ describe('Create api key', () => {
   });
 
   test('Non-existent user', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
     const createApiKeyResponse = await createApiKey('non-existent', 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token });
@@ -272,7 +280,7 @@ describe('Create api key', () => {
   });
 
   test('Different user with permission', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
     const { response: registerResponse2 } = await registerUser();
@@ -352,7 +360,7 @@ describe('List api keys', () => {
   });
 
   test('Non-existent user', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
     const getApiKeysResponse = await getApiKeys('non-existent', { jwt: registerResponse.body.jwt_token });
@@ -384,7 +392,7 @@ describe('List api keys', () => {
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read', 'Create'], Date.now() + 300000, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const getApiKeysResponse = await getApiKeys(userId, { jwt: registerResponse2.body.jwt_token });
@@ -448,7 +456,7 @@ describe('Get api key', () => {
   });
 
   test('Non-existent user', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
@@ -477,7 +485,7 @@ describe('Get api key', () => {
   });
 
   test('Different user with permission', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
     const { response: registerResponse2 } = await registerUser();
@@ -539,7 +547,7 @@ describe('Delete api key', () => {
   });
 
   test('Non-existent user', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
@@ -591,7 +599,7 @@ describe('Delete api key', () => {
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read', 'Create'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const deleteApiKeyResponse = await deleteApiKey(userId, createApiKeyResponse.body.id, { jwt: registerResponse2.body.jwt_token });
@@ -644,7 +652,7 @@ describe('Get preferences', () => {
   });
 
   test('Non-existent user', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
     const getPreferencesResponse = await getPreferences('non-existent', { jwt: registerResponse.body.jwt_token });
@@ -670,7 +678,7 @@ describe('Get preferences', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const getPreferencesResponse = await getPreferences(userId, { jwt: registerResponse2.body.jwt_token });
@@ -747,7 +755,7 @@ describe('Update preferences', () => {
   });
 
   test('Non-existent user', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
     const updatePreferencesResponse = await updatePreferences('non-existent', ['goodreads_metadata_scraper'], true, { jwt: registerResponse.body.jwt_token });
@@ -773,7 +781,7 @@ describe('Update preferences', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const updatePreferencesResponse = await updatePreferences(userId, ['goodreads_metadata_scraper'], true, { jwt: registerResponse2.body.jwt_token });
@@ -846,7 +854,7 @@ describe('Patch preferences', () => {
   });
 
   test('Non-existent user', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
     const patchPreferencesResponse = await patchPreferences('non-existent', ['goodreads_metadata_scraper'], undefined, { jwt: registerResponse.body.jwt_token });
@@ -872,7 +880,7 @@ describe('Patch preferences', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const patchPreferencesResponse = await patchPreferences(userId, ['goodreads_metadata_scraper'], undefined, { jwt: registerResponse2.body.jwt_token });
@@ -902,7 +910,7 @@ describe('Get user profile', () => {
   });
 
   test('Non-existent user', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
     const getProfileResponse = await getUserProfile('non-existent', { jwt: registerResponse.body.jwt_token });
@@ -928,7 +936,7 @@ describe('Get user profile', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const getProfileResponse = await getUserProfile(userId, { jwt: registerResponse2.body.jwt_token });
@@ -983,7 +991,7 @@ describe('Update user profile', () => {
   });
 
   test('Non-existent user', async () => {
-    const { response: registerResponse } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
     const updateProfileResponse = await updateUserProfile('non-existent', 'username', { jwt: registerResponse.body.jwt_token });
@@ -1011,7 +1019,7 @@ describe('Update user profile', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const { response: registerResponse2 } = await registerUser(undefined, undefined, process.env.ADMIN_KEY);
+    const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
     const newUsername = randomString(16);
