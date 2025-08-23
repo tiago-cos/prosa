@@ -160,7 +160,8 @@ pub struct User {
 pub struct RegisterUserRequest {
     pub username: String,
     pub password: String,
-    pub admin_key: Option<String>,
+    #[serde(default)]
+    pub admin: bool,
 }
 
 #[derive(Deserialize)]

@@ -14,26 +14,27 @@ use crate::app::{
 use axum::{
     Json,
     extract::{Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
 };
 
 pub async fn register_user_handler(
     State(state): State<AppState>,
+    headers: HeaderMap,
     Json(body): Json<RegisterUserRequest>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let is_admin = match &body.admin_key {
-        Some(key) if key == &state.config.auth.admin_key => true,
-        Some(_) => return Err(UserError::InvalidCredentials.into()),
-        None => false,
-    };
+    match (body.admin, headers.get("admin-key")) {
+        (_, Some(key)) if key == &state.config.auth.admin_key => (),
+        (false, None) => (),
+        _ => return Err(UserError::InvalidCredentials.into()),
+    }
 
-    let user_id = service::register_user(&state.pool, &body.username, &body.password, is_admin).await?;
+    let user_id = service::register_user(&state.pool, &body.username, &body.password, body.admin).await?;
 
     let jwt_token = authentication::service::generate_jwt(
         &state.config.auth.secret_key,
         &user_id,
-        is_admin,
+        body.admin,
         state.config.auth.jwt_token_duration,
     );
 
