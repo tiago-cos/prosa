@@ -75,6 +75,7 @@ info:
     admin_key = "admin_key"
     jwt_token_duration = 900
     refresh_token_duration = 604800
+    allow_user_registration = true
 
     [book_storage]
     epub_path = "library/epubs"
@@ -148,6 +149,9 @@ info:
         -   `jwt_token_duration`: Expiration duration for JWT tokens (seconds).
             
         -   `refresh_token_duration`: Expiration duration for refresh tokens (seconds).
+
+        -   `allow_user_registration`: Whether new users can register without an admin key.  
+        Set to `true` to allow anyone to register and `false` to require the admin key for all registrations.
             
     -   **[book_storage]**
         
