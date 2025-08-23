@@ -26,6 +26,7 @@ pub struct Auth {
     pub admin_key: String,
     pub jwt_token_duration: u64,
     pub refresh_token_duration: u64,
+    pub allow_user_registration: bool,
 }
 
 #[derive(Deserialize, Clone)]

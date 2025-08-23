@@ -23,9 +23,11 @@ pub async fn register_user_handler(
     headers: HeaderMap,
     Json(body): Json<RegisterUserRequest>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    match (body.admin, headers.get("admin-key")) {
-        (_, Some(key)) if key == &state.config.auth.admin_key => (),
-        (false, None) => (),
+    let registration_allowed = state.config.auth.allow_user_registration;
+    match (registration_allowed, body.admin, headers.get("admin-key")) {
+        (false, _, None) => return Err(UserError::RegistrationDisabled.into()),
+        (_, _, Some(key)) if key == &state.config.auth.admin_key => (),
+        (_, false, None) => (),
         _ => return Err(UserError::InvalidCredentials.into()),
     }
 

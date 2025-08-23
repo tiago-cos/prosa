@@ -34,6 +34,10 @@ pub enum UserError {
     #[strum(props(StatusCode = "400"))]
     PasswordTooBig,
 
+    #[strum(message = "Registration without admin key is disabled.")]
+    #[strum(props(StatusCode = "403"))]
+    RegistrationDisabled,
+
     #[strum(message = "Internal server error")]
     #[strum(props(StatusCode = "500"))]
     InternalError,
