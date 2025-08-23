@@ -5,13 +5,25 @@ post:
   description: |
     Register a new user.  
     The new user can either be an admin or a regular user.  
-    To register an admin user, the admin key must be provided in the request body.
+
+    To register an admin user, set `"admin": true` in the request body and provide the `admin-key` header.  
 
     **Note:**  
     - The username and password must not contain special characters.  
     - The username must not exceed 20 characters.  
     - The password must not exceed 256 characters.
   operationId: register
+
+  parameters:
+    - name: admin-key
+      in: header
+      required: false
+      description: |
+        The admin key to register an admin user.  
+        Required only if `"admin": true` in the request body.
+      schema:
+        type: string
+
   requestBody:
     required: true
     description: Request body for adding a new user.
@@ -26,9 +38,10 @@ post:
             password:
               type: string
               description: The password of the new user.
-            admin_key:
-              type: string
-              description: The admin key to register an admin user.
+            admin:
+              type: boolean
+              description: Whether the user should be registered as an admin. Defaults to `false`.
+              default: false
           required:
             - username
             - password
@@ -38,12 +51,13 @@ post:
             value:
               username: "johndoe"
               password: "password123"
+              admin: false
           admin:
-            summary: Admin request body
+            summary: Admin request body (requires admin-key header)
             value:
               username: "admin"
               password: "password123"
-              admin_key: "88ce1268d9f1dda402cd172"
+              admin: true
 
   responses:
     "200":
