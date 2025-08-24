@@ -39,8 +39,8 @@ info:
 
     ## User Types
 
-    - **Regular Users** – Can perform operations only on their own books.
-    - **Admin Users** – Have full access to perform any operation on any book in the system.
+    - **Regular Users** – Can perform operations only on their own books
+    - **Admin Users** – Have full access to perform any operation on any book in the system
 
     ## Authentication
 
@@ -188,34 +188,78 @@ info:
       export RUST_LOG=warn
       ```
 
-    # Getting Started
+    # Installation & Setup
 
-    Follow these steps to get up and running with Prosa:
+    Prosa can be run either as a **Docker container (recommended)** or as a standalone **binary**.
 
-    ### 0. Ensure Kepubify is Installed
+    ## Docker Container (Recommended)
 
-    Before running the server, make sure the `kepubify` binary is downloaded and its path is configured:  
+    The simplest way to get Prosa running is with Docker. Add the following entry to your `docker-compose.yml`:
 
-    - Download the latest **kepubify-linux-64bit** release from [GitHub](https://github.com/tiago-cos/kepubify/releases/latest).  
-    - Place the binary somewhere accessible on your system.  
-    - Configure the path in Prosa using the [Local Configuration](#section/Configuration/Local-Configuration) under `[kepubify].path`.
+    ```yaml
+    services:
+      prosa:
+        image: tsousa28/prosa
+        container_name: prosa
+        ports:
+          - "5000:5000"
+        environment:
+          - PROSA__AUTH__ADMIN_KEY=very_secret_key
+          - PROSA__AUTH__SECRET_KEY=another_very_secret_key
+        volumes:
+          - prosa_library:/app/library
+        restart: unless-stopped
 
-    ### 1. Create a User
+    volumes:
+      prosa_library:
+    ```
 
-    Register a new user using the [Register User](#tag/Authentication/operation/register) endpoint.
+    This will start Prosa and make it available on port `5000`.
 
-    ### 2. (Optional) Enable Goodreads Metadata Extraction
+    **Important notes:**
 
-    If you want Prosa to automatically fetch metadata from Goodreads:
+    -  Change both secret keys (`PROSA__AUTH__ADMIN_KEY` and `PROSA__AUTH__SECRET_KEY`) to secure values before using Prosa.
+        
+    -  Persistence requires a **named volume** mounted at `/app/library` inside the container. Bind mounts are currently not supported due to permission issues in the rootless container.
+        
+    -  Environment variables to change paths are ignored in this container image.
+        
+    ## Binary
 
-    - Update your user preferences via the [Patch User Preferences](#tag/Preferences/operation/patchPreferences) endpoint.  
-    - Add `"goodreads_metadata_extractor"` to the `metadata_providers` array.
+    If you prefer running Prosa as a binary:
 
-    ### 3. Upload Your First Book
+    1.  **Install Kepubify**  
+        Prosa depends on [`kepubify`](https://github.com/tiago-cos/kepubify).
+        
+        -   Download the latest **kepubify-linux-64bit** release from [GitHub](https://github.com/tiago-cos/kepubify/releases/latest).
+            
+        -   Place it somewhere accessible on your system.
+            
+        -   Configure its path in Prosa via the [Local Configuration](#section/Configuration/Local-Configuration) under `[kepubify].path`.
+            
+    2.  **Configure Prosa**  
+        Adjust the configuration file as needed (authentication, storage paths, etc.).
+        
+    3.  **Run the Server**  
+        Launch the binary, and Prosa will be ready to accept connections.
 
-    Add a book to your library using the [Upload Book](#tag/File/operation/uploadBook) endpoint. You can manage metadata and cover images as part of this process.
+    ## Next Steps
 
-    You're now ready to browse, read, and annotate your books!
+    1.  **Create a User**  
+        Register a new user with the [Register User](#tag/Authentication/operation/register) endpoint.
+        
+    2.  **(Optional) Enable Goodreads Metadata**  
+        By default, Goodreads metadata extraction is **disabled**.
+        
+        -   To enable it, update your preferences with the [Patch User Preferences](#tag/Preferences/operation/patchPreferences) endpoint.
+            
+        -   Add `"goodreads_metadata_extractor"` to the `metadata_providers` array.
+            
+    3.  **Upload Your First Book**  
+        Add a book using the [Upload Book](#tag/File/operation/uploadBook) endpoint. You can also manage metadata and cover images at this stage.
+
+    You’re now ready to browse, read, and annotate your books with Prosa!
+
 
 externalDocs:
   description: "Checkout the project repository for more information."
