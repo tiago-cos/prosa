@@ -53,16 +53,16 @@ pub struct MetadataCooldown {
 
 impl Configuration {
     pub fn new() -> Result<Self, ConfigError> {
-        let default_config_path = std::env::var("PROSA_DEFAULT_CONFIGURATION")
-            .unwrap_or_else(|_| "src/config/default.toml".to_string());
+        let default_config_path =
+            std::env::var("DEFAULT_CONFIGURATION").unwrap_or_else(|_| "src/config/default.toml".to_string());
 
-        let local_config_path = std::env::var("PROSA_LOCAL_CONFIGURATION")
-            .unwrap_or_else(|_| "src/config/local.toml".to_string());
+        let local_config_path =
+            std::env::var("LOCAL_CONFIGURATION").unwrap_or_else(|_| "src/config/local.toml".to_string());
 
         let conf = Config::builder()
             .add_source(File::with_name(&default_config_path))
             .add_source(File::with_name(&local_config_path).required(false))
-            .add_source(config::Environment::with_prefix("PROSA").separator("__"))
+            .add_source(config::Environment::default().separator("__"))
             .build()?;
 
         conf.try_deserialize()

@@ -30,7 +30,7 @@ FROM alpine AS runtime
 
 # setup a healthcheck
 HEALTHCHECK --interval=300s --timeout=5s --retries=3 --start-period=10s \
-  CMD wget --spider -q http://127.0.0.1:${PROSA__SERVER__PORT:-5000}/health || exit 1
+  CMD wget --spider -q http://127.0.0.1:${SERVER__PORT:-5000}/health || exit 1
 
 # copy binaries
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/prosa /usr/local/bin/
@@ -39,7 +39,7 @@ COPY --from=kepubify-builder /build/kepubify/kepubify /app/kepubify/kepubify
 # setup default config file
 RUN mkdir /app/config
 COPY --from=builder /app/src/config/default.toml /app/config/default.toml
-ENV PROSA_DEFAULT_CONFIGURATION=/app/config/default.toml
+ENV DEFAULT_CONFIGURATION=/app/config/default.toml
 
 # run prosa as non-root user
 RUN mkdir /app/library
@@ -49,9 +49,9 @@ USER prosa
 WORKDIR /app
 
 ENTRYPOINT ["sh", "-c", "\
-    unset PROSA__BOOK_STORAGE__EPUB_PATH \
-          PROSA__BOOK_STORAGE__COVER_PATH \
-          PROSA__DATABASE__FILE_PATH \
-          PROSA__KEPUBIFY__PATH; \
+    unset BOOK_STORAGE__EPUB_PATH \
+          BOOK_STORAGE__COVER_PATH \
+          DATABASE__FILE_PATH \
+          KEPUBIFY__PATH; \
     exec /usr/local/bin/prosa \
 "]
