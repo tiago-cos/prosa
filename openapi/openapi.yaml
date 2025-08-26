@@ -61,7 +61,7 @@ info:
     Prosa ships with a default configuration file located at `src/config/default.toml`.
 
     This file is always loaded when the program starts.  
-    You can change the path where Prosa looks for the default configuration by setting the `PROSA_DEFAULT_CONFIGURATION` environment variable. If not specified, it defaults to `src/config/default.toml`.
+    You can change the path where Prosa looks for the default configuration by setting the `DEFAULT_CONFIGURATION` environment variable. If not specified, it defaults to `src/config/default.toml`.
 
     ### Example `default.toml`
 
@@ -99,13 +99,13 @@ info:
 
     By default, Prosa looks for `src/config/local.toml`.
 
-    You can change this path using the `PROSA_LOCAL_CONFIGURATION` environment variable.  
+    You can change this path using the `LOCAL_CONFIGURATION` environment variable.  
     Values defined in `local.toml` will take precedence over `default.toml`.
 
     ## Environment Variables
 
     All configuration values can also be controlled directly through environment variables.  
-    The format is `PROSA__<SECTION>__<KEY>`.
+    The format is `<SECTION>__<KEY>`.
 
     -   Sections map to the `[section]` headers in the TOML file.
         
@@ -122,14 +122,14 @@ info:
     - To set the server port (`[server].port`):
         
       ```bash
-      export PROSA__SERVER__PORT=8080
+      export SERVER__PORT=8080
       ```
 
     - To set the admin key (`[auth].admin_key`):  
       _(notice there is only **one underscore** between `ADMIN` and `KEY` because the field name itself has an underscore)_
         
       ```bash
-      export PROSA__AUTH__ADMIN_KEY=super_secret_key
+      export AUTH__ADMIN_KEY=super_secret_key
       ```
 
     ## Configuration Reference
@@ -204,8 +204,8 @@ info:
         ports:
           - "5000:5000"
         environment:
-          - PROSA__AUTH__ADMIN_KEY=very_secret_key
-          - PROSA__AUTH__SECRET_KEY=another_very_secret_key
+          - AUTH__ADMIN_KEY=very_secret_key
+          - AUTH__SECRET_KEY=another_very_secret_key
         volumes:
           - prosa_library:/app/library
         restart: unless-stopped
@@ -218,7 +218,7 @@ info:
 
     **Important notes:**
 
-    -  Change both secret keys (`PROSA__AUTH__ADMIN_KEY` and `PROSA__AUTH__SECRET_KEY`) to secure values before using Prosa.
+    -  Change both secret keys (`AUTH__ADMIN_KEY` and `AUTH__SECRET_KEY`) to secure values before using Prosa.
         
     -  Persistence requires a **named volume** mounted at `/app/library` inside the container. Bind mounts are currently not supported due to permission issues in the rootless container.
         
