@@ -35,10 +35,10 @@ impl ProsaLockManager {
     pub async fn get_lock(&self, key: &str) -> Arc<RwLock<()>> {
         let mut map = self.locks.lock().await;
 
-        if let Some(weak_lock) = map.get(key) {
-            if let Some(strong_lock) = weak_lock.upgrade() {
-                return strong_lock;
-            }
+        if let Some(weak_lock) = map.get(key)
+            && let Some(strong_lock) = weak_lock.upgrade()
+        {
+            return strong_lock;
         }
 
         if map.len() >= self.cleaning_threshold {

@@ -121,9 +121,8 @@ pub async fn delete_book_handler(
         epubs::service::delete_epub(&state.pool, &state.config.book_storage.epub_path, &book.epub_id).await?;
     }
 
-    let cover_id = match book.cover_id {
-        None => return Ok((StatusCode::NO_CONTENT, ())),
-        Some(cover_id) => cover_id,
+    let Some(cover_id) = book.cover_id else {
+        return Ok((StatusCode::NO_CONTENT, ()));
     };
 
     sync::service::update_book_delete_timestamp(&state.pool, &book.book_sync_id).await;

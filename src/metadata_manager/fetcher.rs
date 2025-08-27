@@ -50,10 +50,10 @@ impl MetadataFetcher {
                 metadata.merge(m);
             }
 
-            if let Some(i) = i {
-                if i.len() > image.len() {
-                    image = i;
-                }
+            if let Some(i) = i
+                && i.len() > image.len()
+            {
+                image = i;
             }
         }
 

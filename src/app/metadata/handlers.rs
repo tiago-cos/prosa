@@ -29,9 +29,8 @@ pub async fn get_metadata_handler(
 
     let book = books::service::get_book(&state.pool, &book_id).await?;
 
-    let metadata_id = match book.metadata_id {
-        None => return Err(MetadataError::MetadataNotFound.into()),
-        Some(id) => id,
+    let Some(metadata_id) = book.metadata_id else {
+        return Err(MetadataError::MetadataNotFound.into());
     };
 
     let metadata = service::get_metadata(&state.pool, &metadata_id).await?;
@@ -72,9 +71,8 @@ pub async fn delete_metadata_handler(
 
     let book = books::service::get_book(&state.pool, &book_id).await?;
 
-    let metadata_id = match book.metadata_id {
-        None => return Err(MetadataError::MetadataNotFound.into()),
-        Some(id) => id,
+    let Some(metadata_id) = book.metadata_id else {
+        return Err(MetadataError::MetadataNotFound.into());
     };
 
     service::delete_metadata(&state.pool, &metadata_id).await?;
@@ -95,9 +93,8 @@ pub async fn patch_metadata_handler(
     let book = books::service::get_book(&state.pool, &book_id).await?;
     let book_sync_id = book.book_sync_id.clone();
 
-    let metadata_id = match book.metadata_id {
-        None => return Err(MetadataError::MetadataNotFound.into()),
-        Some(id) => id,
+    let Some(metadata_id) = book.metadata_id else {
+        return Err(MetadataError::MetadataNotFound.into());
     };
 
     service::patch_metadata(&state.pool, &metadata_id, metadata).await?;
@@ -118,9 +115,8 @@ pub async fn update_metadata_handler(
     let book = books::service::get_book(&state.pool, &book_id).await?;
     let book_sync_id = book.book_sync_id.clone();
 
-    let metadata_id = match book.metadata_id {
-        None => return Err(MetadataError::MetadataNotFound.into()),
-        Some(id) => id,
+    let Some(metadata_id) = book.metadata_id else {
+        return Err(MetadataError::MetadataNotFound.into());
     };
 
     service::update_metadata(&state.pool, &metadata_id, metadata).await?;

@@ -117,10 +117,10 @@ fn validate_location(
     let tag_cache_key = format!("tags:{epub_id}:{source}");
 
     if let (Some(sources), Some(tags)) = (source_cache.get(&source_cache_key), tag_cache.get(&tag_cache_key))
+        && sources.contains(source)
+        && tags.contains(tag)
     {
-        if sources.contains(source) && tags.contains(tag) {
-            return Ok(());
-        }
+        return Ok(());
     }
 
     let epub_file = format!("{epub_path}/{epub_id}.kepub.epub");

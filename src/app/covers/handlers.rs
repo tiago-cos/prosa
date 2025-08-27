@@ -19,9 +19,8 @@ pub async fn get_cover_handler(
     let book = books::service::get_book(&state.pool, &book_id).await?;
     let cover_path = &state.config.book_storage.cover_path;
 
-    let cover_id = match book.cover_id {
-        None => return Err(CoverError::CoverNotFound.into()),
-        Some(id) => id,
+    let Some(cover_id) = book.cover_id else {
+        return Err(CoverError::CoverNotFound.into());
     };
 
     let cover = service::read_cover(cover_path, &cover_id, &state.cache.image_cache).await?;
@@ -74,9 +73,8 @@ pub async fn delete_cover_handler(
     let cover_path = &state.config.book_storage.cover_path;
     let book_sync_id = book.book_sync_id.clone();
 
-    let cover_id = match book.cover_id {
-        None => return Err(CoverError::CoverNotFound.into()),
-        Some(id) => id,
+    let Some(cover_id) = book.cover_id else {
+        return Err(CoverError::CoverNotFound.into());
     };
 
     book.cover_id = None;
@@ -103,9 +101,8 @@ pub async fn update_cover_handler(
     let cover_path = &state.config.book_storage.cover_path;
     let book_sync_id = book.book_sync_id.clone();
 
-    let old_cover_id = match book.cover_id {
-        None => return Err(CoverError::CoverNotFound.into()),
-        Some(id) => id,
+    let Some(old_cover_id) = book.cover_id else {
+        return Err(CoverError::CoverNotFound.into());
     };
 
     let new_cover_id = service::write_cover(

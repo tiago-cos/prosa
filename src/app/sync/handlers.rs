@@ -28,9 +28,8 @@ pub async fn get_unsynced_handler(
         _ => return Err(SyncError::InvalidTimestamp.into()),
     };
 
-    let since = match since {
-        None => return Err(SyncError::InvalidTimestamp.into()),
-        Some(s) => s,
+    let Some(since) = since else {
+        return Err(SyncError::InvalidTimestamp.into());
     };
 
     let book = service::get_unsynced_books(&pool, user_id, since).await?;

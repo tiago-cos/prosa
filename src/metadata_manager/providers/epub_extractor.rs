@@ -117,10 +117,10 @@ fn parse_date(date_str: &str) -> Result<DateTime<Utc>, String> {
     }
 
     for format in &date_formats {
-        if let Ok(d) = NaiveDate::parse_from_str(date_str, format) {
-            if let Some(dt) = d.and_hms_opt(0, 0, 0) {
-                return Ok(dt.and_utc());
-            }
+        if let Ok(d) = NaiveDate::parse_from_str(date_str, format)
+            && let Some(dt) = d.and_hms_opt(0, 0, 0)
+        {
+            return Ok(dt.and_utc());
         }
     }
 
