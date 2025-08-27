@@ -1,4 +1,4 @@
-name: Build & Test
+name: Prosa CI
 
 on:
   pull_request:
@@ -6,7 +6,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-and-test:
+  build:
+    name: Build Prosa
     runs-on: ubuntu-latest
 
     steps:
@@ -22,19 +23,76 @@ jobs:
       - name: Build server
         run: cargo build --release
 
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: prosa-binary
+          path: target/release/prosa
+          retention-days: 1
+
+  lint:
+    name: Lint Rust + TypeScript
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Rust format
+        run: cargo fmt -- --check
+
+      - name: Rust lint
+        run: cargo clippy --all-targets --all-features -- -W clippy::pedantic -D warnings
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: tests/package-lock.json
+
+      - name: Install test deps
+        working-directory: tests
+        run: npm ci
+
+      - name: Lint TS tests
+        working-directory: tests
+        run: npm run lint
+
+  test:
+    name: Run integration tests
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download server binary
+        uses: actions/download-artifact@v4
+        with:
+          name: prosa-binary
+          path: ./bin
+
+      - name: Make binary executable
+        run: chmod +x ./bin/prosa
+
       - name: Download kepubify
         run: |
           mkdir -p kepubify
-          curl -s https://api.github.com/repos/tiago-cos/kepubify/releases/latest \
-            | grep "browser_download_url.*kepubify-linux-64bit" \
-            | cut -d '"' -f 4 \
-            | xargs curl -L -o kepubify/kepubify
+          curl -L https://github.com/tiago-cos/kepubify/releases/latest/download/kepubify-linux-64bit \
+            -o kepubify/kepubify
           chmod +x kepubify/kepubify
-
 
       - name: Run server in background
         run: |
-          ./target/release/prosa &
+          ./bin/prosa &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
           sleep 5
