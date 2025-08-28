@@ -6,9 +6,28 @@ on:
   workflow_dispatch:
 
 jobs:
+  changes:
+    name: Detect changed files
+    runs-on: ubuntu-latest
+    outputs:
+      src_or_tests: ${{ steps.filter.outputs.src_or_tests }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            src_or_tests:
+              - 'src/**'
+              - 'tests/**'
+
   build:
     name: Build Prosa
     runs-on: ubuntu-latest
+    needs: changes
+    
+    if: needs.changes.outputs.src_or_tests == 'true'
 
     steps:
       - name: Checkout code
@@ -33,6 +52,9 @@ jobs:
   lint:
     name: Lint Rust + TypeScript
     runs-on: ubuntu-latest
+    needs: changes
+    
+    if: needs.changes.outputs.src_or_tests == 'true'
 
     steps:
       - name: Checkout code
@@ -68,7 +90,9 @@ jobs:
   test:
     name: Run integration tests
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, changes]
+
+    if: needs.changes.outputs.src_or_tests == 'true'
 
     steps:
       - name: Checkout code
