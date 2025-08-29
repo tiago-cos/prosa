@@ -61,6 +61,7 @@ cargo build --release
     - [x] Annotations
     - [x] Reading progress
     - [x] Ratings
+    - [ ] Reading time statistics
   - [x] **Shelves** (collections of books)
   - [x] **Users**
     - [x] Profiles
@@ -68,6 +69,7 @@ cargo build --release
     - [x] API keys
   - [x] Automatic metadata retrieval
   - [x] Synchronization across devices
+  - [ ] Audiobook support
 
 - [x] **Kobo Support ([Prosa-Kobo](https://github.com/tiago-cos/prosa-kobo))**
   - [x] **Books**
@@ -77,8 +79,10 @@ cargo build --release
     - [x] Annotations
     - [x] Reading progress
     - [x] Ratings
+    - [ ] Reading time statistics
   - [x] **Shelves**
-  - [x] Synchronization
+  - [x] Prosa synchronization
+  - [ ] Audiobooks
 
 - [ ] **Mobile App**
 
@@ -87,11 +91,3 @@ cargo build --release
 ## Related Projects
 
 - [Prosa-Kobo](https://github.com/tiago-cos/prosa-kobo) – a companion service that translates requests and responses between Kobo eReader devices and the Prosa API.
-
-## Contributing
-
-Contributions, feedback, and suggestions are welcome! Feel free to open issues or pull requests.
-
-## License
-
-This project is licensed under the GNU General Public License (GPL). See the [LICENSE](./LICENSE) file for more details.
