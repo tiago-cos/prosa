@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 publish = false
 include = ["src/**/*"]
+license = "MIT"
 
 [dependencies]
 argon2 = { version = "0.5.3", features = ["std"] }
