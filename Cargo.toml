@@ -15,7 +15,7 @@ base64 = "0.22.1"
 chrono = { version = "0.4.41", features = ["serde"] }
 config = "0.15.14"
 epub = "2.1.4"
-goodreads-metadata-scraper = "0.2.3"
+goodreads-metadata-scraper = "0.2.4"
 image = "0.25.6"
 jsonwebtoken = { version = "9.3.1", default-features = false }
 log = "0.4.27"
