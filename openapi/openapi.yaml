@@ -70,9 +70,11 @@ info:
     host = "0.0.0.0"
     port = 5000
 
+    # Define secret_key and admin_key in local configuration
+
     [auth]
-    secret_key = "jwt_secret_key"
-    admin_key = "admin_key"
+    # secret_key = "jwt_secret_key"
+    # admin_key = "admin_key"
     jwt_token_duration = 900
     refresh_token_duration = 604800
     allow_user_registration = true
@@ -90,7 +92,6 @@ info:
 
     [kepubify]
     path = "kepubify/kepubify"
-
     ```
 
     ## Local Configuration
@@ -142,9 +143,11 @@ info:
             
     -   **[auth]**
         
-        -   `secret_key`: Secret key used for JWT encoding.
-            
-        -   `admin_key`: Secret used to register admin users.
+        -   `secret_key`: Secret key used for JWT encoding. **Must be defined and at least 16 characters long.**  
+        The server will not start if this is missing or too short.
+        
+        -   `admin_key`: Secret used to register admin users. **Must be defined and at least 16 characters long.**  
+        The server will not start if this is missing or too short.
             
         -   `jwt_token_duration`: Expiration duration for JWT tokens (seconds).
             
@@ -218,7 +221,7 @@ info:
 
     **Important notes:**
 
-    -  Change both secret keys (`AUTH__ADMIN_KEY` and `AUTH__SECRET_KEY`) to secure values before using Prosa.
+    -  Set both secret keys (`AUTH__ADMIN_KEY` and `AUTH__SECRET_KEY`) to secure values before using Prosa.
         
     -  Persistence requires a **named volume** mounted at `/app/library` inside the container. Bind mounts are currently not supported due to permission issues in the rootless container.
         
