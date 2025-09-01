@@ -125,12 +125,20 @@ pub async fn can_search_shelves(
         return Err(AuthError::Forbidden.into());
     }
 
-    let user_id = match params.get("username") {
-        None => String::new(),
-        Some(u) => users::service::get_user_by_username(&pool, u).await?.user_id,
+    if let AuthRole::Admin(_) = token.role {
+        return Ok(next.run(request).await);
+    }
+
+    let Some(username) = params.get("username") else {
+        return Err(AuthError::Forbidden.into());
     };
 
-    if !user_id_matches(&user_id, &token) {
+    let user_id = match users::service::get_user_by_username(&pool, username).await {
+        Ok(u) => u.user_id,
+        _ => return Err(AuthError::Forbidden.into()),
+    };
+
+    if user_id != token.role.get_user() {
         return Err(AuthError::Forbidden.into());
     }
 
