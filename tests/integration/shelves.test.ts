@@ -1079,6 +1079,13 @@ describe('Search shelves JWT', () => {
     let searchResponse = await searchShelves('non-existent', undefined, undefined, undefined, { jwt: registerResponse.body.jwt_token });
     expect(searchResponse.status).toBe(404);
     expect(searchResponse.text).toBe(USER_NOT_FOUND);
+
+    const { response: registerResponse2 } = await registerUser();
+    expect(registerResponse2.status).toBe(200);
+
+    searchResponse = await searchShelves('non-existent', undefined, undefined, undefined, { jwt: registerResponse2.body.jwt_token });
+    expect(searchResponse.status).toBe(403);
+    expect(searchResponse.text).toBe(FORBIDDEN);
   });
 
   test('Different user without permission', async () => {
