@@ -22,7 +22,9 @@ pub struct Server {
 
 #[derive(Deserialize, Clone)]
 pub struct Auth {
+    #[serde(default)]
     pub secret_key: String,
+    #[serde(default)]
     pub admin_key: String,
     pub jwt_token_duration: u64,
     pub refresh_token_duration: u64,

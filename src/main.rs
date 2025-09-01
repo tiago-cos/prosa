@@ -22,9 +22,20 @@ mod metadata_manager;
 async fn main() {
     let config = Configuration::new().unwrap();
     let kepubify = Path::new(&config.kepubify.path);
+
     assert!(
         kepubify.exists() && kepubify.is_file(),
         "Kepubify must be present"
+    );
+
+    assert!(
+        config.auth.admin_key.len() >= 16,
+        "admin_key must be configured and at least 16 characters long"
+    );
+
+    assert!(
+        config.auth.secret_key.len() >= 16,
+        "secret_key must be configured and at least 16 characters long"
     );
 
     create_dir_all(&config.book_storage.epub_path).await.unwrap();
