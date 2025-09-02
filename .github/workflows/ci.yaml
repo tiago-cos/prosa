@@ -121,8 +121,7 @@ jobs:
 
       - name: Run server in background
         run: |
-          AUTH__ADMIN_KEY=very_secret_admin_key \
-          AUTH__SECRET_KEY=very_secret_jwt_key \
+          AUTH__ADMIN_KEY=admin_key \
           ./bin/prosa &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
