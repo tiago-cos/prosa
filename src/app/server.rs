@@ -6,7 +6,7 @@ use axum::http::StatusCode;
 use axum::middleware::from_fn;
 use axum::routing::get;
 use log::info;
-use quick_cache::sync::Cache;
+use quick_cache::sync::Cache as QuickCache;
 use sqlx::SqlitePool;
 use std::{collections::HashSet, sync::Arc};
 use tokio::net::TcpListener;
@@ -15,10 +15,10 @@ pub type Config = Arc<Configuration>;
 pub type Pool = Arc<SqlitePool>;
 pub type MetadataManager = Arc<metadata_manager::MetadataManager>;
 pub type LockManager = Arc<ProsaLockManager>;
-pub type ImageCache = Cache<String, Arc<Vec<u8>>>;
-pub type SourceCache = Cache<String, Arc<HashSet<String>>>;
-pub type TagCache = Cache<String, Arc<HashSet<String>>>;
-pub type TagLengthCache = Cache<String, u32>;
+pub type ImageCache = QuickCache<String, Arc<Vec<u8>>>;
+pub type SourceCache = QuickCache<String, Arc<HashSet<String>>>;
+pub type TagCache = QuickCache<String, Arc<HashSet<String>>>;
+pub type TagLengthCache = QuickCache<String, u32>;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -26,11 +26,11 @@ pub struct AppState {
     pub pool: Pool,
     pub metadata_manager: MetadataManager,
     pub lock_manager: LockManager,
-    pub cache: AppCache,
+    pub cache: Cache,
 }
 
 #[derive(Clone)]
-pub struct AppCache {
+pub struct Cache {
     pub image_cache: Arc<ImageCache>,
     pub source_cache: Arc<SourceCache>,
     pub tag_cache: Arc<TagCache>,
@@ -38,12 +38,12 @@ pub struct AppCache {
 }
 
 pub async fn run(config: Configuration, pool: SqlitePool) {
-    let image_cache = Arc::new(Cache::new(50));
-    let source_cache = Arc::new(Cache::new(100000));
-    let tag_cache = Arc::new(Cache::new(100000));
-    let tag_length_cache = Arc::new(Cache::new(100000));
+    let image_cache = Arc::new(QuickCache::new(50));
+    let source_cache = Arc::new(QuickCache::new(100000));
+    let tag_cache = Arc::new(QuickCache::new(100000));
+    let tag_length_cache = Arc::new(QuickCache::new(100000));
 
-    let cache = AppCache {
+    let cache = Cache {
         image_cache: image_cache.clone(),
         source_cache,
         tag_cache,
