@@ -15,10 +15,15 @@ use chrono::{DateTime, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
 use sha2::{Digest, Sha256};
 use sqlx::SqlitePool;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    io::Error,
+    path::Path,
+    time::{SystemTime, UNIX_EPOCH},
+};
+use tokio::fs;
 
 #[rustfmt::skip]
-pub fn generate_jwt(secret: &str, user_id: &str, is_admin: bool, duration: u64) -> String {
+pub async fn generate_jwt(secret_key_path: &str, user_id: &str, is_admin: bool, duration: u64) -> String {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Failed to get time since epoch")
@@ -31,7 +36,7 @@ pub fn generate_jwt(secret: &str, user_id: &str, is_admin: bool, duration: u64) 
     let token = jsonwebtoken::encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(secret.as_ref()),
+        &EncodingKey::from_secret(&read_jwt_secret(secret_key_path).await),
     )
     .expect("Failed to encode token");
 
@@ -66,10 +71,10 @@ pub async fn generate_refresh_token(pool: &SqlitePool, user_id: &str, duration: 
     encoded_token
 }
 
-pub fn verify_jwt(token: &str, secret: &str) -> Result<AuthToken, AuthError> {
+pub async fn verify_jwt(token: &str, secret_key_path: &str) -> Result<AuthToken, AuthError> {
     let token = BASE64_STANDARD.decode(token).or(Err(AuthError::InvalidToken))?;
     let token = String::from_utf8(token).or(Err(AuthError::InvalidToken))?;
-    let key = DecodingKey::from_secret(secret.as_ref());
+    let key = DecodingKey::from_secret(&read_jwt_secret(secret_key_path).await);
     let validation = Validation::default();
     let token = jsonwebtoken::decode::<JWTClaims>(&token, &key, &validation)?;
 
@@ -146,4 +151,26 @@ pub async fn hash_secret(secret: &str) -> String {
         .hash_password(secret.as_bytes(), &salt)
         .expect("Failed to hash password")
         .to_string()
+}
+
+pub async fn generate_jwt_secret(path: &str) -> Result<(), Error> {
+    let path = Path::new(path);
+
+    if !path.exists() {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).await?;
+        }
+
+        let mut key = [0u8; 32];
+        OsRng.fill_bytes(&mut key);
+
+        fs::write(path, &key).await?;
+    }
+
+    Ok(())
+}
+
+pub async fn read_jwt_secret(path: &str) -> Vec<u8> {
+    let path = Path::new(path);
+    fs::read(path).await.expect("Failed to read JWT secret file")
 }

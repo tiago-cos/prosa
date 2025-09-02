@@ -34,11 +34,12 @@ pub async fn register_user_handler(
     let user_id = service::register_user(&state.pool, &body.username, &body.password, body.admin).await?;
 
     let jwt_token = authentication::service::generate_jwt(
-        &state.config.auth.secret_key,
+        &state.config.auth.jwt_key_path,
         &user_id,
         body.admin,
         state.config.auth.jwt_token_duration,
-    );
+    )
+    .await;
 
     let refresh_token = authentication::service::generate_refresh_token(
         &state.pool,
@@ -61,11 +62,12 @@ pub async fn login_user_handler(
     let user = service::login_user(&state.pool, &body.username, &body.password).await?;
 
     let jwt_token = authentication::service::generate_jwt(
-        &state.config.auth.secret_key,
+        &state.config.auth.jwt_key_path,
         &user.user_id,
         user.is_admin,
         state.config.auth.jwt_token_duration,
-    );
+    )
+    .await;
 
     let refresh_token = authentication::service::generate_refresh_token(
         &state.pool,
@@ -106,11 +108,12 @@ pub async fn refresh_token_handler(
     };
 
     let jwt_token = authentication::service::generate_jwt(
-        &state.config.auth.secret_key,
+        &state.config.auth.jwt_key_path,
         &user.user_id,
         user.is_admin,
         state.config.auth.jwt_token_duration,
-    );
+    )
+    .await;
 
     Ok(Json(AuthenticationResponse {
         jwt_token,

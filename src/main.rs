@@ -9,6 +9,7 @@
 #![allow(clippy::match_same_arms)]
 #![allow(clippy::too_many_lines)]
 
+use crate::app::generate_jwt_secret;
 use config::Configuration;
 use std::path::Path;
 use tokio::fs::create_dir_all;
@@ -29,15 +30,11 @@ async fn main() {
     );
 
     assert!(
-        config.auth.admin_key.len() >= 16,
-        "admin_key must be configured and at least 16 characters long"
+        config.auth.admin_key.len() >= 8,
+        "admin_key must be configured and at least 8 characters long"
     );
 
-    assert!(
-        config.auth.secret_key.len() >= 16,
-        "secret_key must be configured and at least 16 characters long"
-    );
-
+    generate_jwt_secret(&config.auth.jwt_key_path).await.unwrap();
     create_dir_all(&config.book_storage.epub_path).await.unwrap();
     create_dir_all(&config.book_storage.cover_path).await.unwrap();
 

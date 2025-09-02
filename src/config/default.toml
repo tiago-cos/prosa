@@ -2,14 +2,14 @@
 host = "0.0.0.0"
 port = 5000
 
-# Define secret_key and admin_key in local configuration
+# Define admin_key in local configuration
 
 [auth]
-# secret_key = "jwt_secret_key"
 # admin_key = "admin_key"
 jwt_token_duration = 900
 refresh_token_duration = 604800
 allow_user_registration = true
+jwt_key_path = "library/jwt_secret_key.bin"
 
 [book_storage]
 epub_path = "library/epubs"
