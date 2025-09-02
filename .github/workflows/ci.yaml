@@ -2,11 +2,14 @@ name: Prosa CI
 
 on:
   pull_request:
-    branches: [ master ]
+    branches: [master]
   workflow_dispatch:
 
 jobs:
   changes:
+    permissions:
+      contents: read
+      pull-requests: read
     name: Detect changed files
     runs-on: ubuntu-latest
     outputs:
@@ -26,7 +29,7 @@ jobs:
     name: Build Prosa
     runs-on: ubuntu-latest
     needs: changes
-    
+
     if: needs.changes.outputs.src_or_tests == 'true'
 
     steps:
@@ -53,7 +56,7 @@ jobs:
     name: Lint Rust + TypeScript
     runs-on: ubuntu-latest
     needs: changes
-    
+
     if: needs.changes.outputs.src_or_tests == 'true'
 
     steps:
@@ -76,7 +79,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: tests/package-lock.json
 
       - name: Install test deps
@@ -125,7 +128,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
+          cache: "npm"
           cache-dependency-path: tests/package-lock.json
 
       - name: Install test deps
