@@ -52,6 +52,7 @@ ENTRYPOINT ["sh", "-c", "\
     unset BOOK_STORAGE__EPUB_PATH \
           BOOK_STORAGE__COVER_PATH \
           DATABASE__FILE_PATH \
-          KEPUBIFY__PATH; \
+          KEPUBIFY__PATH \
+          AUTH__JWT_KEY_PATH; \
     exec /usr/local/bin/prosa \
 "]
