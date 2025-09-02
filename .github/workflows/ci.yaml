@@ -24,6 +24,8 @@ jobs:
             src_or_tests:
               - 'src/**'
               - 'tests/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
 
   build:
     name: Build Prosa
