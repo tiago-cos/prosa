@@ -10,7 +10,7 @@ license = "MIT"
 argon2 = { version = "0.5.3", features = ["std"] }
 async-trait = "0.1.88"
 axum = { version = "0.8.4", features = ["multipart"] }
-axum_typed_multipart = "0.16.3"
+axum_typed_multipart = "0.16.4"
 base64 = "0.22.1"
 chrono = { version = "0.4.41", features = ["serde"] }
 config = "0.15.15"
