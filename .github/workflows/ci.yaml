@@ -121,10 +121,18 @@ jobs:
 
       - name: Run server in background
         run: |
+          AUTH__ADMIN_KEY=very_secret_admin_key \
+          AUTH__SECRET_KEY=very_secret_jwt_key \
           ./bin/prosa &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+
           sleep 5
+
+          if ! kill -0 $SERVER_PID 2>/dev/null; then
+            echo "Server failed to start"
+            exit 1
+          fi
 
       - name: Setup Node
         uses: actions/setup-node@v4
