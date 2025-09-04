@@ -36,11 +36,6 @@ HEALTHCHECK --interval=300s --timeout=5s --retries=3 --start-period=10s \
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/prosa /usr/local/bin/
 COPY --from=kepubify-builder /build/kepubify/kepubify /app/kepubify/kepubify
 
-# setup default config file
-RUN mkdir /app/config
-COPY --from=builder /app/src/config/default.toml /app/config/default.toml
-ENV DEFAULT_CONFIGURATION=/app/config/default.toml
-
 # run prosa as non-root user
 RUN mkdir /app/library
 RUN addgroup -S prosa && adduser -S prosa -G prosa
