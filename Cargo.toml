@@ -16,9 +16,9 @@ chrono = { version = "0.4.41", features = ["serde"] }
 config = "0.15.15"
 epub = "2.1.4"
 goodreads-metadata-scraper = "0.2.4"
-image = "0.25.6"
+image = "0.25.8"
 jsonwebtoken = { version = "9.3.1", default-features = false }
-log = "0.4.27"
+log = "0.4.28"
 merge = "0.2.0"
 quick_cache = "0.6.15"
 regex = "1.11.2"
@@ -32,4 +32,4 @@ strum_macros = "0.27.2"
 tokio = { version = "1.47.0", features = ["full"] }
 tracing-subscriber = { version = "=0.3.19", features = ["env-filter", "chrono"] }
 ureq = "3.0.12"
-uuid = { version = "1.17.0", features = ["v4"] }
+uuid = { version = "1.18.1", features = ["v4"] }
