@@ -2,10 +2,8 @@
 host = "0.0.0.0"
 port = 5000
 
-# Define admin_key in local configuration
-
 [auth]
-# admin_key = "admin_key"
+admin_key = "admin_key"
 jwt_token_duration = 900
 refresh_token_duration = 604800
 allow_user_registration = true

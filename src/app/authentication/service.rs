@@ -156,16 +156,10 @@ pub async fn hash_secret(secret: &str) -> String {
 pub async fn generate_jwt_secret(path: &str) -> Result<(), Error> {
     let path = Path::new(path);
 
-    if !path.exists() {
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).await?;
-        }
+    let mut key = [0u8; 32];
+    OsRng.fill_bytes(&mut key);
 
-        let mut key = [0u8; 32];
-        OsRng.fill_bytes(&mut key);
-
-        fs::write(path, &key).await?;
-    }
+    fs::write(path, &key).await?;
 
     Ok(())
 }
