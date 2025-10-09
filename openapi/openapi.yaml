@@ -98,7 +98,7 @@ info:
 
     Any value from the default configuration can be overridden by creating a local configuration file.
 
-    By default, Prosa looks for `./configuration.toml`.
+    By default, Prosa looks for `src/config/configuration.toml`.
 
     You can change this path using the `CONFIGURATION` environment variable.  
     Values defined in `configuration.toml` will override the default values.
