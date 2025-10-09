@@ -83,7 +83,7 @@ pub const UPDATE: &str = "Update";
 
 pub const CAPABILITIES: [&str; 4] = [READ, CREATE, DELETE, UPDATE];
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct JWTClaims {
     pub role: AuthRole,
     pub capabilities: Vec<String>,
