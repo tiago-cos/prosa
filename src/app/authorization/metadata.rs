@@ -63,7 +63,7 @@ pub async fn can_add_metadata_request(
         Err(_) => return Err(MetadataError::InvalidMetadataRequest.into()),
     };
 
-    let book = state.books.service.get_book(&payload.book_id).await?;
+    let book = state.services.book.get_book(&payload.book_id).await?;
 
     if !user_id_matches(&book.owner_id, &token) {
         return Err(BookError::BookNotFound.into());

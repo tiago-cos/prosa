@@ -27,7 +27,7 @@ pub async fn get_metadata_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.read().await;
 
-    let book = state.books.service.get_book(&book_id).await?;
+    let book = state.services.book.get_book(&book_id).await?;
 
     let Some(metadata_id) = book.metadata_id else {
         return Err(MetadataError::MetadataNotFound.into());
@@ -46,7 +46,7 @@ pub async fn add_metadata_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let mut book = state.books.service.get_book(&book_id).await?;
+    let mut book = state.services.book.get_book(&book_id).await?;
     let book_sync_id = book.book_sync_id.clone();
 
     let metadata_id = match book.metadata_id {
@@ -55,7 +55,7 @@ pub async fn add_metadata_handler(
     };
 
     book.metadata_id = Some(metadata_id);
-    state.books.service.update_book(&book_id, book).await?;
+    state.services.book.update_book(&book_id, &book).await?;
 
     sync::service::update_book_metadata_timestamp(&state.pool, &book_sync_id).await;
 
@@ -69,7 +69,7 @@ pub async fn delete_metadata_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = state.books.service.get_book(&book_id).await?;
+    let book = state.services.book.get_book(&book_id).await?;
 
     let Some(metadata_id) = book.metadata_id else {
         return Err(MetadataError::MetadataNotFound.into());
@@ -90,7 +90,7 @@ pub async fn patch_metadata_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = state.books.service.get_book(&book_id).await?;
+    let book = state.services.book.get_book(&book_id).await?;
     let book_sync_id = book.book_sync_id.clone();
 
     let Some(metadata_id) = book.metadata_id else {
@@ -112,7 +112,7 @@ pub async fn update_metadata_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = state.books.service.get_book(&book_id).await?;
+    let book = state.services.book.get_book(&book_id).await?;
     let book_sync_id = book.book_sync_id.clone();
 
     let Some(metadata_id) = book.metadata_id else {
@@ -130,7 +130,7 @@ pub async fn add_metadata_request_handler(
     State(state): State<AppState>,
     Json(request): Json<MetadataFetchRequest>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let book = state.books.service.get_book(&request.book_id).await?;
+    let book = state.services.book.get_book(&request.book_id).await?;
     let providers = match request.metadata_providers {
         Some(p) => p,
         None => users::service::get_preferences(&state.pool, &book.owner_id)

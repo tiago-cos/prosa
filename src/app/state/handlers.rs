@@ -14,7 +14,7 @@ pub async fn get_state_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.read().await;
 
-    let book = state.books.service.get_book(&book_id).await?;
+    let book = state.services.book.get_book(&book_id).await?;
     let state = service::get_state(&state.pool, &book.state_id).await;
 
     Ok(Json(state))
@@ -28,7 +28,7 @@ pub async fn patch_state_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = state.books.service.get_book(&book_id).await?;
+    let book = state.services.book.get_book(&book_id).await?;
     service::patch_state(
         &state.pool,
         &book.state_id,
@@ -53,7 +53,7 @@ pub async fn update_state_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = state.books.service.get_book(&book_id).await?;
+    let book = state.services.book.get_book(&book_id).await?;
     service::update_state(
         &state.pool,
         &book.state_id,

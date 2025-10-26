@@ -31,7 +31,7 @@ pub async fn can_read_annotation(
         return Err(AuthError::Forbidden.into());
     }
 
-    let book = state.books.service.get_book(&book_id).await?;
+    let book = state.services.book.get_book(&book_id).await?;
 
     if !user_id_matches(&book.owner_id, &token) {
         return Err(BookError::BookNotFound.into());
@@ -51,7 +51,7 @@ pub async fn can_update_annotation(
         return Err(AuthError::Forbidden.into());
     }
 
-    let book = state.books.service.get_book(&book_id).await?;
+    let book = state.services.book.get_book(&book_id).await?;
 
     if !user_id_matches(&book.owner_id, &token) {
         return Err(BookError::BookNotFound.into());

@@ -18,7 +18,7 @@ pub async fn add_annotation_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = state.books.service.get_book(&book_id).await?;
+    let book = state.services.book.get_book(&book_id).await?;
     let annotation_id = service::add_annotation(
         &state.pool,
         &book_id,
@@ -43,7 +43,7 @@ pub async fn get_annotation_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.read().await;
 
-    state.books.service.get_book(&book_id).await?;
+    state.services.book.get_book(&book_id).await?;
     let annotation = service::get_annotation(&state.pool, &annotation_id).await?;
 
     Ok(Json(annotation))
@@ -56,7 +56,7 @@ pub async fn list_annotation_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.read().await;
 
-    state.books.service.get_book(&book_id).await?;
+    state.services.book.get_book(&book_id).await?;
     let annotations = service::get_annotations(&state.pool, &book_id).await;
 
     Ok(Json(annotations))
@@ -69,7 +69,7 @@ pub async fn delete_annotation_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = state.books.service.get_book(&book_id).await?;
+    let book = state.services.book.get_book(&book_id).await?;
     service::delete_annotation(&state.pool, &annotation_id).await?;
 
     sync::service::update_annotations_timestamp(&state.pool, &book.book_sync_id).await;
@@ -85,7 +85,7 @@ pub async fn patch_annotation_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = state.books.service.get_book(&book_id).await?;
+    let book = state.services.book.get_book(&book_id).await?;
     service::patch_annotation(&state.pool, &annotation_id, request.note).await?;
 
     sync::service::update_annotations_timestamp(&state.pool, &book.book_sync_id).await;

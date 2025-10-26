@@ -19,7 +19,7 @@ pub async fn download_book_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.read().await;
 
-    let book = state.books.service.get_book(&book_id).await?;
+    let book = state.services.book.get_book(&book_id).await?;
     let epub = epubs::service::read_epub(&state.config.book_storage.epub_path, &book.epub_id).await?;
 
     Ok(epub)
@@ -32,7 +32,7 @@ pub async fn get_book_file_metadata_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.read().await;
 
-    let book = state.books.service.get_book(&book_id).await?;
+    let book = state.services.book.get_book(&book_id).await?;
     let file_size = epubs::service::get_file_size(&state.config.book_storage.epub_path, &book.epub_id).await;
 
     Ok(Json(BookFileMetadata {
@@ -63,8 +63,8 @@ pub async fn upload_book_handler(
     .await?;
 
     if state
-        .books
-        .service
+        .services
+        .book
         .epub_is_in_use_by_user(&epub_id, owner_id)
         .await
     {
@@ -83,7 +83,7 @@ pub async fn upload_book_handler(
         book_sync_id,
     };
 
-    let book_id = state.books.service.add_book(book).await?;
+    let book_id = state.services.book.add_book(&book).await?;
 
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
@@ -112,14 +112,14 @@ pub async fn delete_book_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = state.books.service.get_book(&book_id).await?;
-    state.books.service.delete_book(&book_id).await?;
+    let book = state.services.book.get_book(&book_id).await?;
+    state.services.book.delete_book(&book_id).await?;
 
     if let Some(metadata_id) = book.metadata_id {
         metadata::service::delete_metadata(&state.pool, &metadata_id).await?;
     }
 
-    if !state.books.service.epub_is_in_use(&book.epub_id).await {
+    if !state.services.book.epub_is_in_use(&book.epub_id).await {
         epubs::service::delete_epub(&state.pool, &state.config.book_storage.epub_path, &book.epub_id).await?;
     }
 
@@ -129,7 +129,7 @@ pub async fn delete_book_handler(
 
     sync::service::update_book_delete_timestamp(&state.pool, &book.book_sync_id).await;
 
-    if !state.books.service.cover_is_in_use(&cover_id).await {
+    if !state.services.book.cover_is_in_use(&cover_id).await {
         covers::service::delete_cover(
             &state.pool,
             &state.config.book_storage.cover_path,
@@ -166,8 +166,8 @@ pub async fn search_books_handler(
     };
 
     let books = state
-        .books
-        .service
+        .services
+        .book
         .search_books(
             params.get("username").map(ToString::to_string),
             params.get("title").map(ToString::to_string),

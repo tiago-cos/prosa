@@ -173,7 +173,7 @@ pub async fn can_add_book_to_shelf(
         Err(_) => return Err(ShelfError::InvalidShelfRequest.into()),
     };
 
-    let book = state.books.service.get_book(&payload.book_id).await?;
+    let book = state.services.book.get_book(&payload.book_id).await?;
 
     if !user_id_matches(&book.owner_id, &token) {
         return Err(BookError::BookNotFound.into());
@@ -204,8 +204,8 @@ pub async fn can_delete_book_from_shelf(
     }
 
     let book = state
-        .books
-        .service
+        .services
+        .book
         .get_book(&book_id)
         .await
         .map_err(|_| ShelfBookError::ShelfBookNotFound)?;

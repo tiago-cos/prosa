@@ -1,4 +1,5 @@
 use super::{annotations, books, covers, metadata, state, sync, users};
+use crate::app::books::data::BookRepository;
 use crate::app::books::service::BookService;
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
@@ -50,7 +51,7 @@ pub struct AppState {
     pub metadata_manager: MetadataManager,
     pub lock_manager: LockManager,
     pub cache: Cache,
-    pub books: BookDomain,
+    pub services: Services,
 }
 
 #[derive(Clone)]
@@ -62,14 +63,15 @@ pub struct Cache {
 }
 
 #[derive(Clone)]
-pub struct BookDomain {
-    pub service: Arc<BookService>,
+pub struct Services {
+    pub book: Arc<BookService>,
 }
 
-impl BookDomain {
+impl Services {
     pub fn new(pool: &SqlitePool) -> Self {
-        let service = Arc::new(BookService::new(pool.clone()));
-        Self { service }
+        let book_repository = Arc::new(BookRepository::new(pool.clone()));
+        let book = Arc::new(BookService::new(book_repository));
+        Self { book }
     }
 }
 
@@ -85,11 +87,11 @@ impl AppState {
             tag_length_cache: Arc::new(QuickCache::new(100000)),
         };
 
-        let books = BookDomain::new(pool);
+        let services = Services::new(pool);
 
         let metadata_manager = metadata_manager::MetadataManager::new(
             pool.clone(),
-            books.service.clone(),
+            services.book.clone(),
             lock_manager.clone(),
             cache.image_cache.clone(),
             &config,
@@ -101,7 +103,7 @@ impl AppState {
             metadata_manager,
             lock_manager,
             cache,
-            books,
+            services,
         }
     }
 }

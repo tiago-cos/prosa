@@ -181,7 +181,7 @@ impl MetadataManager {
         let book_sync_id = book.book_sync_id.clone();
         let metadata_id = metadata::service::add_metadata(&self.pool, metadata).await?;
         book.metadata_id = Some(metadata_id);
-        self.books.update_book(book_id, book).await?;
+        self.books.update_book(book_id, &book).await?;
 
         sync::service::update_book_metadata_timestamp(&self.pool, &book_sync_id).await;
 
@@ -203,7 +203,7 @@ impl MetadataManager {
         .await?;
 
         book.cover_id = Some(new_cover_id);
-        self.books.update_book(book_id, book).await?;
+        self.books.update_book(book_id, &book).await?;
 
         if !self.books.cover_is_in_use(&old_cover_id).await {
             covers::service::delete_cover(&self.pool, &self.cover_path, &old_cover_id, &self.image_cache)
@@ -227,7 +227,7 @@ impl MetadataManager {
         )
         .await?;
         book.cover_id = Some(cover_id);
-        self.books.update_book(book_id, book).await?;
+        self.books.update_book(book_id, &book).await?;
 
         sync::service::update_cover_timestamp(&self.pool, &book_sync_id).await;
 

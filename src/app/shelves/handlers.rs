@@ -135,7 +135,7 @@ pub async fn add_book_to_shelf_handler(
     let _shelf_guard = shelf_lock.write().await;
 
     let shelf = service::get_shelf(&state.pool, &shelf_id).await?;
-    service::add_book_to_shelf(&state.books.service, &state.pool, &shelf_id, &request.book_id).await?;
+    service::add_book_to_shelf(&state.services.book, &state.pool, &shelf_id, &request.book_id).await?;
     sync::service::update_shelf_contents_timestamp(&state.pool, &shelf.shelf_sync_id).await;
 
     Ok((StatusCode::NO_CONTENT, ()))
