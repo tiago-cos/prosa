@@ -1,13 +1,11 @@
 use super::{models::CoverError, service};
-use crate::app::{AppState, books, error::ProsaError, sync};
+use crate::app::{AppState, error::ProsaError, sync};
 use axum::{
     body::Bytes,
     extract::{Path, State},
     http::StatusCode,
     response::IntoResponse,
 };
-
-// TODO add a config option to only allow admin registers
 
 pub async fn get_cover_handler(
     State(state): State<AppState>,
@@ -16,7 +14,7 @@ pub async fn get_cover_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.read().await;
 
-    let book = books::service::get_book(&state.pool, &book_id).await?;
+    let book = state.books.service.get_book(&book_id).await?;
     let cover_path = &state.config.book_storage.cover_path;
 
     let Some(cover_id) = book.cover_id else {
@@ -36,7 +34,7 @@ pub async fn add_cover_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let mut book = books::service::get_book(&state.pool, &book_id).await?;
+    let mut book = state.books.service.get_book(&book_id).await?;
     let cover_path = &state.config.book_storage.cover_path;
     let book_sync_id = book.book_sync_id.clone();
 
@@ -55,7 +53,7 @@ pub async fn add_cover_handler(
     };
 
     book.cover_id = Some(cover_id);
-    books::service::update_book(&state.pool, &book_id, book).await?;
+    state.books.service.update_book(&book_id, book).await?;
 
     sync::service::update_cover_timestamp(&state.pool, &book_sync_id).await;
 
@@ -69,7 +67,7 @@ pub async fn delete_cover_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let mut book = books::service::get_book(&state.pool, &book_id).await?;
+    let mut book = state.books.service.get_book(&book_id).await?;
     let cover_path = &state.config.book_storage.cover_path;
     let book_sync_id = book.book_sync_id.clone();
 
@@ -78,9 +76,9 @@ pub async fn delete_cover_handler(
     };
 
     book.cover_id = None;
-    books::service::update_book(&state.pool, &book_id, book).await?;
+    state.books.service.update_book(&book_id, book).await?;
 
-    if !books::service::cover_is_in_use(&state.pool, &cover_id).await {
+    if !state.books.service.cover_is_in_use(&cover_id).await {
         service::delete_cover(&state.pool, cover_path, &cover_id, &state.cache.image_cache).await?;
     }
 
@@ -97,7 +95,7 @@ pub async fn update_cover_handler(
     let lock = state.lock_manager.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let mut book = books::service::get_book(&state.pool, &book_id).await?;
+    let mut book = state.books.service.get_book(&book_id).await?;
     let cover_path = &state.config.book_storage.cover_path;
     let book_sync_id = book.book_sync_id.clone();
 
@@ -114,9 +112,9 @@ pub async fn update_cover_handler(
     )
     .await?;
     book.cover_id = Some(new_cover_id);
-    books::service::update_book(&state.pool, &book_id, book).await?;
+    state.books.service.update_book(&book_id, book).await?;
 
-    if !books::service::cover_is_in_use(&state.pool, &old_cover_id).await {
+    if !state.books.service.cover_is_in_use(&old_cover_id).await {
         service::delete_cover(&state.pool, cover_path, &old_cover_id, &state.cache.image_cache).await?;
     }
 

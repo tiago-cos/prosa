@@ -1,6 +1,7 @@
 use super::fetcher::MetadataFetcher;
 use crate::app::{
-    Config, ImageCache, books,
+    Config, ImageCache,
+    books::service::BookService,
     concurrency::manager::ProsaLockManager,
     covers, epubs,
     error::ProsaError,
@@ -25,7 +26,8 @@ pub struct MetadataRequest {
 
 pub struct MetadataManager {
     fetcher: Mutex<MetadataFetcher>,
-    pool: Arc<SqlitePool>,
+    books: Arc<BookService>,
+    pool: SqlitePool,
     lock_manager: Arc<ProsaLockManager>,
     image_cache: Arc<ImageCache>,
     epub_path: String,
@@ -36,13 +38,15 @@ pub struct MetadataManager {
 
 impl MetadataManager {
     pub fn new(
-        pool: Arc<SqlitePool>,
+        pool: SqlitePool,
+        books: Arc<BookService>,
         lock_manager: Arc<ProsaLockManager>,
         image_cache: Arc<ImageCache>,
         config: &Config,
     ) -> Arc<Self> {
         let manager = Self {
             fetcher: Mutex::new(MetadataFetcher::new(config)),
+            books,
             pool,
             lock_manager,
             image_cache,
@@ -119,7 +123,7 @@ impl MetadataManager {
         let lock = self.lock_manager.get_book_lock(book_id).await;
         let _guard = lock.read().await;
 
-        let Ok(book) = books::service::get_book(&self.pool, book_id).await else {
+        let Ok(book) = self.books.get_book(book_id).await else {
             warn!("Background metadata fetching failed for book {book_id}");
             return (None, None);
         };
@@ -139,7 +143,7 @@ impl MetadataManager {
         let lock = self.lock_manager.get_book_lock(book_id).await;
         let _guard = lock.write().await;
 
-        let Ok(book) = books::service::get_book(&self.pool, book_id).await else {
+        let Ok(book) = self.books.get_book(book_id).await else {
             warn!("Background metadata fetching failed for book {book_id}");
             return;
         };
@@ -162,7 +166,7 @@ impl MetadataManager {
     }
 
     async fn handle_metadata_update(&self, book_id: &str, metadata: Metadata) -> Result<(), ProsaError> {
-        let book = books::service::get_book(&self.pool, book_id).await?;
+        let book = self.books.get_book(book_id).await?;
         let book_sync_id = book.book_sync_id.clone();
         let metadata_id = book.metadata_id.as_ref().expect("Failed to retrieve metadata id");
         metadata::service::update_metadata(&self.pool, metadata_id, metadata).await?;
@@ -173,11 +177,11 @@ impl MetadataManager {
     }
 
     async fn handle_metadata_create(&self, book_id: &str, metadata: Metadata) -> Result<(), ProsaError> {
-        let mut book = books::service::get_book(&self.pool, book_id).await?;
+        let mut book = self.books.get_book(book_id).await?;
         let book_sync_id = book.book_sync_id.clone();
         let metadata_id = metadata::service::add_metadata(&self.pool, metadata).await?;
         book.metadata_id = Some(metadata_id);
-        books::service::update_book(&self.pool, book_id, book).await?;
+        self.books.update_book(book_id, book).await?;
 
         sync::service::update_book_metadata_timestamp(&self.pool, &book_sync_id).await;
 
@@ -185,7 +189,7 @@ impl MetadataManager {
     }
 
     async fn handle_cover_update(&self, book_id: &str, cover: Vec<u8>) -> Result<(), ProsaError> {
-        let mut book = books::service::get_book(&self.pool, book_id).await?;
+        let mut book = self.books.get_book(book_id).await?;
         let book_sync_id = book.book_sync_id.clone();
 
         let old_cover_id = book.cover_id.expect("Failed to retrieve old cover id");
@@ -199,9 +203,9 @@ impl MetadataManager {
         .await?;
 
         book.cover_id = Some(new_cover_id);
-        books::service::update_book(&self.pool, book_id, book).await?;
+        self.books.update_book(book_id, book).await?;
 
-        if !books::service::cover_is_in_use(&self.pool, &old_cover_id).await {
+        if !self.books.cover_is_in_use(&old_cover_id).await {
             covers::service::delete_cover(&self.pool, &self.cover_path, &old_cover_id, &self.image_cache)
                 .await?;
         }
@@ -212,7 +216,7 @@ impl MetadataManager {
     }
 
     async fn handle_cover_create(&self, book_id: &str, cover: Vec<u8>) -> Result<(), ProsaError> {
-        let mut book = books::service::get_book(&self.pool, book_id).await?;
+        let mut book = self.books.get_book(book_id).await?;
         let book_sync_id = book.book_sync_id.clone();
         let cover_id = covers::service::write_cover(
             &self.pool,
@@ -223,7 +227,7 @@ impl MetadataManager {
         )
         .await?;
         book.cover_id = Some(cover_id);
-        books::service::update_book(&self.pool, book_id, book).await?;
+        self.books.update_book(book_id, book).await?;
 
         sync::service::update_cover_timestamp(&self.pool, &book_sync_id).await;
 

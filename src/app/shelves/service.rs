@@ -1,6 +1,6 @@
 use super::data;
 use crate::app::{
-    books,
+    books::service::BookService,
     error::ProsaError,
     shelves::models::{PaginatedShelves, Shelf, ShelfError, ShelfMetadata},
 };
@@ -73,9 +73,14 @@ pub async fn search_shelves(
     Ok(data::get_paginated_shelves(pool, page, page_size, username, name).await)
 }
 
-pub async fn add_book_to_shelf(pool: &SqlitePool, shelf_id: &str, book_id: &str) -> Result<(), ProsaError> {
+pub async fn add_book_to_shelf(
+    books: &BookService,
+    pool: &SqlitePool,
+    shelf_id: &str,
+    book_id: &str,
+) -> Result<(), ProsaError> {
     // Verify if book and shelf exist
-    books::service::get_book(pool, book_id).await?;
+    books.get_book(book_id).await?;
     get_shelf_metadata(pool, shelf_id).await?;
 
     data::add_book_to_shelf(pool, shelf_id, book_id).await?;

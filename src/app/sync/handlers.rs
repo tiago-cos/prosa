@@ -1,17 +1,16 @@
 use super::{models::SyncError, service};
-use crate::app::{
-    Pool, authentication::models::AuthToken, error::ProsaError, sync::models::UnsyncedResponse,
-};
+use crate::app::{authentication::models::AuthToken, error::ProsaError, sync::models::UnsyncedResponse};
 use axum::{
     Extension, Json,
     extract::{Query, State},
     response::IntoResponse,
 };
 use chrono::{DateTime, Utc};
+use sqlx::SqlitePool;
 use std::collections::HashMap;
 
 pub async fn get_unsynced_handler(
-    State(pool): State<Pool>,
+    State(pool): State<SqlitePool>,
     Query(params): Query<HashMap<String, String>>,
     Extension(token): Extension<AuthToken>,
 ) -> Result<impl IntoResponse, ProsaError> {

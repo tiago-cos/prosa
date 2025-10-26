@@ -1,7 +1,7 @@
 use crate::app::{
-    Pool,
+    AppState,
     authentication::models::{AuthError, AuthRole, AuthToken, CREATE, DELETE, READ, UPDATE},
-    books::{self, models::BookError},
+    books::models::BookError,
     error::ProsaError,
     shelves::{
         self,
@@ -16,6 +16,7 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
+use sqlx::SqlitePool;
 use std::collections::HashMap;
 
 fn user_id_matches(user_id: &str, token: &AuthToken) -> bool {
@@ -57,7 +58,7 @@ pub async fn can_create_shelf(
 pub async fn can_read_shelf(
     Extension(token): Extension<AuthToken>,
     Path(shelf_id): Path<String>,
-    State(pool): State<Pool>,
+    State(pool): State<SqlitePool>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -77,7 +78,7 @@ pub async fn can_read_shelf(
 pub async fn can_update_shelf(
     Extension(token): Extension<AuthToken>,
     Path(shelf_id): Path<String>,
-    State(pool): State<Pool>,
+    State(pool): State<SqlitePool>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -97,7 +98,7 @@ pub async fn can_update_shelf(
 pub async fn can_delete_shelf(
     Extension(token): Extension<AuthToken>,
     Path(shelf_id): Path<String>,
-    State(pool): State<Pool>,
+    State(pool): State<SqlitePool>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -117,7 +118,7 @@ pub async fn can_delete_shelf(
 pub async fn can_search_shelves(
     Extension(token): Extension<AuthToken>,
     Query(params): Query<HashMap<String, String>>,
-    State(pool): State<Pool>,
+    State(pool): State<SqlitePool>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -148,7 +149,7 @@ pub async fn can_search_shelves(
 pub async fn can_add_book_to_shelf(
     Extension(token): Extension<AuthToken>,
     Path(shelf_id): Path<String>,
-    State(pool): State<Pool>,
+    State(state): State<AppState>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -156,7 +157,7 @@ pub async fn can_add_book_to_shelf(
         return Err(AuthError::Forbidden.into());
     }
 
-    let shelf = shelves::service::get_shelf(&pool, &shelf_id).await?;
+    let shelf = shelves::service::get_shelf(&state.pool, &shelf_id).await?;
 
     if !user_id_matches(&shelf.owner_id, &token) {
         return Err(ShelfError::ShelfNotFound.into());
@@ -172,7 +173,7 @@ pub async fn can_add_book_to_shelf(
         Err(_) => return Err(ShelfError::InvalidShelfRequest.into()),
     };
 
-    let book = books::service::get_book(&pool, &payload.book_id).await?;
+    let book = state.books.service.get_book(&payload.book_id).await?;
 
     if !user_id_matches(&book.owner_id, &token) {
         return Err(BookError::BookNotFound.into());
@@ -188,7 +189,7 @@ pub async fn can_add_book_to_shelf(
 pub async fn can_delete_book_from_shelf(
     Extension(token): Extension<AuthToken>,
     Path((shelf_id, book_id)): Path<(String, String)>,
-    State(pool): State<Pool>,
+    State(state): State<AppState>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -196,13 +197,16 @@ pub async fn can_delete_book_from_shelf(
         return Err(AuthError::Forbidden.into());
     }
 
-    let shelf = shelves::service::get_shelf(&pool, &shelf_id).await?;
+    let shelf = shelves::service::get_shelf(&state.pool, &shelf_id).await?;
 
     if !user_id_matches(&shelf.owner_id, &token) {
         return Err(ShelfError::ShelfNotFound.into());
     }
 
-    let book = books::service::get_book(&pool, &book_id)
+    let book = state
+        .books
+        .service
+        .get_book(&book_id)
         .await
         .map_err(|_| ShelfBookError::ShelfBookNotFound)?;
 

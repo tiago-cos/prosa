@@ -1,6 +1,6 @@
 use super::service;
 use crate::app::{
-    AppState, Pool,
+    AppState,
     authentication::models::AuthToken,
     error::ProsaError,
     shelves::models::{AddBookToShelfRequest, CreateShelfRequest, Shelf, ShelfError, UpdateShelfRequest},
@@ -12,6 +12,7 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
+use sqlx::SqlitePool;
 use std::collections::HashMap;
 
 pub async fn add_shelf_handler(
@@ -89,7 +90,7 @@ pub async fn delete_shelf_handler(
 }
 
 pub async fn search_shelves_handler(
-    State(pool): State<Pool>,
+    State(pool): State<SqlitePool>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<impl IntoResponse, ProsaError> {
     if let Some(username) = params.get("username") {
@@ -134,7 +135,7 @@ pub async fn add_book_to_shelf_handler(
     let _shelf_guard = shelf_lock.write().await;
 
     let shelf = service::get_shelf(&state.pool, &shelf_id).await?;
-    service::add_book_to_shelf(&state.pool, &shelf_id, &request.book_id).await?;
+    service::add_book_to_shelf(&state.books.service, &state.pool, &shelf_id, &request.book_id).await?;
     sync::service::update_shelf_contents_timestamp(&state.pool, &shelf.shelf_sync_id).await;
 
     Ok((StatusCode::NO_CONTENT, ()))

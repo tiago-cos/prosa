@@ -2,7 +2,6 @@ use super::tables::{clear_tables, create_tables};
 use crate::app::AppState;
 use axum::extract::FromRef;
 use sqlx::{Pool, Sqlite, SqlitePool, sqlite::SqliteConnectOptions};
-use std::sync::Arc;
 
 #[allow(dead_code)]
 pub async fn init(filename: &str) -> Pool<Sqlite> {
@@ -31,8 +30,8 @@ pub async fn debug_init(filename: &str) -> Pool<Sqlite> {
     pool
 }
 
-impl FromRef<AppState> for Arc<SqlitePool> {
-    fn from_ref(state: &AppState) -> Arc<SqlitePool> {
-        Arc::clone(&state.pool)
+impl FromRef<AppState> for SqlitePool {
+    fn from_ref(state: &AppState) -> SqlitePool {
+        state.pool.clone()
     }
 }

@@ -1,10 +1,7 @@
 use crate::app::{
-    Pool,
+    AppState,
     authentication::models::{AuthError, AuthRole, AuthToken, CREATE, DELETE, READ, UPDATE},
-    books::{
-        self,
-        models::{BookError, UploadBoodRequest},
-    },
+    books::models::{BookError, UploadBoodRequest},
     error::ProsaError,
     users,
 };
@@ -16,6 +13,7 @@ use axum::{
     response::IntoResponse,
 };
 use axum_typed_multipart::TypedMultipart;
+use sqlx::SqlitePool;
 use std::collections::HashMap;
 
 fn user_id_matches(user_id: &str, token: &AuthToken) -> bool {
@@ -58,7 +56,7 @@ pub async fn can_create_book(
 pub async fn can_read_book(
     Extension(token): Extension<AuthToken>,
     Path(book_id): Path<String>,
-    State(pool): State<Pool>,
+    State(state): State<AppState>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -66,7 +64,7 @@ pub async fn can_read_book(
         return Err(AuthError::Forbidden.into());
     }
 
-    let book = books::service::get_book(&pool, &book_id).await?;
+    let book = state.books.service.get_book(&book_id).await?;
 
     if !user_id_matches(&book.owner_id, &token) {
         return Err(BookError::BookNotFound.into());
@@ -78,7 +76,7 @@ pub async fn can_read_book(
 pub async fn can_search_books(
     Extension(token): Extension<AuthToken>,
     Query(params): Query<HashMap<String, String>>,
-    State(pool): State<Pool>,
+    State(pool): State<SqlitePool>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -109,7 +107,7 @@ pub async fn can_search_books(
 pub async fn can_delete_book(
     Extension(token): Extension<AuthToken>,
     Path(book_id): Path<String>,
-    State(pool): State<Pool>,
+    State(state): State<AppState>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -117,7 +115,7 @@ pub async fn can_delete_book(
         return Err(AuthError::Forbidden.into());
     }
 
-    let book = books::service::get_book(&pool, &book_id).await?;
+    let book = state.books.service.get_book(&book_id).await?;
 
     if !user_id_matches(&book.owner_id, &token) {
         return Err(BookError::BookNotFound.into());
@@ -129,7 +127,7 @@ pub async fn can_delete_book(
 pub async fn can_update_book(
     Extension(token): Extension<AuthToken>,
     Path(book_id): Path<String>,
-    State(pool): State<Pool>,
+    State(state): State<AppState>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -137,7 +135,7 @@ pub async fn can_update_book(
         return Err(AuthError::Forbidden.into());
     }
 
-    let book = books::service::get_book(&pool, &book_id).await?;
+    let book = state.books.service.get_book(&book_id).await?;
 
     if !user_id_matches(&book.owner_id, &token) {
         return Err(BookError::BookNotFound.into());

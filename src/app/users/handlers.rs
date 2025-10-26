@@ -6,7 +6,7 @@ use super::{
     service,
 };
 use crate::app::{
-    AppState, Pool,
+    AppState,
     authentication::{self, models::AuthError},
     error::ProsaError,
     users::models::{AuthenticationResponse, RefreshTokenRequest, UserProfile},
@@ -17,6 +17,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     response::IntoResponse,
 };
+use sqlx::SqlitePool;
 
 pub async fn register_user_handler(
     State(state): State<AppState>,
@@ -123,7 +124,7 @@ pub async fn refresh_token_handler(
 }
 
 pub async fn create_api_key_handler(
-    State(pool): State<Pool>,
+    State(pool): State<SqlitePool>,
     Path(user_id): Path<String>,
     Json(body): Json<CreateApiKeyRequest>,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -135,7 +136,7 @@ pub async fn create_api_key_handler(
 }
 
 pub async fn get_api_key_handler(
-    State(pool): State<Pool>,
+    State(pool): State<SqlitePool>,
     Path((user_id, key_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ProsaError> {
     let key = service::get_api_key(&pool, &user_id, &key_id).await?;
@@ -150,7 +151,7 @@ pub async fn get_api_key_handler(
 }
 
 pub async fn get_api_keys_handler(
-    State(pool): State<Pool>,
+    State(pool): State<SqlitePool>,
     Path(user_id): Path<String>,
 ) -> Result<impl IntoResponse, ProsaError> {
     let keys = service::get_api_keys(&pool, &user_id).await?;
@@ -159,7 +160,7 @@ pub async fn get_api_keys_handler(
 }
 
 pub async fn revoke_api_key_handler(
-    State(pool): State<Pool>,
+    State(pool): State<SqlitePool>,
     Path((user_id, key_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ProsaError> {
     service::revoke_api_key(&pool, &user_id, &key_id).await?;
@@ -168,7 +169,7 @@ pub async fn revoke_api_key_handler(
 }
 
 pub async fn get_preferences_handler(
-    State(pool): State<Pool>,
+    State(pool): State<SqlitePool>,
     Path(user_id): Path<String>,
 ) -> Result<impl IntoResponse, ProsaError> {
     let preferences = service::get_preferences(&pool, &user_id).await?;
@@ -177,7 +178,7 @@ pub async fn get_preferences_handler(
 }
 
 pub async fn update_preferences_handler(
-    State(pool): State<Pool>,
+    State(pool): State<SqlitePool>,
     Path(user_id): Path<String>,
     Json(body): Json<Preferences>,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -187,7 +188,7 @@ pub async fn update_preferences_handler(
 }
 
 pub async fn patch_preferences_handler(
-    State(pool): State<Pool>,
+    State(pool): State<SqlitePool>,
     Path(user_id): Path<String>,
     Json(body): Json<Preferences>,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -197,7 +198,7 @@ pub async fn patch_preferences_handler(
 }
 
 pub async fn get_user_profile_handler(
-    State(pool): State<Pool>,
+    State(pool): State<SqlitePool>,
     Path(user_id): Path<String>,
 ) -> Result<impl IntoResponse, ProsaError> {
     let profile = service::get_user_profile(&pool, &user_id).await?;
@@ -206,7 +207,7 @@ pub async fn get_user_profile_handler(
 }
 
 pub async fn update_user_profile_handler(
-    State(pool): State<Pool>,
+    State(pool): State<SqlitePool>,
     Path(user_id): Path<String>,
     Json(body): Json<UserProfile>,
 ) -> Result<impl IntoResponse, ProsaError> {
