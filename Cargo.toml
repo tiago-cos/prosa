@@ -24,7 +24,7 @@ quick_cache = "0.6.18"
 regex = "1.12.2"
 serde = "1.0.228"
 serde_json = "1.0.145"
-serde_with = "3.15.0"
+serde_with = "3.15.1"
 sha2 = "0.10.9"
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite", "chrono"] }
 strum = "0.27.2"
