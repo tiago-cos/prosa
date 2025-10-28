@@ -1,6 +1,6 @@
 pub mod controller;
-mod data;
 mod models;
+pub mod repository;
 pub mod routes;
 pub mod service;
 

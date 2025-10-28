@@ -3,6 +3,7 @@ use crate::app::books::controller::BookController;
 use crate::app::books::repository::BookRepository;
 use crate::app::books::service::BookService;
 use crate::app::covers::controller::CoverController;
+use crate::app::covers::repository::CoverRepository;
 use crate::app::covers::service::CoverService;
 use crate::app::epubs::repository::EpubRepository;
 use crate::app::epubs::service::EpubService;
@@ -100,11 +101,12 @@ impl AppState {
         ));
         let book_repository = Arc::new(BookRepository::new(pool.clone()));
         let book_service = Arc::new(BookService::new(book_repository));
+        let cover_repository = Arc::new(CoverRepository::new(pool.clone()));
         let cover_service = Arc::new(CoverService::new(
-            pool.clone(),
             lock_manager.clone(),
             cache.image_cache.clone(),
             config.book_storage.cover_path.clone(),
+            cover_repository,
         ));
         let cover_controller = Arc::new(CoverController::new(
             pool.clone(),

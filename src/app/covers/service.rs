@@ -1,9 +1,8 @@
-use super::{data, models::CoverError};
-use crate::app::{ImageCache, concurrency::manager::ProsaLockManager};
+use super::models::CoverError;
+use crate::app::{ImageCache, concurrency::manager::ProsaLockManager, covers::repository::CoverRepository};
 use base64::{Engine, prelude::BASE64_STANDARD};
 use image::ImageFormat;
 use sha2::{Digest, Sha256};
-use sqlx::SqlitePool;
 use std::sync::Arc;
 use tokio::{
     fs::{File, remove_file},
@@ -12,24 +11,24 @@ use tokio::{
 use uuid::Uuid;
 
 pub struct CoverService {
-    pool: SqlitePool,
     lock_manager: Arc<ProsaLockManager>,
     image_cache: Arc<ImageCache>,
     cover_path: String,
+    cover_repository: Arc<CoverRepository>,
 }
 
 impl CoverService {
     pub fn new(
-        pool: SqlitePool,
         lock_manager: Arc<ProsaLockManager>,
         image_cache: Arc<ImageCache>,
         cover_path: String,
+        cover_repository: Arc<CoverRepository>,
     ) -> Self {
         Self {
-            pool,
             lock_manager,
             image_cache,
             cover_path,
+            cover_repository,
         }
     }
 
@@ -42,7 +41,7 @@ impl CoverService {
         let lock = self.lock_manager.get_hash_lock(&hash).await;
         let _guard = lock.write().await;
 
-        if let Some(cover_id) = data::get_cover_by_hash(&self.pool, &hash).await {
+        if let Some(cover_id) = self.cover_repository.get_cover_by_hash(&hash).await {
             return Ok(cover_id);
         }
 
@@ -58,7 +57,7 @@ impl CoverService {
 
         file.sync_all().await.expect("Failed to sync cover file");
 
-        data::add_cover(&self.pool, &cover_id, &hash).await;
+        self.cover_repository.add_cover(&cover_id, &hash).await;
 
         let cache_key = format!("images:{cover_id}");
         self.image_cache.insert(cache_key, Arc::new(cover_data.clone()));
@@ -87,7 +86,7 @@ impl CoverService {
         let cover_file = format!("{}/{}.jpeg", self.cover_path, cover_id);
         remove_file(&cover_file).await?;
 
-        data::delete_cover(&self.pool, cover_id).await?;
+        self.cover_repository.delete_cover(cover_id).await?;
 
         let cache_key = format!("images:{cover_id}");
         self.image_cache.remove(&cache_key);
