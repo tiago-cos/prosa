@@ -3,6 +3,7 @@ use crate::app::books::controller::BookController;
 use crate::app::books::repository::BookRepository;
 use crate::app::books::service::BookService;
 use crate::app::epubs::repository::EpubRepository;
+use crate::app::epubs::service::EpubService;
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
 use axum::Router;
@@ -88,6 +89,12 @@ impl AppState {
         };
 
         let epub_repository = Arc::new(EpubRepository::new(pool.clone()));
+        let epub_service = Arc::new(EpubService::new(
+            epub_repository,
+            lock_manager.clone(),
+            config.kepubify.path.clone(),
+            config.book_storage.epub_path.clone(),
+        ));
         let book_repository = Arc::new(BookRepository::new(pool.clone()));
         let book_service = Arc::new(BookService::new(book_repository));
 
@@ -97,6 +104,7 @@ impl AppState {
             lock_manager.clone(),
             cache.image_cache.clone(),
             &config,
+            epub_service.clone(),
         );
 
         let book_controller = Arc::new(BookController::new(
@@ -105,7 +113,7 @@ impl AppState {
             cache.image_cache.clone(),
             metadata_manager.clone(),
             config.clone(),
-            epub_repository.clone(),
+            epub_service.clone(),
         ));
 
         let services = Services { book: book_service };

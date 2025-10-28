@@ -3,7 +3,8 @@ use crate::app::{
     Config, ImageCache,
     books::service::BookService,
     concurrency::manager::ProsaLockManager,
-    covers, epubs,
+    covers,
+    epubs::service::EpubService,
     error::ProsaError,
     metadata::{
         self,
@@ -30,10 +31,10 @@ pub struct MetadataManager {
     pool: SqlitePool,
     lock_manager: Arc<ProsaLockManager>,
     image_cache: Arc<ImageCache>,
-    epub_path: String,
     cover_path: String,
     queue: RwLock<VecDeque<MetadataRequest>>,
     notify: Notify,
+    epub_service: Arc<EpubService>,
 }
 
 impl MetadataManager {
@@ -43,6 +44,7 @@ impl MetadataManager {
         lock_manager: Arc<ProsaLockManager>,
         image_cache: Arc<ImageCache>,
         config: &Config,
+        epub_service: Arc<EpubService>,
     ) -> Arc<Self> {
         let manager = Self {
             fetcher: Mutex::new(MetadataFetcher::new(config)),
@@ -50,10 +52,10 @@ impl MetadataManager {
             pool,
             lock_manager,
             image_cache,
-            epub_path: config.book_storage.epub_path.clone(),
             cover_path: config.book_storage.cover_path.clone(),
             queue: RwLock::new(VecDeque::new()),
             notify: Notify::new(),
+            epub_service,
         };
         let manager = Arc::new(manager);
 
@@ -127,7 +129,7 @@ impl MetadataManager {
             warn!("Background metadata fetching failed for book {book_id}");
             return (None, None);
         };
-        let Ok(epub_data) = epubs::service::read_epub(&self.epub_path, &book.epub_id).await else {
+        let Ok(epub_data) = self.epub_service.read_epub(&book.epub_id).await else {
             warn!("Background metadata fetching failed for book {book_id}");
             return (None, None);
         };

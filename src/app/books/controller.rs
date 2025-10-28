@@ -7,7 +7,7 @@ use crate::app::{
         service::BookService,
     },
     covers,
-    epubs::{self, repository::EpubRepository},
+    epubs::service::EpubService,
     error::ProsaError,
     metadata, state, sync, users,
 };
@@ -19,7 +19,7 @@ pub struct BookController {
     pub image_cache: Arc<ImageCache>,
     pub metadata_manager: MetadataManager,
     pub config: Config,
-    pub epub_repository: Arc<EpubRepository>,
+    pub epub_service: Arc<EpubService>,
 }
 
 impl BookController {
@@ -29,7 +29,7 @@ impl BookController {
         image_cache: Arc<ImageCache>,
         metadata_manager: MetadataManager,
         config: Config,
-        epub_repository: Arc<EpubRepository>,
+        epub_service: Arc<EpubService>,
     ) -> Self {
         Self {
             book_service,
@@ -37,7 +37,7 @@ impl BookController {
             image_cache,
             metadata_manager,
             config,
-            epub_repository,
+            epub_service,
         }
     }
 
@@ -46,7 +46,7 @@ impl BookController {
         let _guard = lock.read().await;
 
         let book = self.book_service.get_book(&book_id).await?;
-        let epub = epubs::service::read_epub(&self.config.book_storage.epub_path, &book.epub_id).await?;
+        let epub = self.epub_service.read_epub(&book.epub_id).await?;
 
         Ok(epub)
     }
@@ -56,8 +56,7 @@ impl BookController {
         let _guard = lock.read().await;
 
         let book = self.book_service.get_book(&book_id).await?;
-        let file_size =
-            epubs::service::get_file_size(&self.config.book_storage.epub_path, &book.epub_id).await;
+        let file_size = self.epub_service.get_file_size(&book.epub_id).await;
 
         let metadata = BookFileMetadata {
             owner_id: book.owner_id,
@@ -79,15 +78,7 @@ impl BookController {
         };
 
         let preferences = users::service::get_preferences(pool, owner_id).await?;
-
-        let epub_id = epubs::service::write_epub(
-            &self.config.kepubify.path,
-            &self.config.book_storage.epub_path,
-            &data.epub.to_vec(),
-            &self.lock_manager,
-            self.epub_repository.clone(),
-        )
-        .await?;
+        let epub_id = self.epub_service.write_epub(&data.epub.to_vec()).await?;
 
         if self.book_service.epub_is_in_use_by_user(&epub_id, owner_id).await {
             return Err(BookError::BookConflict.into());
@@ -139,12 +130,7 @@ impl BookController {
         }
 
         if !self.book_service.epub_is_in_use(&book.epub_id).await {
-            epubs::service::delete_epub(
-                &self.config.book_storage.epub_path,
-                &book.epub_id,
-                self.epub_repository.clone(),
-            )
-            .await?;
+            self.epub_service.delete_epub(&book.epub_id).await?;
         }
 
         let Some(cover_id) = book.cover_id else {
