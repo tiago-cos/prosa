@@ -1,10 +1,9 @@
-use super::{data, models::EpubError};
-use crate::app::concurrency::manager::ProsaLockManager;
+use super::models::EpubError;
+use crate::app::{concurrency::manager::ProsaLockManager, epubs::repository::EpubRepository};
 use base64::{Engine, prelude::BASE64_STANDARD};
 use epub::doc::EpubDoc;
 use sha2::{Digest, Sha256};
-use sqlx::SqlitePool;
-use std::io::Cursor;
+use std::{io::Cursor, sync::Arc};
 use tokio::{
     fs::{self, File, remove_file},
     io::{AsyncReadExt, AsyncWriteExt},
@@ -13,11 +12,11 @@ use tokio::{
 use uuid::Uuid;
 
 pub async fn write_epub(
-    pool: &SqlitePool,
     kepubify_path: &str,
     epub_path: &str,
     epub_data: &Vec<u8>,
     lock_manager: &ProsaLockManager,
+    repo: Arc<EpubRepository>,
 ) -> Result<String, EpubError> {
     if !is_valid_epub(epub_data) {
         return Err(EpubError::InvalidEpub);
@@ -28,7 +27,7 @@ pub async fn write_epub(
     let lock = lock_manager.get_hash_lock(&hash).await;
     let _guard = lock.write().await;
 
-    if let Some(epub_id) = data::get_epub_by_hash(pool, &hash).await {
+    if let Some(epub_id) = repo.get_epub_by_hash(&hash).await {
         return Ok(epub_id);
     }
 
@@ -46,7 +45,7 @@ pub async fn write_epub(
 
     convert_to_kepub(kepubify_path, epub_path, &epub_file).await;
 
-    data::add_epub(pool, &epub_id, &hash).await;
+    repo.add_epub(&epub_id, &hash).await;
 
     Ok(epub_id)
 }
@@ -90,11 +89,11 @@ pub async fn read_epub(epub_path: &str, epub_id: &str) -> Result<Vec<u8>, EpubEr
     Ok(buffer)
 }
 
-pub async fn delete_epub(pool: &SqlitePool, epub_path: &str, epub_id: &str) -> Result<(), EpubError> {
+pub async fn delete_epub(epub_path: &str, epub_id: &str, repo: Arc<EpubRepository>) -> Result<(), EpubError> {
     let epub_file = format!("{epub_path}/{epub_id}.kepub.epub");
     remove_file(epub_file).await?;
 
-    data::delete_epub(pool, epub_id).await?;
+    repo.delete_epub(epub_id).await?;
 
     Ok(())
 }

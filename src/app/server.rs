@@ -2,6 +2,7 @@ use super::{annotations, books, covers, metadata, state, sync, users};
 use crate::app::books::controller::BookController;
 use crate::app::books::repository::BookRepository;
 use crate::app::books::service::BookService;
+use crate::app::epubs::repository::EpubRepository;
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
 use axum::Router;
@@ -86,6 +87,7 @@ impl AppState {
             tag_length_cache: Arc::new(QuickCache::new(100000)),
         };
 
+        let epub_repository = Arc::new(EpubRepository::new(pool.clone()));
         let book_repository = Arc::new(BookRepository::new(pool.clone()));
         let book_service = Arc::new(BookService::new(book_repository));
 
@@ -103,6 +105,7 @@ impl AppState {
             cache.image_cache.clone(),
             metadata_manager.clone(),
             config.clone(),
+            epub_repository.clone(),
         ));
 
         let services = Services { book: book_service };

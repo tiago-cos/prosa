@@ -6,7 +6,8 @@ use crate::app::{
         models::{BookFileMetadata, PaginatedBooks},
         service::BookService,
     },
-    covers, epubs,
+    covers,
+    epubs::{self, repository::EpubRepository},
     error::ProsaError,
     metadata, state, sync, users,
 };
@@ -18,6 +19,7 @@ pub struct BookController {
     pub image_cache: Arc<ImageCache>,
     pub metadata_manager: MetadataManager,
     pub config: Config,
+    pub epub_repository: Arc<EpubRepository>,
 }
 
 impl BookController {
@@ -27,6 +29,7 @@ impl BookController {
         image_cache: Arc<ImageCache>,
         metadata_manager: MetadataManager,
         config: Config,
+        epub_repository: Arc<EpubRepository>,
     ) -> Self {
         Self {
             book_service,
@@ -34,6 +37,7 @@ impl BookController {
             image_cache,
             metadata_manager,
             config,
+            epub_repository,
         }
     }
 
@@ -77,11 +81,11 @@ impl BookController {
         let preferences = users::service::get_preferences(pool, owner_id).await?;
 
         let epub_id = epubs::service::write_epub(
-            pool,
             &self.config.kepubify.path,
             &self.config.book_storage.epub_path,
             &data.epub.to_vec(),
             &self.lock_manager,
+            self.epub_repository.clone(),
         )
         .await?;
 
@@ -135,7 +139,12 @@ impl BookController {
         }
 
         if !self.book_service.epub_is_in_use(&book.epub_id).await {
-            epubs::service::delete_epub(pool, &self.config.book_storage.epub_path, &book.epub_id).await?;
+            epubs::service::delete_epub(
+                &self.config.book_storage.epub_path,
+                &book.epub_id,
+                self.epub_repository.clone(),
+            )
+            .await?;
         }
 
         let Some(cover_id) = book.cover_id else {

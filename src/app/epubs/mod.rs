@@ -1,3 +1,3 @@
-mod data;
 mod models;
+pub mod repository;
 pub mod service;
