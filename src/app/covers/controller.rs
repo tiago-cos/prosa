@@ -1,36 +1,29 @@
 use super::models::CoverError;
 use crate::app::{
-    Cache, Config, books::service::BookService, concurrency::manager::ProsaLockManager,
-    covers::service::CoverService, error::ProsaError, sync,
+    books::service::BookService, concurrency::manager::ProsaLockManager, covers::service::CoverService,
+    error::ProsaError, sync,
 };
 use axum::body::Bytes;
 use sqlx::SqlitePool;
 use std::sync::Arc;
 
-#[derive(Clone)]
 pub struct CoverController {
-    pub pool: SqlitePool,
-    pub lock_manager: Arc<ProsaLockManager>,
-    pub cache: Cache,
-    pub config: Config,
-    pub book_service: Arc<BookService>,
-    pub cover_service: Arc<CoverService>,
+    pool: SqlitePool,
+    lock_manager: Arc<ProsaLockManager>,
+    book_service: Arc<BookService>,
+    cover_service: Arc<CoverService>,
 }
 
 impl CoverController {
     pub fn new(
         pool: SqlitePool,
         lock_manager: Arc<ProsaLockManager>,
-        cache: Cache,
-        config: Config,
         book_service: Arc<BookService>,
         cover_service: Arc<CoverService>,
     ) -> Self {
         Self {
             pool,
             lock_manager,
-            cache,
-            config,
             book_service,
             cover_service,
         }

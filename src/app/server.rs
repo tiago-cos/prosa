@@ -109,8 +109,6 @@ impl AppState {
         let cover_controller = Arc::new(CoverController::new(
             pool.clone(),
             lock_manager.clone(),
-            cache.clone(),
-            config.clone(),
             book_service.clone(),
             cover_service.clone(),
         ));
@@ -127,9 +125,7 @@ impl AppState {
         let book_controller = Arc::new(BookController::new(
             book_service.clone(),
             lock_manager.clone(),
-            cache.image_cache.clone(),
             metadata_manager.clone(),
-            config.clone(),
             epub_service.clone(),
             cover_service.clone(),
         ));

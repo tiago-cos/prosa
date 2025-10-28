@@ -1,7 +1,6 @@
 use super::models::EpubError;
 use sqlx::SqlitePool;
 
-#[derive(Clone)]
 pub struct EpubRepository {
     pool: SqlitePool,
 }

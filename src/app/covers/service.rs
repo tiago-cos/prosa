@@ -11,7 +11,6 @@ use tokio::{
 };
 use uuid::Uuid;
 
-#[derive(Clone)]
 pub struct CoverService {
     pool: SqlitePool,
     lock_manager: Arc<ProsaLockManager>,

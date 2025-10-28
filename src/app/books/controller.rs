@@ -1,6 +1,6 @@
 use super::models::{Book, BookError, UploadBoodRequest};
 use crate::app::{
-    Config, ImageCache, LockManager, MetadataManager,
+    LockManager, MetadataManager,
     authentication::models::AuthToken,
     books::{
         models::{BookFileMetadata, PaginatedBooks},
@@ -14,31 +14,25 @@ use crate::app::{
 use std::{collections::HashMap, sync::Arc};
 
 pub struct BookController {
-    pub book_service: Arc<BookService>,
-    pub lock_manager: LockManager,
-    pub image_cache: Arc<ImageCache>,
-    pub metadata_manager: MetadataManager,
-    pub config: Config,
-    pub epub_service: Arc<EpubService>,
-    pub cover_service: Arc<CoverService>,
+    book_service: Arc<BookService>,
+    lock_manager: LockManager,
+    metadata_manager: MetadataManager,
+    epub_service: Arc<EpubService>,
+    cover_service: Arc<CoverService>,
 }
 
 impl BookController {
     pub fn new(
         book_service: Arc<BookService>,
         lock_manager: LockManager,
-        image_cache: Arc<ImageCache>,
         metadata_manager: MetadataManager,
-        config: Config,
         epub_service: Arc<EpubService>,
         cover_service: Arc<CoverService>,
     ) -> Self {
         Self {
             book_service,
             lock_manager,
-            image_cache,
             metadata_manager,
-            config,
             epub_service,
             cover_service,
         }
