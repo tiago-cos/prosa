@@ -1,5 +1,6 @@
 use super::{annotations, books, covers, metadata, state, sync, users};
-use crate::app::books::data::BookRepository;
+use crate::app::books::controller::BookController;
+use crate::app::books::repository::BookRepository;
 use crate::app::books::service::BookService;
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
@@ -52,6 +53,7 @@ pub struct AppState {
     pub lock_manager: LockManager,
     pub cache: Cache,
     pub services: Services,
+    pub controllers: Controllers,
 }
 
 #[derive(Clone)]
@@ -63,16 +65,13 @@ pub struct Cache {
 }
 
 #[derive(Clone)]
-pub struct Services {
-    pub book: Arc<BookService>,
+pub struct Controllers {
+    pub book: Arc<BookController>,
 }
 
-impl Services {
-    pub fn new(pool: &SqlitePool) -> Self {
-        let book_repository = Arc::new(BookRepository::new(pool.clone()));
-        let book = Arc::new(BookService::new(book_repository));
-        Self { book }
-    }
+#[derive(Clone)]
+pub struct Services {
+    pub book: Arc<BookService>,
 }
 
 impl AppState {
@@ -87,15 +86,29 @@ impl AppState {
             tag_length_cache: Arc::new(QuickCache::new(100000)),
         };
 
-        let services = Services::new(pool);
+        let book_repository = Arc::new(BookRepository::new(pool.clone()));
+        let book_service = Arc::new(BookService::new(book_repository));
 
         let metadata_manager = metadata_manager::MetadataManager::new(
             pool.clone(),
-            services.book.clone(),
+            book_service.clone(),
             lock_manager.clone(),
             cache.image_cache.clone(),
             &config,
         );
+
+        let book_controller = Arc::new(BookController::new(
+            book_service.clone(),
+            lock_manager.clone(),
+            cache.image_cache.clone(),
+            metadata_manager.clone(),
+            config.clone(),
+        ));
+
+        let services = Services { book: book_service };
+        let controllers = Controllers {
+            book: book_controller,
+        };
 
         Self {
             config,
@@ -104,6 +117,7 @@ impl AppState {
             lock_manager,
             cache,
             services,
+            controllers,
         }
     }
 }

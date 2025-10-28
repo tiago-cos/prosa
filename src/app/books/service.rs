@@ -1,5 +1,5 @@
 use super::models::{Book, BookError, PaginatedBooks};
-use crate::app::{books::data::BookRepository, error::ProsaError};
+use crate::app::{books::repository::BookRepository, error::ProsaError};
 use std::sync::Arc;
 use uuid::Uuid;
 
