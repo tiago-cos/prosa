@@ -40,7 +40,6 @@ impl EpubService {
         }
 
         let hash = BASE64_STANDARD.encode(Sha256::digest(epub_data));
-
         let lock = self.lock_manager.get_hash_lock(&hash).await;
         let _guard = lock.write().await;
 
@@ -62,7 +61,6 @@ impl EpubService {
         file.sync_all().await.expect("Failed to sync epub file");
 
         self.convert_to_kepub(&epub_file).await;
-
         self.epub_repository.add_epub(&epub_id, &hash).await;
 
         Ok(epub_id)
