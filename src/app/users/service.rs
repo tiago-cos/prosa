@@ -3,7 +3,7 @@ use super::{
     models::{ApiKey, Preferences, User, UserError},
 };
 use crate::app::{
-    authentication::{self, service::hash_secret},
+    authentication::service::AuthenticationService,
     error::ProsaError,
     users::models::{ApiKeyError, PreferencesError, UserProfile, VALID_PROVIDERS},
 };
@@ -24,7 +24,7 @@ pub async fn register_user(
     verify_password(password)?;
 
     let user_id = Uuid::new_v4().to_string();
-    let password_hash = hash_secret(password).await;
+    let password_hash = AuthenticationService::hash_secret(password);
     data::add_user(pool, username, &user_id, &password_hash, is_admin).await?;
     data::add_providers(pool, &user_id, vec![VALID_PROVIDERS[0].to_string()]).await;
 
@@ -70,6 +70,7 @@ pub async fn update_user_profile(
     Ok(())
 }
 
+//TODO pass api key logic to authentication service
 pub async fn create_api_key(
     pool: &SqlitePool,
     user_id: &str,
@@ -91,7 +92,7 @@ pub async fn create_api_key(
     }
 
     let key_id = Uuid::new_v4().to_string();
-    let (key, hash) = authentication::service::generate_api_key();
+    let (key, hash) = AuthenticationService::generate_api_key();
 
     data::add_api_key(pool, &key_id, user_id, &hash, key_name, expiration, capabilities).await?;
     Ok((key_id, key))

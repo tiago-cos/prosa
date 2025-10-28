@@ -1,15 +1,13 @@
-use super::{
-    models::{AuthError, AuthToken},
-    service,
-};
-use crate::app::{AppState, error::ProsaError};
+use std::sync::Arc;
+
+use super::models::{AuthError, AuthToken};
+use crate::app::{AppState, authentication::service::AuthenticationService, error::ProsaError};
 use axum::{
     extract::{Request, State},
     http::{HeaderMap, HeaderValue},
     middleware::Next,
     response::IntoResponse,
 };
-use sqlx::SqlitePool;
 
 pub async fn extract_token_middleware(
     State(state): State<AppState>,
@@ -21,8 +19,8 @@ pub async fn extract_token_middleware(
     let api_key_header = headers.get("api-key");
 
     let token = match (jwt_header, api_key_header) {
-        (Some(header), _) => handle_jwt(&state.config.auth.jwt_key_path, header).await?,
-        (_, Some(header)) => handle_api_key(&state.pool, header).await?,
+        (Some(header), _) => handle_jwt(header, &state.services.authentication)?,
+        (_, Some(header)) => handle_api_key(header, state.services.authentication).await?,
         _ => Err(AuthError::MissingAuth)?,
     };
 
@@ -30,7 +28,10 @@ pub async fn extract_token_middleware(
     Ok(next.run(request).await)
 }
 
-async fn handle_jwt(secret_key_path: &str, header: &HeaderValue) -> Result<AuthToken, AuthError> {
+fn handle_jwt(
+    header: &HeaderValue,
+    authentication_service: &Arc<AuthenticationService>,
+) -> Result<AuthToken, AuthError> {
     let header = header.to_str().expect("Failed to convert jwt header to string");
 
     let (_, token) = header
@@ -40,14 +41,17 @@ async fn handle_jwt(secret_key_path: &str, header: &HeaderValue) -> Result<AuthT
         .map(|parts| (parts[0], parts[1]))
         .ok_or(AuthError::InvalidAuthHeader)?;
 
-    let token = service::verify_jwt(token, secret_key_path).await?;
+    let token = authentication_service.verify_jwt(token)?;
 
     Ok(token)
 }
 
-async fn handle_api_key(pool: &SqlitePool, header: &HeaderValue) -> Result<AuthToken, AuthError> {
-    let key = header.to_str().expect("Failed to convert key header to string");
-    let token = service::verify_api_key(pool, key).await?;
+async fn handle_api_key(
+    header: &HeaderValue,
+    authentication_service: Arc<AuthenticationService>,
+) -> Result<AuthToken, AuthError> {
+    let api_key = header.to_str().expect("Failed to convert key header to string");
+    let token = authentication_service.verify_api_key(api_key).await?;
 
     Ok(token)
 }

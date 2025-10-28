@@ -9,7 +9,6 @@
 #![allow(clippy::match_same_arms)]
 #![allow(clippy::too_many_lines)]
 
-use crate::app::generate_jwt_secret;
 use config::Configuration;
 use std::{io::Error, path::Path};
 use tokio::fs::{self, create_dir_all};
@@ -38,7 +37,6 @@ async fn main() {
     create_parent_dir(&config.auth.jwt_key_path).await.unwrap();
     create_dir_all(&config.book_storage.epub_path).await.unwrap();
     create_dir_all(&config.book_storage.cover_path).await.unwrap();
-    generate_jwt_secret(&config.auth.jwt_key_path).await.unwrap();
 
     let db_pool = database::init(&config.database.file_path).await;
 

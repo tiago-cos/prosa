@@ -2,6 +2,7 @@ use super::{annotations, books, covers, metadata, state, sync, users};
 use crate::app::annotations::controller::AnnotationController;
 use crate::app::annotations::repository::AnnotationRepository;
 use crate::app::annotations::service::AnnotationService;
+use crate::app::authentication::service::AuthenticationService;
 use crate::app::books::controller::BookController;
 use crate::app::books::repository::BookRepository;
 use crate::app::books::service::BookService;
@@ -31,7 +32,7 @@ pub type TagCache = QuickCache<String, Arc<HashSet<String>>>;
 pub type TagLengthCache = QuickCache<String, u32>;
 
 pub async fn run(config: Configuration, pool: SqlitePool) {
-    let state = AppState::default(config, &pool);
+    let state = AppState::default(config, &pool).await;
     let host = format!("{}:{}", &state.config.server.host, &state.config.server.port);
 
     tracing::init_logging();
@@ -82,10 +83,11 @@ pub struct Controllers {
 #[derive(Clone)]
 pub struct Services {
     pub book: Arc<BookService>,
+    pub authentication: Arc<AuthenticationService>,
 }
 
 impl AppState {
-    pub fn default(config: Configuration, pool: &SqlitePool) -> Self {
+    pub async fn default(config: Configuration, pool: &SqlitePool) -> Self {
         let config = Arc::new(config);
         let lock_manager = Arc::new(ProsaLockManager::new(20));
 
@@ -151,7 +153,20 @@ impl AppState {
             cover_service.clone(),
         ));
 
-        let services = Services { book: book_service };
+        let authentication_service = Arc::new(
+            AuthenticationService::new(
+                pool.clone(),
+                &config.auth.jwt_key_path,
+                config.auth.jwt_token_duration,
+                config.auth.refresh_token_duration,
+            )
+            .await,
+        );
+
+        let services = Services {
+            book: book_service,
+            authentication: authentication_service,
+        };
         let controllers = Controllers {
             book: book_controller,
             cover: cover_controller,

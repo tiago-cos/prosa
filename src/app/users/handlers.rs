@@ -7,7 +7,7 @@ use super::{
 };
 use crate::app::{
     AppState,
-    authentication::{self, models::AuthError},
+    authentication::models::AuthError,
     error::ProsaError,
     users::models::{AuthenticationResponse, RefreshTokenRequest, UserProfile},
 };
@@ -34,20 +34,13 @@ pub async fn register_user_handler(
 
     let user_id = service::register_user(&state.pool, &body.username, &body.password, body.admin).await?;
 
-    let jwt_token = authentication::service::generate_jwt(
-        &state.config.auth.jwt_key_path,
-        &user_id,
-        body.admin,
-        state.config.auth.jwt_token_duration,
-    )
-    .await;
+    let jwt_token = state.services.authentication.generate_jwt(&user_id, body.admin);
 
-    let refresh_token = authentication::service::generate_refresh_token(
-        &state.pool,
-        &user_id,
-        state.config.auth.refresh_token_duration,
-    )
-    .await;
+    let refresh_token = state
+        .services
+        .authentication
+        .generate_refresh_token(&user_id)
+        .await;
 
     Ok(Json(AuthenticationResponse {
         jwt_token,
@@ -62,20 +55,16 @@ pub async fn login_user_handler(
 ) -> Result<impl IntoResponse, ProsaError> {
     let user = service::login_user(&state.pool, &body.username, &body.password).await?;
 
-    let jwt_token = authentication::service::generate_jwt(
-        &state.config.auth.jwt_key_path,
-        &user.user_id,
-        user.is_admin,
-        state.config.auth.jwt_token_duration,
-    )
-    .await;
+    let jwt_token = state
+        .services
+        .authentication
+        .generate_jwt(&user.user_id, user.is_admin);
 
-    let refresh_token = authentication::service::generate_refresh_token(
-        &state.pool,
-        &user.user_id,
-        state.config.auth.refresh_token_duration,
-    )
-    .await;
+    let refresh_token = state
+        .services
+        .authentication
+        .generate_refresh_token(&user.user_id)
+        .await;
 
     Ok(Json(AuthenticationResponse {
         jwt_token,
@@ -88,7 +77,11 @@ pub async fn logout_user_handler(
     State(state): State<AppState>,
     Json(body): Json<RefreshTokenRequest>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    authentication::service::invalidate_refresh_token(&state.pool, &body.refresh_token).await?;
+    state
+        .services
+        .authentication
+        .invalidate_refresh_token(&body.refresh_token)
+        .await?;
 
     Ok((StatusCode::NO_CONTENT, ()))
 }
@@ -97,24 +90,20 @@ pub async fn refresh_token_handler(
     State(state): State<AppState>,
     Json(body): Json<RefreshTokenRequest>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let (refresh_token, encoded_refresh_token) = authentication::service::renew_refresh_token(
-        &state.pool,
-        &body.refresh_token,
-        state.config.auth.refresh_token_duration,
-    )
-    .await?;
+    let (refresh_token, encoded_refresh_token) = state
+        .services
+        .authentication
+        .renew_refresh_token(&body.refresh_token)
+        .await?;
 
     let Ok(user) = service::get_user(&state.pool, &refresh_token.user_id).await else {
         return Err(AuthError::InvalidToken.into());
     };
 
-    let jwt_token = authentication::service::generate_jwt(
-        &state.config.auth.jwt_key_path,
-        &user.user_id,
-        user.is_admin,
-        state.config.auth.jwt_token_duration,
-    )
-    .await;
+    let jwt_token = state
+        .services
+        .authentication
+        .generate_jwt(&user.user_id, user.is_admin);
 
     Ok(Json(AuthenticationResponse {
         jwt_token,
@@ -124,12 +113,18 @@ pub async fn refresh_token_handler(
 }
 
 pub async fn create_api_key_handler(
-    State(pool): State<SqlitePool>,
+    State(state): State<AppState>,
     Path(user_id): Path<String>,
     Json(body): Json<CreateApiKeyRequest>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let (key_id, key) =
-        service::create_api_key(&pool, &user_id, &body.name, body.expires_at, body.capabilities).await?;
+    let (key_id, key) = service::create_api_key(
+        &state.pool,
+        &user_id,
+        &body.name,
+        body.expires_at,
+        body.capabilities,
+    )
+    .await?;
 
     let response = CreateApiKeyResponse { id: key_id, key };
     Ok(Json(response))
