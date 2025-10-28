@@ -1,5 +1,6 @@
 use super::{annotations, books, covers, metadata, state, sync, users};
 use crate::app::annotations::controller::AnnotationController;
+use crate::app::annotations::repository::AnnotationRepository;
 use crate::app::annotations::service::AnnotationService;
 use crate::app::books::controller::BookController;
 use crate::app::books::repository::BookRepository;
@@ -117,13 +118,14 @@ impl AppState {
             book_service.clone(),
             cover_service.clone(),
         ));
+        let annotation_repository = Arc::new(AnnotationRepository::new(pool.clone()));
         let annotation_service = Arc::new(AnnotationService::new(
-            pool.clone(),
             config.book_storage.epub_path.clone(),
             cache.source_cache.clone(),
             cache.tag_cache.clone(),
             cache.tag_length_cache.clone(),
             book_repository.clone(),
+            annotation_repository.clone(),
         ));
         let annotation_controller = Arc::new(AnnotationController::new(
             pool.clone(),

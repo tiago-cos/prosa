@@ -1,39 +1,38 @@
 use super::models::{Annotation, AnnotationError, NewAnnotationRequest};
 use crate::app::{
-    SourceCache, TagCache, TagLengthCache, annotations::data, books::repository::BookRepository,
-    error::ProsaError,
+    SourceCache, TagCache, TagLengthCache, annotations::repository::AnnotationRepository,
+    books::repository::BookRepository, error::ProsaError,
 };
 use epub::doc::EpubDoc;
 use regex::Regex;
-use sqlx::SqlitePool;
 use std::{collections::HashSet, sync::Arc};
 use uuid::Uuid;
 
 pub struct AnnotationService {
-    pool: SqlitePool,
     epub_path: String,
     source_cache: Arc<SourceCache>,
     tag_cache: Arc<TagCache>,
     tag_length_cache: Arc<TagLengthCache>,
     book_repository: Arc<BookRepository>,
+    annotation_repository: Arc<AnnotationRepository>,
 }
 
 impl AnnotationService {
     pub fn new(
-        pool: SqlitePool,
         epub_path: String,
         source_cache: Arc<SourceCache>,
         tag_cache: Arc<TagCache>,
         tag_length_cache: Arc<TagLengthCache>,
         book_repository: Arc<BookRepository>,
+        annotation_repository: Arc<AnnotationRepository>,
     ) -> Self {
         Self {
-            pool,
             epub_path,
             source_cache,
             tag_cache,
             tag_length_cache,
             book_repository,
+            annotation_repository,
         }
     }
 
@@ -49,22 +48,26 @@ impl AnnotationService {
         }
 
         let annotation_id = Uuid::new_v4().to_string();
-        data::add_annotation(&self.pool, &annotation_id, book_id, annotation).await?;
+        self.annotation_repository
+            .add_annotation(&annotation_id, book_id, annotation)
+            .await?;
 
         Ok(annotation_id)
     }
 
     pub async fn get_annotation(&self, annotation_id: &str) -> Result<Annotation, ProsaError> {
-        let annotation = data::get_annotation(&self.pool, annotation_id).await?;
+        let annotation = self.annotation_repository.get_annotation(annotation_id).await?;
         Ok(annotation)
     }
 
     pub async fn get_annotations(&self, book_id: &str) -> Vec<String> {
-        data::get_annotations(&self.pool, book_id).await
+        self.annotation_repository.get_annotations(book_id).await
     }
 
     pub async fn delete_annotation(&self, annotation_id: &str) -> Result<(), ProsaError> {
-        data::delete_annotation(&self.pool, annotation_id).await?;
+        self.annotation_repository
+            .delete_annotation(annotation_id)
+            .await?;
         Ok(())
     }
 
@@ -74,7 +77,9 @@ impl AnnotationService {
         note: Option<String>,
     ) -> Result<(), ProsaError> {
         let note = note.filter(|n| !n.is_empty());
-        data::patch_annotation(&self.pool, annotation_id, note).await?;
+        self.annotation_repository
+            .patch_annotation(annotation_id, note)
+            .await?;
         Ok(())
     }
 
