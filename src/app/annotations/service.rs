@@ -1,186 +1,202 @@
-use super::{
-    data,
-    models::{Annotation, AnnotationError, NewAnnotationRequest},
+use super::models::{Annotation, AnnotationError, NewAnnotationRequest};
+use crate::app::{
+    SourceCache, TagCache, TagLengthCache, annotations::data, books::repository::BookRepository,
+    error::ProsaError,
 };
-use crate::app::{SourceCache, TagCache, TagLengthCache, error::ProsaError};
 use epub::doc::EpubDoc;
 use regex::Regex;
 use sqlx::SqlitePool;
 use std::{collections::HashSet, sync::Arc};
 use uuid::Uuid;
 
-pub async fn add_annotation(
-    pool: &SqlitePool,
-    book_id: &str,
-    annotation: NewAnnotationRequest,
-    epub_path: &str,
-    epub_id: &str,
-    source_cache: &SourceCache,
-    tag_cache: &TagCache,
-    tag_length_cache: &TagLengthCache,
-) -> Result<String, AnnotationError> {
-    if !validate_annotation(
-        &annotation,
-        epub_path,
-        epub_id,
-        source_cache,
-        tag_cache,
-        tag_length_cache,
-    ) {
-        return Err(AnnotationError::InvalidAnnotation);
-    }
-
-    let annotation_id = Uuid::new_v4().to_string();
-    data::add_annotation(pool, &annotation_id, book_id, annotation).await?;
-
-    Ok(annotation_id)
+pub struct AnnotationService {
+    pool: SqlitePool,
+    epub_path: String,
+    source_cache: Arc<SourceCache>,
+    tag_cache: Arc<TagCache>,
+    tag_length_cache: Arc<TagLengthCache>,
+    book_repository: Arc<BookRepository>,
 }
 
-pub async fn get_annotation(pool: &SqlitePool, annotation_id: &str) -> Result<Annotation, ProsaError> {
-    let annotation = data::get_annotation(pool, annotation_id).await?;
-
-    Ok(annotation)
-}
-
-pub async fn get_annotations(pool: &SqlitePool, book_id: &str) -> Vec<String> {
-    data::get_annotations(pool, book_id).await
-}
-
-pub async fn delete_annotation(pool: &SqlitePool, annotation_id: &str) -> Result<(), ProsaError> {
-    data::delete_annotation(pool, annotation_id).await?;
-
-    Ok(())
-}
-
-pub async fn patch_annotation(
-    pool: &SqlitePool,
-    annotation_id: &str,
-    note: Option<String>,
-) -> Result<(), ProsaError> {
-    let note = note.filter(|n| !n.is_empty());
-    data::patch_annotation(pool, annotation_id, note).await?;
-
-    Ok(())
-}
-
-fn validate_annotation(
-    annotation: &NewAnnotationRequest,
-    epub_path: &str,
-    epub_id: &str,
-    source_cache: &SourceCache,
-    tag_cache: &TagCache,
-    tag_length_cache: &TagLengthCache,
-) -> bool {
-    if !validate_tags(&annotation.start_tag, &annotation.end_tag) {
-        return false;
-    }
-
-    let source_cache_key = format!("sources:{epub_id}");
-    let tag_cache_key = format!("tags:{}:{}", epub_id, &annotation.source);
-    let start_tag_length_cache_key = format!(
-        "tag_lengths:{}:{}:{}",
-        epub_id, &annotation.source, annotation.start_tag
-    );
-    let end_tag_length_cache_key = format!(
-        "tag_lengths:{}:{}:{}",
-        epub_id, &annotation.source, annotation.end_tag
-    );
-
-    if let (Some(sources), Some(tags), Some(start_length), Some(end_length)) = (
-        source_cache.get(&source_cache_key),
-        tag_cache.get(&tag_cache_key),
-        tag_length_cache.get(&start_tag_length_cache_key),
-        tag_length_cache.get(&end_tag_length_cache_key),
-    ) {
-        return sources.contains(&annotation.source)
-            && tags.contains(&annotation.start_tag)
-            && tags.contains(&annotation.end_tag)
-            && annotation.start_char < start_length
-            && annotation.end_char < end_length;
-    }
-
-    let epub_file = format!("{epub_path}/{epub_id}.kepub.epub");
-    let mut doc = EpubDoc::new(epub_file).expect("Error opening epub");
-
-    let sources = source_cache.get(&source_cache_key).unwrap_or_else(|| {
-        let sources: HashSet<String> = doc
-            .resources
-            .iter()
-            .filter_map(|r| r.1.0.to_str().map(ToString::to_string))
-            .collect();
-        let sources = Arc::new(sources);
-        source_cache.insert(source_cache_key, sources.clone());
-        sources
-    });
-
-    if !sources.contains(&annotation.source) {
-        return false;
-    }
-
-    let text = doc
-        .get_resource_str_by_path(&annotation.source)
-        .expect("Failed to get book resource");
-
-    let tags = tag_cache.get(&tag_cache_key).unwrap_or_else(|| {
-        let tags = extract_tags(&text);
-        let tags = Arc::new(tags);
-        tag_cache.insert(tag_cache_key, tags.clone());
-        tags
-    });
-
-    if !tags.contains(&annotation.start_tag) || !tags.contains(&annotation.end_tag) {
-        return false;
-    }
-
-    let start_length = tag_length_cache
-        .get(&start_tag_length_cache_key)
-        .unwrap_or_else(|| {
-            let length = get_tag_length(&annotation.start_tag, &text).expect("Failed to get tag length");
-            tag_length_cache.insert(start_tag_length_cache_key, length);
-            length
-        });
-
-    let end_length = tag_length_cache
-        .get(&end_tag_length_cache_key)
-        .unwrap_or_else(|| {
-            let length = get_tag_length(&annotation.end_tag, &text).expect("Failed to get tag length");
-            tag_length_cache.insert(end_tag_length_cache_key, length);
-            length
-        });
-
-    annotation.start_char < start_length && annotation.end_char < end_length
-}
-
-fn get_tag_length(tag_id: &str, text: &str) -> Option<u32> {
-    let tag = format!("<span class=\"koboSpan\" id=\"{tag_id}\">");
-    let start_pos = text.find(&tag)?;
-    let content_start = start_pos + tag.len();
-    let content_end = text[content_start..].find("</span>")? + content_start;
-    Some(text[content_start..content_end].chars().count() as u32)
-}
-
-fn validate_tags(start: &str, end: &str) -> bool {
-    let parse = |tag: &str| -> Option<(u32, u32)> {
-        let raw = tag.strip_prefix("kobo.")?;
-        let mut it = raw.split('.');
-        let hi = it.next()?.parse().ok()?;
-        let lo = it.next()?.parse().ok()?;
-        if it.next().is_some() {
-            return None;
+impl AnnotationService {
+    pub fn new(
+        pool: SqlitePool,
+        epub_path: String,
+        source_cache: Arc<SourceCache>,
+        tag_cache: Arc<TagCache>,
+        tag_length_cache: Arc<TagLengthCache>,
+        book_repository: Arc<BookRepository>,
+    ) -> Self {
+        Self {
+            pool,
+            epub_path,
+            source_cache,
+            tag_cache,
+            tag_length_cache,
+            book_repository,
         }
-        Some((hi, lo))
-    };
+    }
 
-    parse(start).zip(parse(end)).is_some_and(|(s, e)| s <= e)
-}
+    pub async fn add_annotation(
+        &self,
+        book_id: &str,
+        annotation: NewAnnotationRequest,
+    ) -> Result<String, ProsaError> {
+        let epub_id = &self.book_repository.get_book(book_id).await?.epub_id;
 
-fn extract_tags(text: &str) -> HashSet<String> {
-    let tag_pattern = r#"<span class="koboSpan" id="([^"]+)""#;
-    let re = Regex::new(tag_pattern).unwrap();
+        if !self.validate_annotation(&annotation, epub_id) {
+            return Err(AnnotationError::InvalidAnnotation.into());
+        }
 
-    re.captures_iter(text)
-        .filter_map(|cap| cap.get(1))
-        .map(|m| m.as_str().to_string())
-        .filter(|tag| tag.starts_with("kobo."))
-        .collect()
+        let annotation_id = Uuid::new_v4().to_string();
+        data::add_annotation(&self.pool, &annotation_id, book_id, annotation).await?;
+
+        Ok(annotation_id)
+    }
+
+    pub async fn get_annotation(&self, annotation_id: &str) -> Result<Annotation, ProsaError> {
+        let annotation = data::get_annotation(&self.pool, annotation_id).await?;
+        Ok(annotation)
+    }
+
+    pub async fn get_annotations(&self, book_id: &str) -> Vec<String> {
+        data::get_annotations(&self.pool, book_id).await
+    }
+
+    pub async fn delete_annotation(&self, annotation_id: &str) -> Result<(), ProsaError> {
+        data::delete_annotation(&self.pool, annotation_id).await?;
+        Ok(())
+    }
+
+    pub async fn patch_annotation(
+        &self,
+        annotation_id: &str,
+        note: Option<String>,
+    ) -> Result<(), ProsaError> {
+        let note = note.filter(|n| !n.is_empty());
+        data::patch_annotation(&self.pool, annotation_id, note).await?;
+        Ok(())
+    }
+
+    fn validate_annotation(&self, annotation: &NewAnnotationRequest, epub_id: &str) -> bool {
+        if !Self::validate_tags(&annotation.start_tag, &annotation.end_tag) {
+            return false;
+        }
+
+        let source_cache_key = format!("sources:{epub_id}");
+        let tag_cache_key = format!("tags:{}:{}", epub_id, &annotation.source);
+        let start_tag_length_cache_key = format!(
+            "tag_lengths:{}:{}:{}",
+            epub_id, &annotation.source, annotation.start_tag
+        );
+        let end_tag_length_cache_key = format!(
+            "tag_lengths:{}:{}:{}",
+            epub_id, &annotation.source, annotation.end_tag
+        );
+
+        if let (Some(sources), Some(tags), Some(start_length), Some(end_length)) = (
+            self.source_cache.get(&source_cache_key),
+            self.tag_cache.get(&tag_cache_key),
+            self.tag_length_cache.get(&start_tag_length_cache_key),
+            self.tag_length_cache.get(&end_tag_length_cache_key),
+        ) {
+            return sources.contains(&annotation.source)
+                && tags.contains(&annotation.start_tag)
+                && tags.contains(&annotation.end_tag)
+                && annotation.start_char < start_length
+                && annotation.end_char < end_length;
+        }
+
+        let epub_file = format!("{}/{epub_id}.kepub.epub", self.epub_path);
+        let Ok(mut doc) = EpubDoc::new(epub_file) else {
+            return false;
+        };
+
+        let sources = self.source_cache.get(&source_cache_key).unwrap_or_else(|| {
+            let sources: HashSet<String> = doc
+                .resources
+                .iter()
+                .filter_map(|r| r.1.0.to_str().map(ToString::to_string))
+                .collect();
+            let sources = Arc::new(sources);
+            self.source_cache
+                .insert(source_cache_key.clone(), sources.clone());
+            sources
+        });
+
+        if !sources.contains(&annotation.source) {
+            return false;
+        }
+
+        let Some(text) = doc.get_resource_str_by_path(&annotation.source) else {
+            return false;
+        };
+
+        let tags = self.tag_cache.get(&tag_cache_key).unwrap_or_else(|| {
+            let tags = Self::extract_tags(&text);
+            let tags = Arc::new(tags);
+            self.tag_cache.insert(tag_cache_key.clone(), tags.clone());
+            tags
+        });
+
+        if !tags.contains(&annotation.start_tag) || !tags.contains(&annotation.end_tag) {
+            return false;
+        }
+
+        let start_length = self
+            .tag_length_cache
+            .get(&start_tag_length_cache_key)
+            .unwrap_or_else(|| {
+                let length = Self::get_tag_length(&annotation.start_tag, &text).unwrap_or_default();
+                self.tag_length_cache
+                    .insert(start_tag_length_cache_key.clone(), length);
+                length
+            });
+
+        let end_length = self
+            .tag_length_cache
+            .get(&end_tag_length_cache_key)
+            .unwrap_or_else(|| {
+                let length = Self::get_tag_length(&annotation.end_tag, &text).unwrap_or_default();
+                self.tag_length_cache
+                    .insert(end_tag_length_cache_key.clone(), length);
+                length
+            });
+
+        annotation.start_char < start_length && annotation.end_char < end_length
+    }
+
+    fn get_tag_length(tag_id: &str, text: &str) -> Option<u32> {
+        let tag = format!("<span class=\"koboSpan\" id=\"{tag_id}\">");
+        let start_pos = text.find(&tag)?;
+        let content_start = start_pos + tag.len();
+        let content_end = text[content_start..].find("</span>")? + content_start;
+        Some(text[content_start..content_end].chars().count() as u32)
+    }
+
+    fn validate_tags(start: &str, end: &str) -> bool {
+        let parse = |tag: &str| -> Option<(u32, u32)> {
+            let raw = tag.strip_prefix("kobo.")?;
+            let mut it = raw.split('.');
+            let hi = it.next()?.parse().ok()?;
+            let lo = it.next()?.parse().ok()?;
+            if it.next().is_some() {
+                return None;
+            }
+            Some((hi, lo))
+        };
+
+        parse(start).zip(parse(end)).is_some_and(|(s, e)| s <= e)
+    }
+
+    fn extract_tags(text: &str) -> HashSet<String> {
+        let tag_pattern = r#"<span class="koboSpan" id="([^"]+)""#;
+        let re = Regex::new(tag_pattern).unwrap();
+
+        re.captures_iter(text)
+            .filter_map(|cap| cap.get(1))
+            .map(|m| m.as_str().to_string())
+            .filter(|tag| tag.starts_with("kobo."))
+            .collect()
+    }
 }

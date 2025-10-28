@@ -1,5 +1,6 @@
 use super::{annotations, books, covers, metadata, state, sync, users};
 use crate::app::annotations::controller::AnnotationController;
+use crate::app::annotations::service::AnnotationService;
 use crate::app::books::controller::BookController;
 use crate::app::books::repository::BookRepository;
 use crate::app::books::service::BookService;
@@ -102,7 +103,7 @@ impl AppState {
             config.book_storage.epub_path.clone(),
         ));
         let book_repository = Arc::new(BookRepository::new(pool.clone()));
-        let book_service = Arc::new(BookService::new(book_repository));
+        let book_service = Arc::new(BookService::new(book_repository.clone()));
         let cover_repository = Arc::new(CoverRepository::new(pool.clone()));
         let cover_service = Arc::new(CoverService::new(
             lock_manager.clone(),
@@ -116,14 +117,19 @@ impl AppState {
             book_service.clone(),
             cover_service.clone(),
         ));
+        let annotation_service = Arc::new(AnnotationService::new(
+            pool.clone(),
+            config.book_storage.epub_path.clone(),
+            cache.source_cache.clone(),
+            cache.tag_cache.clone(),
+            cache.tag_length_cache.clone(),
+            book_repository.clone(),
+        ));
         let annotation_controller = Arc::new(AnnotationController::new(
             pool.clone(),
             lock_manager.clone(),
             book_service.clone(),
-            cache.source_cache.clone(),
-            cache.tag_cache.clone(),
-            cache.tag_length_cache.clone(),
-            config.book_storage.epub_path.clone(),
+            annotation_service.clone(),
         ));
 
         let metadata_manager = metadata_manager::MetadataManager::new(
