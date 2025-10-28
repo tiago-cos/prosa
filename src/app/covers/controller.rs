@@ -1,7 +1,7 @@
-use super::{models::CoverError, service};
+use super::models::CoverError;
 use crate::app::{
-    Cache, Config, books::service::BookService, concurrency::manager::ProsaLockManager, error::ProsaError,
-    sync,
+    Cache, Config, books::service::BookService, concurrency::manager::ProsaLockManager,
+    covers::service::CoverService, error::ProsaError, sync,
 };
 use axum::body::Bytes;
 use sqlx::SqlitePool;
@@ -14,6 +14,7 @@ pub struct CoverController {
     pub cache: Cache,
     pub config: Config,
     pub book_service: Arc<BookService>,
+    pub cover_service: Arc<CoverService>,
 }
 
 impl CoverController {
@@ -23,6 +24,7 @@ impl CoverController {
         cache: Cache,
         config: Config,
         book_service: Arc<BookService>,
+        cover_service: Arc<CoverService>,
     ) -> Self {
         Self {
             pool,
@@ -30,6 +32,7 @@ impl CoverController {
             cache,
             config,
             book_service,
+            cover_service,
         }
     }
 
@@ -38,13 +41,12 @@ impl CoverController {
         let _guard = lock.read().await;
 
         let book = self.book_service.get_book(&book_id).await?;
-        let cover_path = &self.config.book_storage.cover_path;
 
         let Some(cover_id) = book.cover_id else {
             return Err(CoverError::CoverNotFound.into());
         };
 
-        let cover = service::read_cover(cover_path, &cover_id, &self.cache.image_cache).await?;
+        let cover = self.cover_service.read_cover(&cover_id).await?;
 
         Ok(cover)
     }
@@ -54,20 +56,10 @@ impl CoverController {
         let _guard = lock.write().await;
 
         let mut book = self.book_service.get_book(&book_id).await?;
-        let cover_path = &self.config.book_storage.cover_path;
         let book_sync_id = book.book_sync_id.clone();
 
         let cover_id = match book.cover_id {
-            None => {
-                service::write_cover(
-                    &self.pool,
-                    cover_path,
-                    &cover_data.to_vec(),
-                    &self.lock_manager,
-                    &self.cache.image_cache,
-                )
-                .await?
-            }
+            None => self.cover_service.write_cover(&cover_data.to_vec()).await?,
             Some(_) => return Err(CoverError::CoverConflict.into()),
         };
 
@@ -84,7 +76,6 @@ impl CoverController {
         let _guard = lock.write().await;
 
         let mut book = self.book_service.get_book(&book_id).await?;
-        let cover_path = &self.config.book_storage.cover_path;
         let book_sync_id = book.book_sync_id.clone();
 
         let Some(cover_id) = book.cover_id else {
@@ -95,7 +86,7 @@ impl CoverController {
         self.book_service.update_book(&book_id, &book).await?;
 
         if !self.book_service.cover_is_in_use(&cover_id).await {
-            service::delete_cover(&self.pool, cover_path, &cover_id, &self.cache.image_cache).await?;
+            self.cover_service.delete_cover(&cover_id).await?;
         }
 
         sync::service::update_cover_timestamp(&self.pool, &book_sync_id).await;
@@ -108,26 +99,18 @@ impl CoverController {
         let _guard = lock.write().await;
 
         let mut book = self.book_service.get_book(&book_id).await?;
-        let cover_path = &self.config.book_storage.cover_path;
         let book_sync_id = book.book_sync_id.clone();
 
         let Some(old_cover_id) = book.cover_id else {
             return Err(CoverError::CoverNotFound.into());
         };
 
-        let new_cover_id = service::write_cover(
-            &self.pool,
-            cover_path,
-            &cover_data.to_vec(),
-            &self.lock_manager,
-            &self.cache.image_cache,
-        )
-        .await?;
+        let new_cover_id = self.cover_service.write_cover(&cover_data.to_vec()).await?;
         book.cover_id = Some(new_cover_id);
         self.book_service.update_book(&book_id, &book).await?;
 
         if !self.book_service.cover_is_in_use(&old_cover_id).await {
-            service::delete_cover(&self.pool, cover_path, &old_cover_id, &self.cache.image_cache).await?;
+            self.cover_service.delete_cover(&old_cover_id).await?;
         }
 
         sync::service::update_cover_timestamp(&self.pool, &book_sync_id).await;

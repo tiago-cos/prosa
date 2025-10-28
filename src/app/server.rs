@@ -3,6 +3,7 @@ use crate::app::books::controller::BookController;
 use crate::app::books::repository::BookRepository;
 use crate::app::books::service::BookService;
 use crate::app::covers::controller::CoverController;
+use crate::app::covers::service::CoverService;
 use crate::app::epubs::repository::EpubRepository;
 use crate::app::epubs::service::EpubService;
 use crate::app::{shelves, tracing};
@@ -99,21 +100,28 @@ impl AppState {
         ));
         let book_repository = Arc::new(BookRepository::new(pool.clone()));
         let book_service = Arc::new(BookService::new(book_repository));
+        let cover_service = Arc::new(CoverService::new(
+            pool.clone(),
+            lock_manager.clone(),
+            cache.image_cache.clone(),
+            config.book_storage.cover_path.clone(),
+        ));
         let cover_controller = Arc::new(CoverController::new(
             pool.clone(),
             lock_manager.clone(),
             cache.clone(),
             config.clone(),
             book_service.clone(),
+            cover_service.clone(),
         ));
 
         let metadata_manager = metadata_manager::MetadataManager::new(
             pool.clone(),
             book_service.clone(),
             lock_manager.clone(),
-            cache.image_cache.clone(),
             &config,
             epub_service.clone(),
+            cover_service.clone(),
         );
 
         let book_controller = Arc::new(BookController::new(
@@ -123,6 +131,7 @@ impl AppState {
             metadata_manager.clone(),
             config.clone(),
             epub_service.clone(),
+            cover_service.clone(),
         ));
 
         let services = Services { book: book_service };

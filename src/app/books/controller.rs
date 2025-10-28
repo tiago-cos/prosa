@@ -6,7 +6,7 @@ use crate::app::{
         models::{BookFileMetadata, PaginatedBooks},
         service::BookService,
     },
-    covers,
+    covers::service::CoverService,
     epubs::service::EpubService,
     error::ProsaError,
     metadata, state, sync, users,
@@ -20,6 +20,7 @@ pub struct BookController {
     pub metadata_manager: MetadataManager,
     pub config: Config,
     pub epub_service: Arc<EpubService>,
+    pub cover_service: Arc<CoverService>,
 }
 
 impl BookController {
@@ -30,6 +31,7 @@ impl BookController {
         metadata_manager: MetadataManager,
         config: Config,
         epub_service: Arc<EpubService>,
+        cover_service: Arc<CoverService>,
     ) -> Self {
         Self {
             book_service,
@@ -38,6 +40,7 @@ impl BookController {
             metadata_manager,
             config,
             epub_service,
+            cover_service,
         }
     }
 
@@ -140,13 +143,7 @@ impl BookController {
         sync::service::update_book_delete_timestamp(pool, &book.book_sync_id).await;
 
         if !self.book_service.cover_is_in_use(&cover_id).await {
-            covers::service::delete_cover(
-                pool,
-                &self.config.book_storage.cover_path,
-                &cover_id,
-                &self.image_cache,
-            )
-            .await?;
+            self.cover_service.delete_cover(&cover_id).await?;
         }
 
         Ok(())

@@ -32,7 +32,7 @@ impl ProsaLockManager {
         self.get_lock(&key).await
     }
 
-    pub async fn get_lock(&self, key: &str) -> Arc<RwLock<()>> {
+    async fn get_lock(&self, key: &str) -> Arc<RwLock<()>> {
         let mut map = self.locks.lock().await;
 
         if let Some(weak_lock) = map.get(key)
