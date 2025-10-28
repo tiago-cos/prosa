@@ -1,4 +1,5 @@
 use super::{annotations, books, covers, metadata, state, sync, users};
+use crate::app::annotations::controller::AnnotationController;
 use crate::app::books::controller::BookController;
 use crate::app::books::repository::BookRepository;
 use crate::app::books::service::BookService;
@@ -73,6 +74,7 @@ pub struct Cache {
 pub struct Controllers {
     pub book: Arc<BookController>,
     pub cover: Arc<CoverController>,
+    pub annotation: Arc<AnnotationController>,
 }
 
 #[derive(Clone)]
@@ -114,6 +116,15 @@ impl AppState {
             book_service.clone(),
             cover_service.clone(),
         ));
+        let annotation_controller = Arc::new(AnnotationController::new(
+            pool.clone(),
+            lock_manager.clone(),
+            book_service.clone(),
+            cache.source_cache.clone(),
+            cache.tag_cache.clone(),
+            cache.tag_length_cache.clone(),
+            config.book_storage.epub_path.clone(),
+        ));
 
         let metadata_manager = metadata_manager::MetadataManager::new(
             pool.clone(),
@@ -136,6 +147,7 @@ impl AppState {
         let controllers = Controllers {
             book: book_controller,
             cover: cover_controller,
+            annotation: annotation_controller,
         };
 
         Self {
