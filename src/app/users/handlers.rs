@@ -7,7 +7,6 @@ use super::{
 };
 use crate::app::{
     AppState,
-    authentication::models::AuthError,
     error::ProsaError,
     users::models::{AuthenticationResponse, RefreshTokenRequest, UserProfile},
 };
@@ -96,9 +95,7 @@ pub async fn refresh_token_handler(
         .renew_refresh_token(&body.refresh_token)
         .await?;
 
-    let Ok(user) = service::get_user(&state.pool, &refresh_token.user_id).await else {
-        return Err(AuthError::InvalidToken.into());
-    };
+    let user = service::get_user(&state.pool, &refresh_token.user_id).await?;
 
     let jwt_token = state
         .services

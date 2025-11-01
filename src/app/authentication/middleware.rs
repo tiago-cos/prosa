@@ -31,7 +31,7 @@ pub async fn extract_token_middleware(
 fn handle_jwt(
     header: &HeaderValue,
     authentication_service: &Arc<AuthenticationService>,
-) -> Result<AuthToken, AuthError> {
+) -> Result<AuthToken, ProsaError> {
     let header = header.to_str().expect("Failed to convert jwt header to string");
 
     let (_, token) = header

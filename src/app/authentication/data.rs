@@ -1,6 +1,6 @@
 use crate::app::{
-    authentication::models::{AuthError, RefreshToken},
-    users::models::{ApiKey, ApiKeyError},
+    authentication::models::{ApiKeyError, AuthTokenError, RefreshToken},
+    users::models::ApiKey,
 };
 use chrono::{DateTime, Utc};
 use sqlx::{QueryBuilder, SqlitePool};
@@ -44,7 +44,7 @@ pub async fn get_refresh_token_by_hash(pool: &SqlitePool, refresh_token_hash: &s
     token
 }
 
-pub async fn delete_refresh_token(pool: &SqlitePool, token_hash: &str) -> Result<(), AuthError> {
+pub async fn delete_refresh_token(pool: &SqlitePool, token_hash: &str) -> Result<(), AuthTokenError> {
     let result = sqlx::query(
         r"
         DELETE FROM refresh_tokens
@@ -57,7 +57,7 @@ pub async fn delete_refresh_token(pool: &SqlitePool, token_hash: &str) -> Result
     .expect("Failed to delete refresh token");
 
     if result.rows_affected() == 0 {
-        return Err(AuthError::MissingToken);
+        return Err(AuthTokenError::MissingToken);
     }
 
     Ok(())

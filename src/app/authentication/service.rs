@@ -1,8 +1,11 @@
-use super::models::{AuthError, AuthRole, AuthToken, AuthType, CAPABILITIES, JWTClaims};
+use super::models::{AuthRole, AuthToken, AuthType, CAPABILITIES, JWTClaims};
 use crate::app::{
-    authentication::{data, models::RefreshToken},
+    authentication::{
+        data,
+        models::{ApiKeyError, AuthTokenError, RefreshToken},
+    },
     error::ProsaError,
-    users::{self, models::ApiKeyError},
+    users,
 };
 use argon2::{
     Argon2, PasswordHasher,
@@ -68,7 +71,6 @@ impl AuthenticationService {
     }
 
     //TODO use a validation crate to do input validations and possibly remove them from the services
-    //TODO migrate ApiKeyError to AuthError
 
     pub async fn generate_api_key(
         &self,
@@ -76,9 +78,9 @@ impl AuthenticationService {
         key_name: &str,
         expiration: Option<i64>,
         capabilities: Vec<String>,
-    ) -> Result<(String, String), ProsaError> {
+    ) -> Result<(String, String), ApiKeyError> {
         if capabilities.is_empty() {
-            return Err(ApiKeyError::InvalidCapabilities.into());
+            return Err(ApiKeyError::InvalidCapabilities);
         }
 
         let expiration = expiration
@@ -87,7 +89,7 @@ impl AuthenticationService {
             .transpose()?;
 
         if expiration.filter(|date| date >= &Utc::now()) != expiration {
-            return Err(ApiKeyError::InvalidTimestamp.into());
+            return Err(ApiKeyError::InvalidTimestamp);
         }
 
         let key_id = Uuid::new_v4().to_string();
@@ -131,9 +133,11 @@ impl AuthenticationService {
         encoded_token
     }
 
-    pub fn verify_jwt(&self, token: &str) -> Result<AuthToken, AuthError> {
-        let token = BASE64_STANDARD.decode(token).or(Err(AuthError::InvalidToken))?;
-        let token = String::from_utf8(token).or(Err(AuthError::InvalidToken))?;
+    pub fn verify_jwt(&self, token: &str) -> Result<AuthToken, AuthTokenError> {
+        let token = BASE64_STANDARD
+            .decode(token)
+            .or(Err(AuthTokenError::InvalidToken))?;
+        let token = String::from_utf8(token).or(Err(AuthTokenError::InvalidToken))?;
         let key = DecodingKey::from_secret(&self.jwt_secret);
         let validation = Validation::default();
         let token = jsonwebtoken::decode::<JWTClaims>(&token, &key, &validation)?;
@@ -145,20 +149,20 @@ impl AuthenticationService {
         })
     }
 
-    pub async fn verify_api_key(&self, key: &str) -> Result<AuthToken, ProsaError> {
-        let key = BASE64_STANDARD.decode(key).or(Err(AuthError::InvalidKey))?;
+    pub async fn verify_api_key(&self, key: &str) -> Result<AuthToken, ApiKeyError> {
+        let key = BASE64_STANDARD.decode(key).or(Err(ApiKeyError::InvalidKey))?;
         let hash = BASE64_STANDARD.encode(Sha256::digest(&key));
         let key = data::get_api_key_by_hash(&self.pool, &hash)
             .await
-            .ok_or(AuthError::InvalidKey)?;
+            .ok_or(ApiKeyError::InvalidKey)?;
         let user = users::data::get_user(&self.pool, &key.user_id)
             .await
-            .or(Err(AuthError::InvalidKey))?;
+            .or(Err(ApiKeyError::InvalidKey))?;
 
         // Return error if expired
         if key.expiration.filter(|date| date >= &Utc::now()) != key.expiration {
             data::delete_api_key(&self.pool, &key.user_id, &key.key_id).await?;
-            return Err(AuthError::InvalidKey.into());
+            return Err(ApiKeyError::InvalidKey);
         }
 
         let role = if user.is_admin {
@@ -174,18 +178,22 @@ impl AuthenticationService {
         })
     }
 
-    pub async fn renew_refresh_token(&self, token: &str) -> Result<(RefreshToken, String), AuthError> {
-        let token = BASE64_STANDARD.decode(token).or(Err(AuthError::InvalidToken))?;
+    //TODO check that user refresh tokens are deleted when we delete a user
+
+    pub async fn renew_refresh_token(&self, token: &str) -> Result<(RefreshToken, String), AuthTokenError> {
+        let token = BASE64_STANDARD
+            .decode(token)
+            .or(Err(AuthTokenError::InvalidToken))?;
         let hash = BASE64_STANDARD.encode(Sha256::digest(&token));
         let token = data::get_refresh_token_by_hash(&self.pool, &hash)
             .await
-            .ok_or(AuthError::InvalidToken)?;
+            .ok_or(AuthTokenError::InvalidToken)?;
 
         data::delete_refresh_token(&self.pool, &hash).await?;
 
         // Return error if expired
         if token.expiration < Utc::now() {
-            return Err(AuthError::ExpiredToken);
+            return Err(AuthTokenError::ExpiredToken);
         }
 
         let encoded_token = self.generate_refresh_token(&token.user_id).await;
@@ -193,8 +201,10 @@ impl AuthenticationService {
         Ok((token, encoded_token))
     }
 
-    pub async fn invalidate_refresh_token(&self, token: &str) -> Result<(), AuthError> {
-        let token = BASE64_STANDARD.decode(token).or(Err(AuthError::InvalidToken))?;
+    pub async fn invalidate_refresh_token(&self, token: &str) -> Result<(), AuthTokenError> {
+        let token = BASE64_STANDARD
+            .decode(token)
+            .or(Err(AuthTokenError::InvalidToken))?;
         let hash = BASE64_STANDARD.encode(Sha256::digest(&token));
 
         data::delete_refresh_token(&self.pool, &hash).await?;

@@ -1,6 +1,6 @@
-use crate::app::users::models::UserProfile;
+use crate::app::{authentication::models::ApiKeyError, users::models::UserProfile};
 
-use super::models::{ApiKey, ApiKeyError, Preferences, PreferencesError, User, UserError};
+use super::models::{ApiKey, Preferences, PreferencesError, User, UserError};
 use sqlx::{QueryBuilder, SqlitePool};
 
 pub async fn add_user(

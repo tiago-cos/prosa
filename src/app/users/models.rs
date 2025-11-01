@@ -63,51 +63,6 @@ impl From<&SqliteError> for UserError {
 }
 
 #[derive(EnumMessage, EnumProperty, Debug)]
-pub enum ApiKeyError {
-    #[strum(message = "Invalid or unsupported capabilities provided.")]
-    #[strum(props(StatusCode = "400"))]
-    InvalidCapabilities,
-
-    #[strum(message = "Expiration timestamp is invalid or incorrectly formatted.")]
-    #[strum(props(StatusCode = "400"))]
-    InvalidTimestamp,
-
-    #[strum(message = "The requested key does not exist or is not accessible.")]
-    #[strum(props(StatusCode = "404"))]
-    KeyNotFound,
-
-    #[strum(message = "The requested user does not exist or is not accessible.")]
-    #[strum(props(StatusCode = "404"))]
-    UserNotFound,
-
-    #[strum(message = "Internal server error")]
-    #[strum(props(StatusCode = "500"))]
-    InternalError,
-}
-
-impl From<SqlxError> for ApiKeyError {
-    fn from(error: SqlxError) -> Self {
-        match error {
-            SqlxError::RowNotFound => ApiKeyError::KeyNotFound,
-            SqlxError::Database(error) => error.downcast_ref::<SqliteError>().into(),
-            _ => ApiKeyError::InternalError,
-        }
-    }
-}
-
-impl From<&SqliteError> for ApiKeyError {
-    fn from(error: &SqliteError) -> Self {
-        match error.kind() {
-            SqlxErrorKind::UniqueViolation => ApiKeyError::InvalidCapabilities,
-            SqlxErrorKind::CheckViolation => ApiKeyError::InvalidCapabilities,
-            SqlxErrorKind::Other => ApiKeyError::InvalidCapabilities,
-            SqlxErrorKind::ForeignKeyViolation => ApiKeyError::UserNotFound,
-            _ => ApiKeyError::InternalError,
-        }
-    }
-}
-
-#[derive(EnumMessage, EnumProperty, Debug)]
 pub enum PreferencesError {
     #[strum(message = "Invalid or unsupported metadata provider selection.")]
     #[strum(props(StatusCode = "400"))]
