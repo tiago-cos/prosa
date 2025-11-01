@@ -55,9 +55,9 @@ post:
 get:
   tags:
     - API Keys
-  summary: "Get API keys"
+  summary: "List API keys"
   description: Get the IDs of all API keys for a user.
-  operationId: getApiKeys
+  operationId: listApiKeys
 
   parameters:
     - $ref: ../../../components/parameters/user_id.yaml

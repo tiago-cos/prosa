@@ -1,7 +1,7 @@
 get:
   tags:
     - API Keys
-  summary: "Get API key"
+  summary: "Get API key information"
   description: Get an API key by ID.
   operationId: getApiKey
 
