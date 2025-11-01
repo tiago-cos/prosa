@@ -12,6 +12,7 @@ use crate::app::covers::repository::CoverRepository;
 use crate::app::covers::service::CoverService;
 use crate::app::epubs::repository::EpubRepository;
 use crate::app::epubs::service::EpubService;
+use crate::app::metadata::controller::MetadataController;
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
 use axum::Router;
@@ -79,6 +80,7 @@ pub struct Controllers {
     pub book: Arc<BookController>,
     pub cover: Arc<CoverController>,
     pub annotation: Arc<AnnotationController>,
+    pub metadata: Arc<MetadataController>,
 }
 
 #[derive(Clone)]
@@ -154,6 +156,13 @@ impl AppState {
             cover_service.clone(),
         ));
 
+        let metadata_controller = Arc::new(MetadataController::new(
+            pool.clone(),
+            lock_manager.clone(),
+            book_service.clone(),
+            metadata_manager.clone(),
+        ));
+
         let authentication_repository = Arc::new(AuthenticationRepository::new(pool.clone()));
 
         let authentication_service = Arc::new(
@@ -175,6 +184,7 @@ impl AppState {
             book: book_controller,
             cover: cover_controller,
             annotation: annotation_controller,
+            metadata: metadata_controller,
         };
 
         Self {
