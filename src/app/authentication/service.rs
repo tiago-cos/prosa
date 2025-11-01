@@ -1,8 +1,8 @@
 use super::models::{AuthRole, AuthToken, AuthType, CAPABILITIES, JWTClaims};
 use crate::app::{
     authentication::{
-        data,
         models::{ApiKeyError, AuthTokenError, RefreshToken},
+        repository::AuthenticationRepository,
     },
     error::ProsaError,
     users,
@@ -21,6 +21,7 @@ use sha2::{Digest, Sha256};
 use sqlx::SqlitePool;
 use std::{
     path::Path,
+    sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
 };
 use tokio::fs;
@@ -28,6 +29,7 @@ use uuid::Uuid;
 
 pub struct AuthenticationService {
     pool: SqlitePool,
+    authentication_repository: Arc<AuthenticationRepository>,
     jwt_secret: Vec<u8>,
     jwt_duration: u64,
     refresh_token_duration: u64,
@@ -36,6 +38,7 @@ pub struct AuthenticationService {
 impl AuthenticationService {
     pub async fn new(
         pool: SqlitePool,
+        authentication_repository: Arc<AuthenticationRepository>,
         jwt_key_path: &str,
         jwt_duration: u64,
         refresh_token_duration: u64,
@@ -43,6 +46,7 @@ impl AuthenticationService {
         let jwt_secret = generate_jwt_secret(jwt_key_path).await;
         Self {
             pool,
+            authentication_repository,
             jwt_secret,
             jwt_duration,
             refresh_token_duration,
@@ -98,16 +102,9 @@ impl AuthenticationService {
         let key_hash = BASE64_STANDARD.encode(Sha256::digest(key_bytes));
         let encoded_key = BASE64_STANDARD.encode(key_bytes);
 
-        data::add_api_key(
-            &self.pool,
-            &key_id,
-            user_id,
-            &key_hash,
-            key_name,
-            expiration,
-            capabilities,
-        )
-        .await?;
+        self.authentication_repository
+            .add_api_key(&key_id, user_id, &key_hash, key_name, expiration, capabilities)
+            .await?;
 
         Ok((key_id, encoded_key))
     }
@@ -128,7 +125,9 @@ impl AuthenticationService {
         let expiration =
             DateTime::<Utc>::from_timestamp(expiration, 0).expect("Failed to obtain current timestamp");
 
-        data::add_refresh_token(&self.pool, user_id, &hash, expiration).await;
+        self.authentication_repository
+            .add_refresh_token(user_id, &hash, expiration)
+            .await;
 
         encoded_token
     }
@@ -152,7 +151,9 @@ impl AuthenticationService {
     pub async fn verify_api_key(&self, key: &str) -> Result<AuthToken, ApiKeyError> {
         let key = BASE64_STANDARD.decode(key).or(Err(ApiKeyError::InvalidKey))?;
         let hash = BASE64_STANDARD.encode(Sha256::digest(&key));
-        let key = data::get_api_key_by_hash(&self.pool, &hash)
+        let key = self
+            .authentication_repository
+            .get_api_key_by_hash(&hash)
             .await
             .ok_or(ApiKeyError::InvalidKey)?;
         let user = users::data::get_user(&self.pool, &key.user_id)
@@ -161,7 +162,9 @@ impl AuthenticationService {
 
         // Return error if expired
         if key.expiration.filter(|date| date >= &Utc::now()) != key.expiration {
-            data::delete_api_key(&self.pool, &key.user_id, &key.key_id).await?;
+            self.authentication_repository
+                .delete_api_key(&key.user_id, &key.key_id)
+                .await?;
             return Err(ApiKeyError::InvalidKey);
         }
 
@@ -185,11 +188,13 @@ impl AuthenticationService {
             .decode(token)
             .or(Err(AuthTokenError::InvalidToken))?;
         let hash = BASE64_STANDARD.encode(Sha256::digest(&token));
-        let token = data::get_refresh_token_by_hash(&self.pool, &hash)
+        let token = self
+            .authentication_repository
+            .get_refresh_token_by_hash(&hash)
             .await
             .ok_or(AuthTokenError::InvalidToken)?;
 
-        data::delete_refresh_token(&self.pool, &hash).await?;
+        self.authentication_repository.delete_refresh_token(&hash).await?;
 
         // Return error if expired
         if token.expiration < Utc::now() {
@@ -207,12 +212,14 @@ impl AuthenticationService {
             .or(Err(AuthTokenError::InvalidToken))?;
         let hash = BASE64_STANDARD.encode(Sha256::digest(&token));
 
-        data::delete_refresh_token(&self.pool, &hash).await?;
+        self.authentication_repository.delete_refresh_token(&hash).await?;
         Ok(())
     }
 
     pub async fn revoke_api_key(&self, user_id: &str, key_id: &str) -> Result<(), ProsaError> {
-        data::delete_api_key(&self.pool, user_id, key_id).await?;
+        self.authentication_repository
+            .delete_api_key(user_id, key_id)
+            .await?;
         Ok(())
     }
 

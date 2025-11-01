@@ -2,6 +2,7 @@ use super::{annotations, books, covers, metadata, state, sync, users};
 use crate::app::annotations::controller::AnnotationController;
 use crate::app::annotations::repository::AnnotationRepository;
 use crate::app::annotations::service::AnnotationService;
+use crate::app::authentication::repository::AuthenticationRepository;
 use crate::app::authentication::service::AuthenticationService;
 use crate::app::books::controller::BookController;
 use crate::app::books::repository::BookRepository;
@@ -153,9 +154,12 @@ impl AppState {
             cover_service.clone(),
         ));
 
+        let authentication_repository = Arc::new(AuthenticationRepository::new(pool.clone()));
+
         let authentication_service = Arc::new(
             AuthenticationService::new(
                 pool.clone(),
+                authentication_repository.clone(),
                 &config.auth.jwt_key_path,
                 config.auth.jwt_token_duration,
                 config.auth.refresh_token_duration,
