@@ -49,7 +49,7 @@ fn handle_jwt(
 async fn handle_api_key(
     header: &HeaderValue,
     authentication_service: Arc<AuthenticationService>,
-) -> Result<AuthToken, AuthError> {
+) -> Result<AuthToken, ProsaError> {
     let api_key = header.to_str().expect("Failed to convert key header to string");
     let token = authentication_service.verify_api_key(api_key).await?;
 

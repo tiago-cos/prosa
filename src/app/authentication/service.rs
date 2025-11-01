@@ -1,7 +1,8 @@
 use super::models::{AuthError, AuthRole, AuthToken, AuthType, CAPABILITIES, JWTClaims};
 use crate::app::{
     authentication::{data, models::RefreshToken},
-    users,
+    error::ProsaError,
+    users::{self, models::ApiKeyError},
 };
 use argon2::{
     Argon2, PasswordHasher,
@@ -20,6 +21,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 use tokio::fs;
+use uuid::Uuid;
 
 pub struct AuthenticationService {
     pool: SqlitePool,
@@ -65,13 +67,47 @@ impl AuthenticationService {
         BASE64_STANDARD.encode(token)
     }
 
-    pub fn generate_api_key() -> (String, String) {
-        let mut key = [0u8; 32];
-        OsRng.fill_bytes(&mut key);
-        let encoded_key = BASE64_STANDARD.encode(key);
-        let hash = BASE64_STANDARD.encode(Sha256::digest(key));
+    //TODO use a validation crate to do input validations and possibly remove them from the services
+    //TODO migrate ApiKeyError to AuthError
 
-        (encoded_key, hash)
+    pub async fn generate_api_key(
+        &self,
+        user_id: &str,
+        key_name: &str,
+        expiration: Option<i64>,
+        capabilities: Vec<String>,
+    ) -> Result<(String, String), ProsaError> {
+        if capabilities.is_empty() {
+            return Err(ApiKeyError::InvalidCapabilities.into());
+        }
+
+        let expiration = expiration
+            .map(DateTime::<Utc>::from_timestamp_millis)
+            .map(|result| result.ok_or(ApiKeyError::InvalidTimestamp))
+            .transpose()?;
+
+        if expiration.filter(|date| date >= &Utc::now()) != expiration {
+            return Err(ApiKeyError::InvalidTimestamp.into());
+        }
+
+        let key_id = Uuid::new_v4().to_string();
+        let mut key_bytes = [0u8; 32];
+        OsRng.fill_bytes(&mut key_bytes);
+        let key_hash = BASE64_STANDARD.encode(Sha256::digest(key_bytes));
+        let encoded_key = BASE64_STANDARD.encode(key_bytes);
+
+        data::add_api_key(
+            &self.pool,
+            &key_id,
+            user_id,
+            &key_hash,
+            key_name,
+            expiration,
+            capabilities,
+        )
+        .await?;
+
+        Ok((key_id, encoded_key))
     }
 
     pub async fn generate_refresh_token(&self, user_id: &str) -> String {
@@ -109,10 +145,10 @@ impl AuthenticationService {
         })
     }
 
-    pub async fn verify_api_key(&self, key: &str) -> Result<AuthToken, AuthError> {
+    pub async fn verify_api_key(&self, key: &str) -> Result<AuthToken, ProsaError> {
         let key = BASE64_STANDARD.decode(key).or(Err(AuthError::InvalidKey))?;
         let hash = BASE64_STANDARD.encode(Sha256::digest(&key));
-        let key = users::data::get_api_key_by_hash(&self.pool, &hash)
+        let key = data::get_api_key_by_hash(&self.pool, &hash)
             .await
             .ok_or(AuthError::InvalidKey)?;
         let user = users::data::get_user(&self.pool, &key.user_id)
@@ -121,7 +157,8 @@ impl AuthenticationService {
 
         // Return error if expired
         if key.expiration.filter(|date| date >= &Utc::now()) != key.expiration {
-            return Err(AuthError::InvalidKey);
+            data::delete_api_key(&self.pool, &key.user_id, &key.key_id).await?;
+            return Err(AuthError::InvalidKey.into());
         }
 
         let role = if user.is_admin {
@@ -161,6 +198,11 @@ impl AuthenticationService {
         let hash = BASE64_STANDARD.encode(Sha256::digest(&token));
 
         data::delete_refresh_token(&self.pool, &hash).await?;
+        Ok(())
+    }
+
+    pub async fn revoke_api_key(&self, user_id: &str, key_id: &str) -> Result<(), ProsaError> {
+        data::delete_api_key(&self.pool, user_id, key_id).await?;
         Ok(())
     }
 

@@ -117,24 +117,21 @@ pub async fn create_api_key_handler(
     Path(user_id): Path<String>,
     Json(body): Json<CreateApiKeyRequest>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let (key_id, key) = service::create_api_key(
-        &state.pool,
-        &user_id,
-        &body.name,
-        body.expires_at,
-        body.capabilities,
-    )
-    .await?;
+    let (key_id, key) = state
+        .services
+        .authentication
+        .generate_api_key(&user_id, &body.name, body.expires_at, body.capabilities)
+        .await?;
 
     let response = CreateApiKeyResponse { id: key_id, key };
     Ok(Json(response))
 }
 
-pub async fn get_api_key_handler(
+pub async fn get_api_information_key_handler(
     State(pool): State<SqlitePool>,
     Path((user_id, key_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let key = service::get_api_key(&pool, &user_id, &key_id).await?;
+    let key = service::get_api_key_information(&pool, &user_id, &key_id).await?;
 
     let key = GetApiKeyResponse {
         name: key.name,
@@ -145,20 +142,24 @@ pub async fn get_api_key_handler(
     Ok(Json(key))
 }
 
-pub async fn get_api_keys_handler(
+pub async fn list_api_keys_handler(
     State(pool): State<SqlitePool>,
     Path(user_id): Path<String>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    let keys = service::get_api_keys(&pool, &user_id).await?;
+    let keys = service::list_api_keys(&pool, &user_id).await?;
 
     Ok(Json(keys))
 }
 
 pub async fn revoke_api_key_handler(
-    State(pool): State<SqlitePool>,
+    State(state): State<AppState>,
     Path((user_id, key_id)): Path<(String, String)>,
 ) -> Result<impl IntoResponse, ProsaError> {
-    service::revoke_api_key(&pool, &user_id, &key_id).await?;
+    state
+        .services
+        .authentication
+        .revoke_api_key(&user_id, &key_id)
+        .await?;
 
     Ok((StatusCode::NO_CONTENT, ()))
 }
@@ -182,16 +183,6 @@ pub async fn update_preferences_handler(
     Ok((StatusCode::NO_CONTENT, ()))
 }
 
-pub async fn patch_preferences_handler(
-    State(pool): State<SqlitePool>,
-    Path(user_id): Path<String>,
-    Json(body): Json<Preferences>,
-) -> Result<impl IntoResponse, ProsaError> {
-    service::patch_preferences(&pool, &user_id, body).await?;
-
-    Ok((StatusCode::NO_CONTENT, ()))
-}
-
 pub async fn get_user_profile_handler(
     State(pool): State<SqlitePool>,
     Path(user_id): Path<String>,
@@ -207,6 +198,16 @@ pub async fn update_user_profile_handler(
     Json(body): Json<UserProfile>,
 ) -> Result<impl IntoResponse, ProsaError> {
     service::update_user_profile(&pool, &user_id, body).await?;
+
+    Ok((StatusCode::NO_CONTENT, ()))
+}
+
+pub async fn patch_preferences_handler(
+    State(pool): State<SqlitePool>,
+    Path(user_id): Path<String>,
+    Json(body): Json<Preferences>,
+) -> Result<impl IntoResponse, ProsaError> {
+    service::patch_preferences(&pool, &user_id, body).await?;
 
     Ok((StatusCode::NO_CONTENT, ()))
 }

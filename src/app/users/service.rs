@@ -5,10 +5,9 @@ use super::{
 use crate::app::{
     authentication::service::AuthenticationService,
     error::ProsaError,
-    users::models::{ApiKeyError, PreferencesError, UserProfile, VALID_PROVIDERS},
+    users::models::{PreferencesError, UserProfile, VALID_PROVIDERS},
 };
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
-use chrono::{DateTime, Utc};
 use merge::Merge;
 use regex::Regex;
 use sqlx::SqlitePool;
@@ -70,51 +69,21 @@ pub async fn update_user_profile(
     Ok(())
 }
 
-//TODO pass api key logic to authentication service
-pub async fn create_api_key(
+pub async fn get_api_key_information(
     pool: &SqlitePool,
     user_id: &str,
-    key_name: &str,
-    expiration: Option<i64>,
-    capabilities: Vec<String>,
-) -> Result<(String, String), ProsaError> {
-    if capabilities.is_empty() {
-        return Err(ApiKeyError::InvalidCapabilities.into());
-    }
-
-    let expiration = expiration
-        .map(DateTime::<Utc>::from_timestamp_millis)
-        .map(|result| result.ok_or(ApiKeyError::InvalidTimestamp))
-        .transpose()?;
-
-    if expiration.filter(|date| date >= &Utc::now()) != expiration {
-        return Err(ApiKeyError::InvalidTimestamp.into());
-    }
-
-    let key_id = Uuid::new_v4().to_string();
-    let (key, hash) = AuthenticationService::generate_api_key();
-
-    data::add_api_key(pool, &key_id, user_id, &hash, key_name, expiration, capabilities).await?;
-    Ok((key_id, key))
-}
-
-pub async fn get_api_key(pool: &SqlitePool, user_id: &str, key_id: &str) -> Result<ApiKey, ProsaError> {
+    key_id: &str,
+) -> Result<ApiKey, ProsaError> {
     // To verify if user exists
     data::get_user(pool, user_id).await?;
-    let key = data::get_api_key(pool, user_id, key_id).await?;
+    let key = data::get_api_key_information(pool, user_id, key_id).await?;
     Ok(key)
 }
 
-pub async fn get_api_keys(pool: &SqlitePool, user_id: &str) -> Result<Vec<String>, ProsaError> {
+pub async fn list_api_keys(pool: &SqlitePool, user_id: &str) -> Result<Vec<String>, ProsaError> {
     data::get_user(pool, user_id).await?;
-    let keys = data::get_api_keys(pool, user_id).await?;
+    let keys = data::list_api_keys(pool, user_id).await?;
     Ok(keys)
-}
-
-pub async fn revoke_api_key(pool: &SqlitePool, user_id: &str, key_id: &str) -> Result<(), ProsaError> {
-    data::get_user(pool, user_id).await?;
-    data::delete_api_key(pool, user_id, key_id).await?;
-    Ok(())
 }
 
 pub async fn get_preferences(pool: &SqlitePool, user_id: &str) -> Result<Preferences, ProsaError> {
