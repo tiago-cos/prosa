@@ -426,7 +426,7 @@ describe('List api keys', () => {
   });
 });
 
-describe('Get api key', () => {
+describe('Get api key information', () => {
   test('Simple', async () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
@@ -556,7 +556,7 @@ describe('Delete api key', () => {
 
     const deleteApiKeyResponse = await deleteApiKey('non-existent', createApiKeyResponse.body.id, { jwt: registerResponse.body.jwt_token });
     expect(deleteApiKeyResponse.status).toBe(404);
-    expect(deleteApiKeyResponse.text).toBe(USER_NOT_FOUND);
+    expect(deleteApiKeyResponse.text).toBe(API_KEY_NOT_FOUND);
 
     const getApiKeyResponse2 = await getApiKey(userId, createApiKeyResponse.body.id, { jwt: registerResponse.body.jwt_token });
     expect(getApiKeyResponse2.status).toBe(200);
