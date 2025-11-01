@@ -7,8 +7,8 @@ use crate::app::{
     epubs::service::EpubService,
     error::ProsaError,
     metadata::{
-        self,
         models::{Metadata, MetadataError},
+        service::MetadataService,
     },
     sync,
 };
@@ -34,6 +34,7 @@ pub struct MetadataManager {
     notify: Notify,
     epub_service: Arc<EpubService>,
     cover_service: Arc<CoverService>,
+    metadata_service: Arc<MetadataService>,
 }
 
 impl MetadataManager {
@@ -44,6 +45,7 @@ impl MetadataManager {
         config: &Config,
         epub_service: Arc<EpubService>,
         cover_service: Arc<CoverService>,
+        metadata_service: Arc<MetadataService>,
     ) -> Arc<Self> {
         let manager = Self {
             fetcher: Mutex::new(MetadataFetcher::new(config)),
@@ -54,6 +56,7 @@ impl MetadataManager {
             notify: Notify::new(),
             epub_service,
             cover_service,
+            metadata_service,
         };
         let manager = Arc::new(manager);
 
@@ -169,7 +172,9 @@ impl MetadataManager {
         let book = self.books.get_book(book_id).await?;
         let book_sync_id = book.book_sync_id.clone();
         let metadata_id = book.metadata_id.as_ref().expect("Failed to retrieve metadata id");
-        metadata::service::update_metadata(&self.pool, metadata_id, metadata).await?;
+        self.metadata_service
+            .update_metadata(metadata_id, metadata)
+            .await?;
 
         sync::service::update_book_metadata_timestamp(&self.pool, &book_sync_id).await;
 
@@ -179,7 +184,7 @@ impl MetadataManager {
     async fn handle_metadata_create(&self, book_id: &str, metadata: Metadata) -> Result<(), ProsaError> {
         let mut book = self.books.get_book(book_id).await?;
         let book_sync_id = book.book_sync_id.clone();
-        let metadata_id = metadata::service::add_metadata(&self.pool, metadata).await?;
+        let metadata_id = self.metadata_service.add_metadata(metadata).await?;
         book.metadata_id = Some(metadata_id);
         self.books.update_book(book_id, &book).await?;
 

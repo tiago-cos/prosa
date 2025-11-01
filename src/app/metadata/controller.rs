@@ -5,7 +5,7 @@ use std::sync::Arc;
 use crate::app::books::service::BookService;
 use crate::app::error::ProsaError;
 use crate::app::metadata::models::{Metadata, MetadataError, MetadataFetchRequest};
-use crate::app::metadata::service;
+use crate::app::metadata::service::MetadataService;
 use crate::app::users::models::{PreferencesError, VALID_PROVIDERS};
 use crate::app::{LockManager, MetadataManager, sync, users};
 use crate::metadata_manager::MetadataRequest;
@@ -14,6 +14,7 @@ pub struct MetadataController {
     pool: SqlitePool,
     lock_manager: LockManager,
     book_service: Arc<BookService>,
+    metadata_service: Arc<MetadataService>,
     metadata_manager: MetadataManager,
 }
 
@@ -22,12 +23,14 @@ impl MetadataController {
         pool: SqlitePool,
         lock_manager: LockManager,
         book_service: Arc<BookService>,
+        metadata_service: Arc<MetadataService>,
         metadata_manager: MetadataManager,
     ) -> Self {
         Self {
             pool,
             lock_manager,
             book_service,
+            metadata_service,
             metadata_manager,
         }
     }
@@ -42,7 +45,7 @@ impl MetadataController {
             return Err(MetadataError::MetadataNotFound.into());
         };
 
-        let metadata = service::get_metadata(&self.pool, &metadata_id).await?;
+        let metadata = self.metadata_service.get_metadata(&metadata_id).await?;
         Ok(metadata)
     }
 
@@ -54,7 +57,7 @@ impl MetadataController {
         let book_sync_id = book.book_sync_id.clone();
 
         let metadata_id = match book.metadata_id {
-            None => service::add_metadata(&self.pool, metadata).await?,
+            None => self.metadata_service.add_metadata(metadata).await?,
             Some(_) => return Err(MetadataError::MetadataConflict.into()),
         };
 
@@ -76,7 +79,7 @@ impl MetadataController {
             return Err(MetadataError::MetadataNotFound.into());
         };
 
-        service::delete_metadata(&self.pool, &metadata_id).await?;
+        self.metadata_service.delete_metadata(&metadata_id).await?;
         sync::service::update_book_metadata_timestamp(&self.pool, &book.book_sync_id).await;
 
         Ok(())
@@ -93,7 +96,9 @@ impl MetadataController {
             return Err(MetadataError::MetadataNotFound.into());
         };
 
-        service::patch_metadata(&self.pool, &metadata_id, metadata).await?;
+        self.metadata_service
+            .patch_metadata(&metadata_id, metadata)
+            .await?;
         sync::service::update_book_metadata_timestamp(&self.pool, &book_sync_id).await;
 
         Ok(())
@@ -110,7 +115,9 @@ impl MetadataController {
             return Err(MetadataError::MetadataNotFound.into());
         };
 
-        service::update_metadata(&self.pool, &metadata_id, metadata).await?;
+        self.metadata_service
+            .update_metadata(&metadata_id, metadata)
+            .await?;
         sync::service::update_book_metadata_timestamp(&self.pool, &book_sync_id).await;
 
         Ok(())

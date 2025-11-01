@@ -9,7 +9,8 @@ use crate::app::{
     covers::service::CoverService,
     epubs::service::EpubService,
     error::ProsaError,
-    metadata, state, sync, users,
+    metadata::service::MetadataService,
+    state, sync, users,
 };
 use std::{collections::HashMap, sync::Arc};
 
@@ -19,6 +20,7 @@ pub struct BookController {
     metadata_manager: MetadataManager,
     epub_service: Arc<EpubService>,
     cover_service: Arc<CoverService>,
+    metadata_service: Arc<MetadataService>,
 }
 
 impl BookController {
@@ -28,6 +30,7 @@ impl BookController {
         metadata_manager: MetadataManager,
         epub_service: Arc<EpubService>,
         cover_service: Arc<CoverService>,
+        metadata_service: Arc<MetadataService>,
     ) -> Self {
         Self {
             book_service,
@@ -35,6 +38,7 @@ impl BookController {
             metadata_manager,
             epub_service,
             cover_service,
+            metadata_service,
         }
     }
 
@@ -123,7 +127,7 @@ impl BookController {
         self.book_service.delete_book(&book_id).await?;
 
         if let Some(metadata_id) = book.metadata_id {
-            metadata::service::delete_metadata(pool, &metadata_id).await?;
+            self.metadata_service.delete_metadata(&metadata_id).await?;
         }
 
         if !self.book_service.epub_is_in_use(&book.epub_id).await {

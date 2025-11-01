@@ -13,6 +13,7 @@ use crate::app::covers::service::CoverService;
 use crate::app::epubs::repository::EpubRepository;
 use crate::app::epubs::service::EpubService;
 use crate::app::metadata::controller::MetadataController;
+use crate::app::metadata::service::MetadataService;
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
 use axum::Router;
@@ -139,6 +140,8 @@ impl AppState {
             annotation_service.clone(),
         ));
 
+        let metadata_service = Arc::new(MetadataService::new(pool.clone()));
+
         let metadata_manager = metadata_manager::MetadataManager::new(
             pool.clone(),
             book_service.clone(),
@@ -146,6 +149,7 @@ impl AppState {
             &config,
             epub_service.clone(),
             cover_service.clone(),
+            metadata_service.clone(),
         );
 
         let book_controller = Arc::new(BookController::new(
@@ -154,12 +158,14 @@ impl AppState {
             metadata_manager.clone(),
             epub_service.clone(),
             cover_service.clone(),
+            metadata_service.clone(),
         ));
 
         let metadata_controller = Arc::new(MetadataController::new(
             pool.clone(),
             lock_manager.clone(),
             book_service.clone(),
+            metadata_service.clone(),
             metadata_manager.clone(),
         ));
 

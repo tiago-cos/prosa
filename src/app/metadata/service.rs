@@ -7,55 +7,52 @@ use merge::Merge;
 use sqlx::SqlitePool;
 use uuid::Uuid;
 
-pub async fn get_metadata(pool: &SqlitePool, metadata_id: &str) -> Result<Metadata, ProsaError> {
-    let metadata = data::get_metadata(pool, metadata_id).await?;
-
-    Ok(metadata)
+pub struct MetadataService {
+    pool: SqlitePool,
 }
 
-pub async fn add_metadata(pool: &SqlitePool, metadata: Metadata) -> Result<String, ProsaError> {
-    if metadata.is_empty() {
-        return Err(MetadataError::InvalidMetadata.into());
+impl MetadataService {
+    pub fn new(pool: SqlitePool) -> Self {
+        Self { pool }
     }
 
-    let metadata_id = Uuid::new_v4().to_string();
-    data::add_metadata(pool, &metadata_id, metadata).await?;
-
-    Ok(metadata_id)
-}
-
-pub async fn delete_metadata(pool: &SqlitePool, metadata_id: &str) -> Result<(), ProsaError> {
-    data::delete_metadata(pool, metadata_id).await?;
-
-    Ok(())
-}
-
-pub async fn patch_metadata(
-    pool: &SqlitePool,
-    metadata_id: &str,
-    mut metadata: Metadata,
-) -> Result<(), ProsaError> {
-    if metadata.is_empty() {
-        return Err(MetadataError::InvalidMetadata.into());
+    pub async fn get_metadata(&self, metadata_id: &str) -> Result<Metadata, ProsaError> {
+        let metadata = data::get_metadata(&self.pool, metadata_id).await?;
+        Ok(metadata)
     }
 
-    let original = data::get_metadata(pool, metadata_id).await?;
-    metadata.merge(original);
-    data::update_metadata(pool, metadata_id, metadata).await?;
+    pub async fn add_metadata(&self, metadata: Metadata) -> Result<String, ProsaError> {
+        if metadata.is_empty() {
+            return Err(MetadataError::InvalidMetadata.into());
+        }
 
-    Ok(())
-}
-
-pub async fn update_metadata(
-    pool: &SqlitePool,
-    metadata_id: &str,
-    metadata: Metadata,
-) -> Result<(), ProsaError> {
-    if metadata.is_empty() {
-        return Err(MetadataError::InvalidMetadata.into());
+        let metadata_id = Uuid::new_v4().to_string();
+        data::add_metadata(&self.pool, &metadata_id, metadata).await?;
+        Ok(metadata_id)
     }
 
-    data::update_metadata(pool, metadata_id, metadata).await?;
+    pub async fn delete_metadata(&self, metadata_id: &str) -> Result<(), ProsaError> {
+        data::delete_metadata(&self.pool, metadata_id).await?;
+        Ok(())
+    }
 
-    Ok(())
+    pub async fn patch_metadata(&self, metadata_id: &str, mut metadata: Metadata) -> Result<(), ProsaError> {
+        if metadata.is_empty() {
+            return Err(MetadataError::InvalidMetadata.into());
+        }
+
+        let original = data::get_metadata(&self.pool, metadata_id).await?;
+        metadata.merge(original);
+        data::update_metadata(&self.pool, metadata_id, metadata).await?;
+        Ok(())
+    }
+
+    pub async fn update_metadata(&self, metadata_id: &str, metadata: Metadata) -> Result<(), ProsaError> {
+        if metadata.is_empty() {
+            return Err(MetadataError::InvalidMetadata.into());
+        }
+
+        data::update_metadata(&self.pool, metadata_id, metadata).await?;
+        Ok(())
+    }
 }
