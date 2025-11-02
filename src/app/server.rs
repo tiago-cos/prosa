@@ -15,6 +15,7 @@ use crate::app::epubs::service::EpubService;
 use crate::app::metadata::controller::MetadataController;
 use crate::app::metadata::repository::MetadataRepository;
 use crate::app::metadata::service::MetadataService;
+use crate::app::shelves::handlers::ShelfController;
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
 use axum::Router;
@@ -83,6 +84,7 @@ pub struct Controllers {
     pub cover: Arc<CoverController>,
     pub annotation: Arc<AnnotationController>,
     pub metadata: Arc<MetadataController>,
+    pub shelf: Arc<ShelfController>,
 }
 
 #[derive(Clone)]
@@ -184,6 +186,12 @@ impl AppState {
             .await,
         );
 
+        let shelf_controller = Arc::new(ShelfController::new(
+            book_service.clone(),
+            lock_manager.clone(),
+            pool.clone(),
+        ));
+
         let services = Services {
             book: book_service,
             authentication: authentication_service,
@@ -193,6 +201,7 @@ impl AppState {
             cover: cover_controller,
             annotation: annotation_controller,
             metadata: metadata_controller,
+            shelf: shelf_controller,
         };
 
         Self {
