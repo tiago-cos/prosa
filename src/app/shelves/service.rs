@@ -1,35 +1,41 @@
-use super::data;
 use crate::app::{
     books::service::BookService,
     error::ProsaError,
-    shelves::models::{PaginatedShelves, Shelf, ShelfError, ShelfMetadata},
+    shelves::{
+        models::{PaginatedShelves, Shelf, ShelfError, ShelfMetadata},
+        repository::ShelfRepository,
+    },
 };
-use sqlx::SqlitePool;
 use std::sync::Arc;
 use uuid::Uuid;
 
 pub struct ShelfService {
-    pool: SqlitePool,
+    shelf_repository: Arc<ShelfRepository>,
     book_service: Arc<BookService>,
 }
 
 impl ShelfService {
-    pub fn new(pool: SqlitePool, book_service: Arc<BookService>) -> Self {
-        Self { pool, book_service }
+    pub fn new(shelf_repository: Arc<ShelfRepository>, book_service: Arc<BookService>) -> Self {
+        Self {
+            shelf_repository,
+            book_service,
+        }
     }
 
     pub async fn get_shelf(&self, shelf_id: &str) -> Result<Shelf, ProsaError> {
-        let shelf = data::get_shelf(&self.pool, shelf_id).await?;
+        let shelf = self.shelf_repository.get_shelf(shelf_id).await?;
         Ok(shelf)
     }
 
     pub async fn get_shelf_by_name_and_owner(&self, shelf_name: &str, owner_id: &str) -> Option<Shelf> {
-        data::get_shelf_by_name_and_owner(&self.pool, shelf_name, owner_id).await
+        self.shelf_repository
+            .get_shelf_by_name_and_owner(shelf_name, owner_id)
+            .await
     }
 
     pub async fn get_shelf_metadata(&self, shelf_id: &str) -> Result<ShelfMetadata, ProsaError> {
-        let shelf = data::get_shelf(&self.pool, shelf_id).await?;
-        let book_count = data::get_shelf_book_count(&self.pool, shelf_id).await;
+        let shelf = self.shelf_repository.get_shelf(shelf_id).await?;
+        let book_count = self.shelf_repository.get_shelf_book_count(shelf_id).await;
 
         let metadata = ShelfMetadata {
             name: shelf.name,
@@ -44,19 +50,19 @@ impl ShelfService {
         Self::verify_shelf_name(&shelf.name)?;
 
         let shelf_id = Uuid::new_v4().to_string();
-        data::add_shelf(&self.pool, &shelf_id, shelf).await?;
+        self.shelf_repository.add_shelf(&shelf_id, shelf).await?;
 
         Ok(shelf_id)
     }
 
     pub async fn update_shelf(&self, shelf_id: &str, name: &str) -> Result<(), ProsaError> {
         Self::verify_shelf_name(name)?;
-        data::update_shelf(&self.pool, shelf_id, name).await?;
+        self.shelf_repository.update_shelf(shelf_id, name).await?;
         Ok(())
     }
 
     pub async fn delete_shelf(&self, shelf_id: &str) -> Result<(), ProsaError> {
-        data::delete_shelf(&self.pool, shelf_id).await?;
+        self.shelf_repository.delete_shelf(shelf_id).await?;
         Ok(())
     }
 
@@ -74,7 +80,10 @@ impl ShelfService {
             return Err(ShelfError::InvalidPagination.into());
         }
 
-        Ok(data::get_paginated_shelves(&self.pool, page, page_size, username, name).await)
+        Ok(self
+            .shelf_repository
+            .get_paginated_shelves(page, page_size, username, name)
+            .await)
     }
 
     pub async fn add_book_to_shelf(&self, shelf_id: &str, book_id: &str) -> Result<(), ProsaError> {
@@ -82,7 +91,7 @@ impl ShelfService {
         self.book_service.get_book(book_id).await?;
         self.get_shelf_metadata(shelf_id).await?;
 
-        data::add_book_to_shelf(&self.pool, shelf_id, book_id).await?;
+        self.shelf_repository.add_book_to_shelf(shelf_id, book_id).await?;
         Ok(())
     }
 
@@ -90,7 +99,7 @@ impl ShelfService {
         // Verify if the shelf exists
         self.get_shelf_metadata(shelf_id).await?;
 
-        let books = data::get_shelf_books(&self.pool, shelf_id).await;
+        let books = self.shelf_repository.get_shelf_books(shelf_id).await;
         Ok(books)
     }
 
@@ -98,7 +107,9 @@ impl ShelfService {
         // Verify if the shelf exists
         self.get_shelf_metadata(shelf_id).await?;
 
-        data::delete_book_from_shelf(&self.pool, shelf_id, book_id).await?;
+        self.shelf_repository
+            .delete_book_from_shelf(shelf_id, book_id)
+            .await?;
         Ok(())
     }
 

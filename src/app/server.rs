@@ -16,6 +16,7 @@ use crate::app::metadata::controller::MetadataController;
 use crate::app::metadata::repository::MetadataRepository;
 use crate::app::metadata::service::MetadataService;
 use crate::app::shelves::controller::ShelfController;
+use crate::app::shelves::repository::ShelfRepository;
 use crate::app::shelves::service::ShelfService;
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
@@ -188,7 +189,8 @@ impl AppState {
             .await,
         );
 
-        let shelf_service = Arc::new(ShelfService::new(pool.clone(), book_service.clone()));
+        let shelf_repository = Arc::new(ShelfRepository::new(pool.clone()));
+        let shelf_service = Arc::new(ShelfService::new(shelf_repository.clone(), book_service.clone()));
 
         let shelf_controller = Arc::new(ShelfController::new(
             book_service.clone(),
