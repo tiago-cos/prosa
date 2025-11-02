@@ -18,6 +18,7 @@ use crate::app::metadata::service::MetadataService;
 use crate::app::shelves::controller::ShelfController;
 use crate::app::shelves::repository::ShelfRepository;
 use crate::app::shelves::service::ShelfService;
+use crate::app::state::controller::StateController;
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
 use axum::Router;
@@ -87,6 +88,7 @@ pub struct Controllers {
     pub annotation: Arc<AnnotationController>,
     pub metadata: Arc<MetadataController>,
     pub shelf: Arc<ShelfController>,
+    pub state: Arc<StateController>,
 }
 
 #[derive(Clone)]
@@ -191,12 +193,19 @@ impl AppState {
 
         let shelf_repository = Arc::new(ShelfRepository::new(pool.clone()));
         let shelf_service = Arc::new(ShelfService::new(shelf_repository.clone(), book_service.clone()));
-
         let shelf_controller = Arc::new(ShelfController::new(
             book_service.clone(),
             shelf_service.clone(),
             lock_manager.clone(),
             pool.clone(),
+        ));
+
+        let state_controller = Arc::new(StateController::new(
+            pool.clone(),
+            lock_manager.clone(),
+            book_service.clone(),
+            config.book_storage.epub_path.clone(),
+            cache.clone(),
         ));
 
         let services = Services {
@@ -210,6 +219,7 @@ impl AppState {
             annotation: annotation_controller,
             metadata: metadata_controller,
             shelf: shelf_controller,
+            state: state_controller,
         };
 
         Self {
