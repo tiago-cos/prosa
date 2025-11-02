@@ -1,7 +1,6 @@
 use super::models::{Book, BookError, PaginatedBooks};
 use sqlx::SqlitePool;
 
-#[derive(Clone)]
 pub struct BookRepository {
     pool: SqlitePool,
 }

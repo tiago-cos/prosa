@@ -16,6 +16,7 @@ use crate::app::metadata::controller::MetadataController;
 use crate::app::metadata::repository::MetadataRepository;
 use crate::app::metadata::service::MetadataService;
 use crate::app::shelves::controller::ShelfController;
+use crate::app::shelves::service::ShelfService;
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
 use axum::Router;
@@ -90,6 +91,7 @@ pub struct Controllers {
 #[derive(Clone)]
 pub struct Services {
     pub book: Arc<BookService>,
+    pub shelf: Arc<ShelfService>,
     pub authentication: Arc<AuthenticationService>,
 }
 
@@ -186,14 +188,18 @@ impl AppState {
             .await,
         );
 
+        let shelf_service = Arc::new(ShelfService::new(pool.clone(), book_service.clone()));
+
         let shelf_controller = Arc::new(ShelfController::new(
             book_service.clone(),
+            shelf_service.clone(),
             lock_manager.clone(),
             pool.clone(),
         ));
 
         let services = Services {
             book: book_service,
+            shelf: shelf_service,
             authentication: authentication_service,
         };
         let controllers = Controllers {

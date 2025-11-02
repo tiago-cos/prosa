@@ -1,15 +1,13 @@
 use crate::app::books::service::BookService;
+use crate::app::shelves::service::ShelfService;
 use crate::app::sync::service as sync_service;
 use crate::app::{
     LockManager,
     authentication::models::AuthToken,
     error::ProsaError,
-    shelves::{
-        models::{
-            AddBookToShelfRequest, CreateShelfRequest, PaginatedShelves, Shelf, ShelfError, ShelfMetadata,
-            UpdateShelfRequest,
-        },
-        service,
+    shelves::models::{
+        AddBookToShelfRequest, CreateShelfRequest, PaginatedShelves, Shelf, ShelfError, ShelfMetadata,
+        UpdateShelfRequest,
     },
     sync, users,
 };
@@ -19,14 +17,21 @@ use std::{collections::HashMap, sync::Arc};
 
 pub struct ShelfController {
     pub book_service: Arc<BookService>,
+    pub shelf_service: Arc<ShelfService>,
     pub lock_manager: LockManager,
     pub pool: SqlitePool,
 }
 
 impl ShelfController {
-    pub fn new(book_service: Arc<BookService>, lock_manager: LockManager, pool: SqlitePool) -> Self {
+    pub fn new(
+        book_service: Arc<BookService>,
+        shelf_service: Arc<ShelfService>,
+        lock_manager: LockManager,
+        pool: SqlitePool,
+    ) -> Self {
         Self {
             book_service,
+            shelf_service,
             lock_manager,
             pool,
         }
@@ -46,7 +51,9 @@ impl ShelfController {
 
         //TODO don't forget, can make it so that the route wrapper just calls state, check shelf router
         //TODO this logic should be done is service
-        if service::get_shelf_by_name_and_owner(&self.pool, &request.name, owner_id)
+        if self
+            .shelf_service
+            .get_shelf_by_name_and_owner(&request.name, owner_id)
             .await
             .is_some()
         {
@@ -60,14 +67,14 @@ impl ShelfController {
             shelf_sync_id,
         };
 
-        service::add_shelf(&self.pool, shelf).await
+        self.shelf_service.add_shelf(shelf).await
     }
 
     pub async fn get_shelf_metadata(&self, shelf_id: &str) -> Result<Json<ShelfMetadata>, ProsaError> {
         let lock = self.lock_manager.get_shelf_lock(shelf_id).await;
         let _guard = lock.read().await;
 
-        let metadata = service::get_shelf_metadata(&self.pool, shelf_id).await?;
+        let metadata = self.shelf_service.get_shelf_metadata(shelf_id).await?;
 
         Ok(Json(metadata))
     }
@@ -80,8 +87,8 @@ impl ShelfController {
         let lock = self.lock_manager.get_shelf_lock(shelf_id).await;
         let _guard = lock.write().await;
 
-        let shelf = service::get_shelf(&self.pool, shelf_id).await?;
-        service::update_shelf(&self.pool, shelf_id, &request.name).await?;
+        let shelf = self.shelf_service.get_shelf(shelf_id).await?;
+        self.shelf_service.update_shelf(shelf_id, &request.name).await?;
         sync_service::update_shelf_metadata_timestamp(&self.pool, &shelf.shelf_sync_id).await;
 
         Ok(StatusCode::NO_CONTENT)
@@ -91,8 +98,8 @@ impl ShelfController {
         let lock = self.lock_manager.get_shelf_lock(shelf_id).await;
         let _guard = lock.write().await;
 
-        let shelf = service::get_shelf(&self.pool, shelf_id).await?;
-        service::delete_shelf(&self.pool, shelf_id).await?;
+        let shelf = self.shelf_service.get_shelf(shelf_id).await?;
+        self.shelf_service.delete_shelf(shelf_id).await?;
         sync_service::update_shelf_delete_timestamp(&self.pool, &shelf.shelf_sync_id).await;
 
         Ok(StatusCode::NO_CONTENT)
@@ -120,14 +127,15 @@ impl ShelfController {
             _ => return Err(ShelfError::InvalidPagination.into()),
         };
 
-        let shelves = service::search_shelves(
-            &self.pool,
-            query_params.get("username").map(ToString::to_string),
-            query_params.get("name").map(ToString::to_string),
-            page,
-            size,
-        )
-        .await?;
+        let shelves = self
+            .shelf_service
+            .search_shelves(
+                query_params.get("username").map(ToString::to_string),
+                query_params.get("name").map(ToString::to_string),
+                page,
+                size,
+            )
+            .await?;
 
         Ok(Json(shelves))
     }
@@ -142,8 +150,10 @@ impl ShelfController {
         let shelf_lock = self.lock_manager.get_shelf_lock(shelf_id).await;
         let _shelf_guard = shelf_lock.write().await;
 
-        let shelf = service::get_shelf(&self.pool, shelf_id).await?;
-        service::add_book_to_shelf(&self.book_service, &self.pool, shelf_id, &request.book_id).await?;
+        let shelf = self.shelf_service.get_shelf(shelf_id).await?;
+        self.shelf_service
+            .add_book_to_shelf(shelf_id, &request.book_id)
+            .await?;
         sync::service::update_shelf_contents_timestamp(&self.pool, &shelf.shelf_sync_id).await;
 
         Ok(StatusCode::NO_CONTENT)
@@ -153,7 +163,7 @@ impl ShelfController {
         let lock = self.lock_manager.get_shelf_lock(shelf_id).await;
         let _guard = lock.read().await;
 
-        let books = service::list_shelf_books(&self.pool, shelf_id).await?;
+        let books = self.shelf_service.list_shelf_books(shelf_id).await?;
         Ok(Json(books))
     }
 
@@ -167,8 +177,10 @@ impl ShelfController {
         let shelf_lock = self.lock_manager.get_shelf_lock(shelf_id).await;
         let _shelf_guard = shelf_lock.write().await;
 
-        let shelf = service::get_shelf(&self.pool, shelf_id).await?;
-        service::delete_book_from_shelf(&self.pool, shelf_id, book_id).await?;
+        let shelf = self.shelf_service.get_shelf(shelf_id).await?;
+        self.shelf_service
+            .delete_book_from_shelf(shelf_id, book_id)
+            .await?;
         sync_service::update_shelf_contents_timestamp(&self.pool, &shelf.shelf_sync_id).await;
 
         Ok(StatusCode::NO_CONTENT)
