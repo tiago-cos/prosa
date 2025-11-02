@@ -1,23 +1,20 @@
-use super::{
-    data,
-    models::{Metadata, MetadataError},
-};
-use crate::app::error::ProsaError;
+use super::models::{Metadata, MetadataError};
+use crate::app::{error::ProsaError, metadata::repository::MetadataRepository};
 use merge::Merge;
-use sqlx::SqlitePool;
+use std::sync::Arc;
 use uuid::Uuid;
 
 pub struct MetadataService {
-    pool: SqlitePool,
+    metadata_repository: Arc<MetadataRepository>,
 }
 
 impl MetadataService {
-    pub fn new(pool: SqlitePool) -> Self {
-        Self { pool }
+    pub fn new(metadata_repository: Arc<MetadataRepository>) -> Self {
+        Self { metadata_repository }
     }
 
     pub async fn get_metadata(&self, metadata_id: &str) -> Result<Metadata, ProsaError> {
-        let metadata = data::get_metadata(&self.pool, metadata_id).await?;
+        let metadata = self.metadata_repository.get_metadata(metadata_id).await?;
         Ok(metadata)
     }
 
@@ -27,12 +24,14 @@ impl MetadataService {
         }
 
         let metadata_id = Uuid::new_v4().to_string();
-        data::add_metadata(&self.pool, &metadata_id, metadata).await?;
+        self.metadata_repository
+            .add_metadata(&metadata_id, &metadata)
+            .await?;
         Ok(metadata_id)
     }
 
     pub async fn delete_metadata(&self, metadata_id: &str) -> Result<(), ProsaError> {
-        data::delete_metadata(&self.pool, metadata_id).await?;
+        self.metadata_repository.delete_metadata(metadata_id).await?;
         Ok(())
     }
 
@@ -41,9 +40,11 @@ impl MetadataService {
             return Err(MetadataError::InvalidMetadata.into());
         }
 
-        let original = data::get_metadata(&self.pool, metadata_id).await?;
+        let original = self.metadata_repository.get_metadata(metadata_id).await?;
         metadata.merge(original);
-        data::update_metadata(&self.pool, metadata_id, metadata).await?;
+        self.metadata_repository
+            .update_metadata(metadata_id, &metadata)
+            .await?;
         Ok(())
     }
 
@@ -52,7 +53,9 @@ impl MetadataService {
             return Err(MetadataError::InvalidMetadata.into());
         }
 
-        data::update_metadata(&self.pool, metadata_id, metadata).await?;
+        self.metadata_repository
+            .update_metadata(metadata_id, &metadata)
+            .await?;
         Ok(())
     }
 }

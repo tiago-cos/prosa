@@ -43,7 +43,7 @@ pub async fn add_state(pool: &SqlitePool, state_id: &str, state: State) -> () {
     .bind(tag)
     .bind(source)
     .bind(statistics.rating)
-    .bind(reading_status.to_string())
+    .bind(reading_status.clone())
     .execute(pool)
     .await
     .expect("Failed to add book state");

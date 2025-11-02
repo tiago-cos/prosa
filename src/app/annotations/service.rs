@@ -49,7 +49,7 @@ impl AnnotationService {
 
         let annotation_id = Uuid::new_v4().to_string();
         self.annotation_repository
-            .add_annotation(&annotation_id, book_id, annotation)
+            .add_annotation(&annotation_id, book_id, &annotation)
             .await?;
 
         Ok(annotation_id)

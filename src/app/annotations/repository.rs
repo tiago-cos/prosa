@@ -14,7 +14,7 @@ impl AnnotationRepository {
         &self,
         annotation_id: &str,
         book_id: &str,
-        annotation: NewAnnotationRequest,
+        annotation: &NewAnnotationRequest,
     ) -> Result<(), AnnotationError> {
         sqlx::query(
             r"
@@ -24,12 +24,12 @@ impl AnnotationRepository {
         )
         .bind(annotation_id)
         .bind(book_id)
-        .bind(annotation.source)
-        .bind(annotation.start_tag)
-        .bind(annotation.end_tag)
+        .bind(&annotation.source)
+        .bind(&annotation.start_tag)
+        .bind(&annotation.end_tag)
         .bind(annotation.start_char)
         .bind(annotation.end_char)
-        .bind(annotation.note)
+        .bind(&annotation.note)
         .execute(&self.pool)
         .await?;
 
