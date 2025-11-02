@@ -4,6 +4,8 @@ use crate::app::annotations::service::AnnotationService;
 use crate::app::books::service::BookService;
 use crate::app::error::ProsaError;
 use crate::app::{concurrency::manager::ProsaLockManager, sync};
+use axum::Json;
+use axum::http::StatusCode;
 use sqlx::SqlitePool;
 use std::sync::Arc;
 
@@ -49,27 +51,35 @@ impl AnnotationController {
         Ok(annotation_id)
     }
 
-    pub async fn get_annotation(&self, book_id: &str, annotation_id: &str) -> Result<Annotation, ProsaError> {
+    pub async fn get_annotation(
+        &self,
+        book_id: &str,
+        annotation_id: &str,
+    ) -> Result<Json<Annotation>, ProsaError> {
         let lock = self.lock_manager.get_book_lock(book_id).await;
         let _guard = lock.read().await;
 
         self.book_service.get_book(book_id).await?;
         let annotation = self.annotation_service.get_annotation(annotation_id).await?;
 
-        Ok(annotation)
+        Ok(Json(annotation))
     }
 
-    pub async fn list_annotations(&self, book_id: &str) -> Result<Vec<String>, ProsaError> {
+    pub async fn list_annotations(&self, book_id: &str) -> Result<Json<Vec<String>>, ProsaError> {
         let lock = self.lock_manager.get_book_lock(book_id).await;
         let _guard = lock.read().await;
 
         self.book_service.get_book(book_id).await?;
         let annotations = self.annotation_service.get_annotations(book_id).await;
 
-        Ok(annotations)
+        Ok(Json(annotations))
     }
 
-    pub async fn delete_annotation(&self, book_id: &str, annotation_id: &str) -> Result<(), ProsaError> {
+    pub async fn delete_annotation(
+        &self,
+        book_id: &str,
+        annotation_id: &str,
+    ) -> Result<StatusCode, ProsaError> {
         let lock = self.lock_manager.get_book_lock(book_id).await;
         let _guard = lock.write().await;
 
@@ -78,7 +88,7 @@ impl AnnotationController {
 
         sync::service::update_annotations_timestamp(&self.pool, &book.book_sync_id).await;
 
-        Ok(())
+        Ok(StatusCode::NO_CONTENT)
     }
 
     pub async fn patch_annotation(
@@ -86,7 +96,7 @@ impl AnnotationController {
         book_id: &str,
         annotation_id: &str,
         request: PatchAnnotationRequest,
-    ) -> Result<(), ProsaError> {
+    ) -> Result<StatusCode, ProsaError> {
         let lock = self.lock_manager.get_book_lock(book_id).await;
         let _guard = lock.write().await;
 
@@ -97,6 +107,6 @@ impl AnnotationController {
 
         sync::service::update_annotations_timestamp(&self.pool, &book.book_sync_id).await;
 
-        Ok(())
+        Ok(StatusCode::NO_CONTENT)
     }
 }

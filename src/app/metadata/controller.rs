@@ -1,3 +1,5 @@
+use axum::Json;
+use axum::http::StatusCode;
 use sqlx::SqlitePool;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -35,7 +37,7 @@ impl MetadataController {
         }
     }
 
-    pub async fn get_metadata(&self, book_id: String) -> Result<Metadata, ProsaError> {
+    pub async fn get_metadata(&self, book_id: String) -> Result<Json<Metadata>, ProsaError> {
         let lock = self.lock_manager.get_book_lock(&book_id).await;
         let _guard = lock.read().await;
 
@@ -46,10 +48,10 @@ impl MetadataController {
         };
 
         let metadata = self.metadata_service.get_metadata(&metadata_id).await?;
-        Ok(metadata)
+        Ok(Json(metadata))
     }
 
-    pub async fn add_metadata(&self, book_id: String, metadata: Metadata) -> Result<(), ProsaError> {
+    pub async fn add_metadata(&self, book_id: String, metadata: Metadata) -> Result<StatusCode, ProsaError> {
         let lock = self.lock_manager.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
@@ -66,10 +68,10 @@ impl MetadataController {
 
         sync::service::update_book_metadata_timestamp(&self.pool, &book_sync_id).await;
 
-        Ok(())
+        Ok(StatusCode::NO_CONTENT)
     }
 
-    pub async fn delete_metadata(&self, book_id: String) -> Result<(), ProsaError> {
+    pub async fn delete_metadata(&self, book_id: String) -> Result<StatusCode, ProsaError> {
         let lock = self.lock_manager.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
@@ -82,10 +84,14 @@ impl MetadataController {
         self.metadata_service.delete_metadata(&metadata_id).await?;
         sync::service::update_book_metadata_timestamp(&self.pool, &book.book_sync_id).await;
 
-        Ok(())
+        Ok(StatusCode::NO_CONTENT)
     }
 
-    pub async fn patch_metadata(&self, book_id: String, metadata: Metadata) -> Result<(), ProsaError> {
+    pub async fn patch_metadata(
+        &self,
+        book_id: String,
+        metadata: Metadata,
+    ) -> Result<StatusCode, ProsaError> {
         let lock = self.lock_manager.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
@@ -101,10 +107,14 @@ impl MetadataController {
             .await?;
         sync::service::update_book_metadata_timestamp(&self.pool, &book_sync_id).await;
 
-        Ok(())
+        Ok(StatusCode::NO_CONTENT)
     }
 
-    pub async fn update_metadata(&self, book_id: String, metadata: Metadata) -> Result<(), ProsaError> {
+    pub async fn update_metadata(
+        &self,
+        book_id: String,
+        metadata: Metadata,
+    ) -> Result<StatusCode, ProsaError> {
         let lock = self.lock_manager.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
@@ -120,10 +130,13 @@ impl MetadataController {
             .await?;
         sync::service::update_book_metadata_timestamp(&self.pool, &book_sync_id).await;
 
-        Ok(())
+        Ok(StatusCode::NO_CONTENT)
     }
 
-    pub async fn add_metadata_request(&self, request: MetadataFetchRequest) -> Result<(), ProsaError> {
+    pub async fn add_metadata_request(
+        &self,
+        request: MetadataFetchRequest,
+    ) -> Result<StatusCode, ProsaError> {
         let book = self.book_service.get_book(&request.book_id).await?;
 
         let providers = match request.metadata_providers {
@@ -142,16 +155,16 @@ impl MetadataController {
             .enqueue_request(&book.owner_id, &request.book_id, providers)
             .await?;
 
-        Ok(())
+        Ok(StatusCode::NO_CONTENT)
     }
 
     pub async fn list_metadata_requests(
         &self,
         query_params: HashMap<String, String>,
-    ) -> Result<Vec<MetadataRequest>, ProsaError> {
+    ) -> Result<Json<Vec<MetadataRequest>>, ProsaError> {
         let user_id = query_params.get("user_id").map(ToString::to_string);
         let enqueued = self.metadata_manager.get_enqueued(user_id).await;
 
-        Ok(enqueued)
+        Ok(Json(enqueued))
     }
 }

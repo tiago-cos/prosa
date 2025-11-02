@@ -4,7 +4,7 @@ use crate::app::{
     AppState,
     authentication::{middleware::extract_token_middleware, models::AuthToken},
     authorization::books::{can_create_book, can_delete_book, can_read_book, can_search_books},
-    books::models::UploadBoodRequest,
+    books::models::{BookFileMetadata, PaginatedBooks, UploadBoodRequest},
     error::ProsaError,
 };
 use axum::{
@@ -12,7 +12,6 @@ use axum::{
     extract::{DefaultBodyLimit, Path, Query, State},
     http::StatusCode,
     middleware::from_fn_with_state,
-    response::IntoResponse,
     routing::{delete, get, post},
 };
 use axum_typed_multipart::TypedMultipart;
@@ -44,16 +43,15 @@ pub async fn upload_book_handler(
     Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     TypedMultipart(data): TypedMultipart<UploadBoodRequest>,
-) -> Result<impl IntoResponse, ProsaError> {
+) -> Result<String, ProsaError> {
     state.controllers.book.upload_book(token, data, &state.pool).await
 }
 
 pub async fn search_books_handler(
     State(state): State<AppState>,
     Query(params): Query<HashMap<String, String>>,
-) -> Result<impl IntoResponse, ProsaError> {
-    let books = state.controllers.book.search_books(params, &state.pool).await?;
-    Ok(Json(books))
+) -> Result<Json<PaginatedBooks>, ProsaError> {
+    state.controllers.book.search_books(params, &state.pool).await
 }
 
 pub async fn download_book_handler(
@@ -66,16 +64,13 @@ pub async fn download_book_handler(
 pub async fn delete_book_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
-) -> Result<impl IntoResponse, ProsaError> {
-    state.controllers.book.delete_book(book_id, &state.pool).await?;
-
-    Ok((StatusCode::NO_CONTENT, ()))
+) -> Result<StatusCode, ProsaError> {
+    state.controllers.book.delete_book(book_id, &state.pool).await
 }
 
 pub async fn get_book_file_metadata_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
-) -> Result<impl IntoResponse, ProsaError> {
-    let metadata = state.controllers.book.get_book_file_metadata(book_id).await?;
-    Ok(Json(metadata))
+) -> Result<Json<BookFileMetadata>, ProsaError> {
+    state.controllers.book.get_book_file_metadata(book_id).await
 }

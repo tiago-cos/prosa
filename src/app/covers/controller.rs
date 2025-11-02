@@ -3,7 +3,7 @@ use crate::app::{
     books::service::BookService, concurrency::manager::ProsaLockManager, covers::service::CoverService,
     error::ProsaError, sync,
 };
-use axum::body::Bytes;
+use axum::{body::Bytes, http::StatusCode};
 use sqlx::SqlitePool;
 use std::sync::Arc;
 
@@ -44,7 +44,7 @@ impl CoverController {
         Ok(cover)
     }
 
-    pub async fn add_cover(&self, book_id: String, cover_data: Bytes) -> Result<(), ProsaError> {
+    pub async fn add_cover(&self, book_id: String, cover_data: Bytes) -> Result<StatusCode, ProsaError> {
         let lock = self.lock_manager.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
@@ -61,10 +61,10 @@ impl CoverController {
 
         sync::service::update_cover_timestamp(&self.pool, &book_sync_id).await;
 
-        Ok(())
+        Ok(StatusCode::NO_CONTENT)
     }
 
-    pub async fn delete_cover(&self, book_id: String) -> Result<(), ProsaError> {
+    pub async fn delete_cover(&self, book_id: String) -> Result<StatusCode, ProsaError> {
         let lock = self.lock_manager.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
@@ -84,10 +84,10 @@ impl CoverController {
 
         sync::service::update_cover_timestamp(&self.pool, &book_sync_id).await;
 
-        Ok(())
+        Ok(StatusCode::NO_CONTENT)
     }
 
-    pub async fn update_cover(&self, book_id: String, cover_data: Bytes) -> Result<(), ProsaError> {
+    pub async fn update_cover(&self, book_id: String, cover_data: Bytes) -> Result<StatusCode, ProsaError> {
         let lock = self.lock_manager.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
@@ -108,6 +108,6 @@ impl CoverController {
 
         sync::service::update_cover_timestamp(&self.pool, &book_sync_id).await;
 
-        Ok(())
+        Ok(StatusCode::NO_CONTENT)
     }
 }

@@ -1,6 +1,6 @@
 use crate::app::{
     AppState,
-    annotations::models::{NewAnnotationRequest, PatchAnnotationRequest},
+    annotations::models::{Annotation, NewAnnotationRequest, PatchAnnotationRequest},
     authentication::middleware::extract_token_middleware,
     authorization::{
         annotations::{can_read_annotation, can_update_annotation},
@@ -13,7 +13,6 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     middleware::from_fn_with_state,
-    response::IntoResponse,
     routing::{delete, get, patch, post},
 };
 
@@ -43,56 +42,51 @@ pub async fn add_annotation_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
     Json(annotation): Json<NewAnnotationRequest>,
-) -> Result<impl IntoResponse, ProsaError> {
-    let annotation_id = state
+) -> Result<String, ProsaError> {
+    state
         .controllers
         .annotation
         .add_annotation(&book_id, annotation)
-        .await?;
-    Ok(annotation_id)
+        .await
 }
 
 pub async fn get_annotation_handler(
     State(state): State<AppState>,
     Path((book_id, annotation_id)): Path<(String, String)>,
-) -> Result<impl IntoResponse, ProsaError> {
-    let annotation = state
+) -> Result<Json<Annotation>, ProsaError> {
+    state
         .controllers
         .annotation
         .get_annotation(&book_id, &annotation_id)
-        .await?;
-    Ok(Json(annotation))
+        .await
 }
 
 pub async fn list_annotation_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
-) -> Result<impl IntoResponse, ProsaError> {
-    let annotations = state.controllers.annotation.list_annotations(&book_id).await?;
-    Ok(Json(annotations))
+) -> Result<Json<Vec<String>>, ProsaError> {
+    state.controllers.annotation.list_annotations(&book_id).await
 }
 
 pub async fn delete_annotation_handler(
     State(state): State<AppState>,
     Path((book_id, annotation_id)): Path<(String, String)>,
-) -> Result<impl IntoResponse, ProsaError> {
+) -> Result<StatusCode, ProsaError> {
     state
         .controllers
         .annotation
         .delete_annotation(&book_id, &annotation_id)
-        .await?;
-    Ok((StatusCode::NO_CONTENT, ()))
+        .await
 }
 
 pub async fn patch_annotation_handler(
     State(state): State<AppState>,
     Path((book_id, annotation_id)): Path<(String, String)>,
     Json(request): Json<PatchAnnotationRequest>,
-) -> Result<impl IntoResponse, ProsaError> {
+) -> Result<StatusCode, ProsaError> {
     state
         .controllers
         .annotation
         .patch_annotation(&book_id, &annotation_id, request)
-        .await?;
-    Ok((StatusCode::NO_CONTENT, ()))
+        .await
 }

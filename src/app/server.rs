@@ -15,7 +15,7 @@ use crate::app::epubs::service::EpubService;
 use crate::app::metadata::controller::MetadataController;
 use crate::app::metadata::repository::MetadataRepository;
 use crate::app::metadata::service::MetadataService;
-use crate::app::shelves::handlers::ShelfController;
+use crate::app::shelves::controller::ShelfController;
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
 use axum::Router;

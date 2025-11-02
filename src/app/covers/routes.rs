@@ -10,7 +10,6 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     middleware::from_fn_with_state,
-    response::IntoResponse,
     routing::{delete, get, post, put},
 };
 
@@ -36,33 +35,29 @@ pub fn get_routes(state: AppState) -> Router {
 pub async fn get_cover_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
-) -> Result<impl IntoResponse, ProsaError> {
-    let cover = state.controllers.cover.get_cover(book_id).await?;
-    Ok(cover)
+) -> Result<Vec<u8>, ProsaError> {
+    state.controllers.cover.get_cover(book_id).await
 }
 
 pub async fn add_cover_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
     cover_data: Bytes,
-) -> Result<impl IntoResponse, ProsaError> {
-    state.controllers.cover.add_cover(book_id, cover_data).await?;
-    Ok(StatusCode::NO_CONTENT)
+) -> Result<StatusCode, ProsaError> {
+    state.controllers.cover.add_cover(book_id, cover_data).await
 }
 
 pub async fn delete_cover_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
-) -> Result<impl IntoResponse, ProsaError> {
-    state.controllers.cover.delete_cover(book_id).await?;
-    Ok(StatusCode::NO_CONTENT)
+) -> Result<StatusCode, ProsaError> {
+    state.controllers.cover.delete_cover(book_id).await
 }
 
 pub async fn update_cover_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
     cover_data: Bytes,
-) -> Result<impl IntoResponse, ProsaError> {
-    state.controllers.cover.update_cover(book_id, cover_data).await?;
-    Ok(StatusCode::NO_CONTENT)
+) -> Result<StatusCode, ProsaError> {
+    state.controllers.cover.update_cover(book_id, cover_data).await
 }

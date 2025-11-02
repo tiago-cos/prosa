@@ -1,3 +1,5 @@
+use axum::{Json, http::StatusCode};
+
 use super::models::{Book, BookError, UploadBoodRequest};
 use crate::app::{
     LockManager, MetadataManager,
@@ -52,7 +54,10 @@ impl BookController {
         Ok(epub)
     }
 
-    pub async fn get_book_file_metadata(&self, book_id: String) -> Result<BookFileMetadata, ProsaError> {
+    pub async fn get_book_file_metadata(
+        &self,
+        book_id: String,
+    ) -> Result<Json<BookFileMetadata>, ProsaError> {
         let lock = self.lock_manager.get_book_lock(&book_id).await;
         let _guard = lock.read().await;
 
@@ -64,7 +69,7 @@ impl BookController {
             file_size,
         };
 
-        Ok(metadata)
+        Ok(Json(metadata))
     }
 
     pub async fn upload_book(
@@ -119,39 +124,11 @@ impl BookController {
         Ok(book_id)
     }
 
-    pub async fn delete_book(&self, book_id: String, pool: &sqlx::SqlitePool) -> Result<(), ProsaError> {
-        let lock = self.lock_manager.get_book_lock(&book_id).await;
-        let _guard = lock.write().await;
-
-        let book = self.book_service.get_book(&book_id).await?;
-        self.book_service.delete_book(&book_id).await?;
-
-        if let Some(metadata_id) = book.metadata_id {
-            self.metadata_service.delete_metadata(&metadata_id).await?;
-        }
-
-        if !self.book_service.epub_is_in_use(&book.epub_id).await {
-            self.epub_service.delete_epub(&book.epub_id).await?;
-        }
-
-        let Some(cover_id) = book.cover_id else {
-            return Ok(());
-        };
-
-        sync::service::update_book_delete_timestamp(pool, &book.book_sync_id).await;
-
-        if !self.book_service.cover_is_in_use(&cover_id).await {
-            self.cover_service.delete_cover(&cover_id).await?;
-        }
-
-        Ok(())
-    }
-
     pub async fn search_books(
         &self,
         params: HashMap<String, String>,
         pool: &sqlx::SqlitePool,
-    ) -> Result<PaginatedBooks, ProsaError> {
+    ) -> Result<Json<PaginatedBooks>, ProsaError> {
         if let Some(username) = params.get("username") {
             users::service::get_user_by_username(pool, username).await?;
         }
@@ -179,6 +156,40 @@ impl BookController {
             )
             .await?;
 
-        Ok(books)
+        Ok(Json(books))
+    }
+
+    //TODO make better tests for syncing, possibly refactor syncing
+
+    pub async fn delete_book(
+        &self,
+        book_id: String,
+        pool: &sqlx::SqlitePool,
+    ) -> Result<StatusCode, ProsaError> {
+        let lock = self.lock_manager.get_book_lock(&book_id).await;
+        let _guard = lock.write().await;
+
+        let book = self.book_service.get_book(&book_id).await?;
+        self.book_service.delete_book(&book_id).await?;
+
+        if let Some(metadata_id) = book.metadata_id {
+            self.metadata_service.delete_metadata(&metadata_id).await?;
+        }
+
+        if !self.book_service.epub_is_in_use(&book.epub_id).await {
+            self.epub_service.delete_epub(&book.epub_id).await?;
+        }
+
+        sync::service::update_book_delete_timestamp(pool, &book.book_sync_id).await;
+
+        let Some(cover_id) = book.cover_id else {
+            return Ok(StatusCode::NO_CONTENT);
+        };
+
+        if !self.book_service.cover_is_in_use(&cover_id).await {
+            self.cover_service.delete_cover(&cover_id).await?;
+        }
+
+        Ok(StatusCode::NO_CONTENT)
     }
 }
