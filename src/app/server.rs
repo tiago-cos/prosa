@@ -19,6 +19,7 @@ use crate::app::shelves::controller::ShelfController;
 use crate::app::shelves::repository::ShelfRepository;
 use crate::app::shelves::service::ShelfService;
 use crate::app::state::controller::StateController;
+use crate::app::state::service::StateService;
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
 use axum::Router;
@@ -161,15 +162,6 @@ impl AppState {
             metadata_service.clone(),
         );
 
-        let book_controller = Arc::new(BookController::new(
-            book_service.clone(),
-            lock_manager.clone(),
-            metadata_manager.clone(),
-            epub_service.clone(),
-            cover_service.clone(),
-            metadata_service.clone(),
-        ));
-
         let metadata_controller = Arc::new(MetadataController::new(
             pool.clone(),
             lock_manager.clone(),
@@ -200,12 +192,27 @@ impl AppState {
             pool.clone(),
         ));
 
+        let state_service = Arc::new(StateService::new(
+            pool.clone(),
+            config.book_storage.epub_path.clone(),
+            cache.source_cache.clone(),
+            cache.tag_cache.clone(),
+        ));
         let state_controller = Arc::new(StateController::new(
             pool.clone(),
             lock_manager.clone(),
             book_service.clone(),
-            config.book_storage.epub_path.clone(),
-            cache.clone(),
+            state_service.clone(),
+        ));
+
+        let book_controller = Arc::new(BookController::new(
+            book_service.clone(),
+            lock_manager.clone(),
+            metadata_manager.clone(),
+            epub_service.clone(),
+            cover_service.clone(),
+            metadata_service.clone(),
+            state_service.clone(),
         ));
 
         let services = Services {

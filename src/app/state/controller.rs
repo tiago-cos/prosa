@@ -1,8 +1,8 @@
 use crate::app::{
-    Cache, LockManager,
+    LockManager,
     books::service::BookService,
     error::ProsaError,
-    state::{models::State, service},
+    state::{models::State, service::StateService},
     sync,
 };
 use axum::{Json, http::StatusCode};
@@ -13,8 +13,7 @@ pub struct StateController {
     pool: SqlitePool,
     lock_manager: LockManager,
     book_service: Arc<BookService>,
-    epub_path: String,
-    cache: Cache,
+    state_service: Arc<StateService>,
 }
 
 impl StateController {
@@ -22,15 +21,13 @@ impl StateController {
         pool: SqlitePool,
         lock_manager: LockManager,
         book_service: Arc<BookService>,
-        epub_path: String,
-        cache: Cache,
+        state_service: Arc<StateService>,
     ) -> Self {
         Self {
             pool,
             lock_manager,
             book_service,
-            epub_path,
-            cache,
+            state_service,
         }
     }
 
@@ -39,7 +36,7 @@ impl StateController {
         let _guard = lock.read().await;
 
         let book = self.book_service.get_book(&book_id).await?;
-        let state = service::get_state(&self.pool, &book.state_id).await;
+        let state = self.state_service.get_state(&book.state_id).await;
 
         Ok(Json(state))
     }
@@ -50,16 +47,9 @@ impl StateController {
 
         let book = self.book_service.get_book(&book_id).await?;
 
-        service::patch_state(
-            &self.pool,
-            &book.state_id,
-            &self.epub_path,
-            &book.epub_id,
-            &self.cache.source_cache,
-            &self.cache.tag_cache,
-            book_state,
-        )
-        .await?;
+        self.state_service
+            .patch_state(&book.state_id, &book.epub_id, book_state)
+            .await?;
 
         sync::service::update_state_timestamp(&self.pool, &book.book_sync_id).await;
 
@@ -72,16 +62,9 @@ impl StateController {
 
         let book = self.book_service.get_book(&book_id).await?;
 
-        service::update_state(
-            &self.pool,
-            &book.state_id,
-            &self.epub_path,
-            &book.epub_id,
-            &self.cache.source_cache,
-            &self.cache.tag_cache,
-            book_state,
-        )
-        .await?;
+        self.state_service
+            .update_state(&book.state_id, &book.epub_id, book_state)
+            .await?;
 
         sync::service::update_state_timestamp(&self.pool, &book.book_sync_id).await;
 

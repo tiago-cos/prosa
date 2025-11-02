@@ -12,7 +12,8 @@ use crate::app::{
     epubs::service::EpubService,
     error::ProsaError,
     metadata::service::MetadataService,
-    state, sync, users,
+    state::service::StateService,
+    sync, users,
 };
 use std::{collections::HashMap, sync::Arc};
 
@@ -23,6 +24,7 @@ pub struct BookController {
     epub_service: Arc<EpubService>,
     cover_service: Arc<CoverService>,
     metadata_service: Arc<MetadataService>,
+    state_service: Arc<StateService>,
 }
 
 impl BookController {
@@ -33,6 +35,7 @@ impl BookController {
         epub_service: Arc<EpubService>,
         cover_service: Arc<CoverService>,
         metadata_service: Arc<MetadataService>,
+        state_service: Arc<StateService>,
     ) -> Self {
         Self {
             book_service,
@@ -41,6 +44,7 @@ impl BookController {
             epub_service,
             cover_service,
             metadata_service,
+            state_service,
         }
     }
 
@@ -90,7 +94,7 @@ impl BookController {
             return Err(BookError::BookConflict.into());
         }
 
-        let state_id = state::service::initialize_state(pool).await;
+        let state_id = self.state_service.initialize_state().await;
         let book_sync_id = sync::service::initialize_book_sync(pool).await;
 
         let book = Book {
