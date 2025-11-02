@@ -19,6 +19,7 @@ use crate::app::shelves::controller::ShelfController;
 use crate::app::shelves::repository::ShelfRepository;
 use crate::app::shelves::service::ShelfService;
 use crate::app::state::controller::StateController;
+use crate::app::state::repository::StateRepository;
 use crate::app::state::service::StateService;
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
@@ -192,8 +193,9 @@ impl AppState {
             pool.clone(),
         ));
 
+        let state_repository = Arc::new(StateRepository::new(pool.clone()));
         let state_service = Arc::new(StateService::new(
-            pool.clone(),
+            state_repository.clone(),
             config.book_storage.epub_path.clone(),
             cache.source_cache.clone(),
             cache.tag_cache.clone(),

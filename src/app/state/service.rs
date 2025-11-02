@@ -1,17 +1,13 @@
-use super::{
-    data,
-    models::{Location, State, StateError, Statistics, VALID_READING_STATUS},
-};
-use crate::app::{SourceCache, TagCache, error::ProsaError};
+use super::models::{Location, State, StateError, Statistics, VALID_READING_STATUS};
+use crate::app::{SourceCache, TagCache, error::ProsaError, state::repository::StateRepository};
 use epub::doc::EpubDoc;
 use merge::Merge;
 use regex::Regex;
-use sqlx::SqlitePool;
 use std::{collections::HashSet, sync::Arc};
 use uuid::Uuid;
 
 pub struct StateService {
-    pool: SqlitePool,
+    state_repository: Arc<StateRepository>,
     epub_path: String,
     source_cache: Arc<SourceCache>,
     tag_cache: Arc<TagCache>,
@@ -19,13 +15,13 @@ pub struct StateService {
 
 impl StateService {
     pub fn new(
-        pool: SqlitePool,
+        state_repository: Arc<StateRepository>,
         epub_path: String,
         source_cache: Arc<SourceCache>,
         tag_cache: Arc<TagCache>,
     ) -> Self {
         Self {
-            pool,
+            state_repository,
             epub_path,
             source_cache,
             tag_cache,
@@ -42,12 +38,12 @@ impl StateService {
         };
         let state_id = Uuid::new_v4().to_string();
 
-        data::add_state(&self.pool, &state_id, initial_state).await;
+        self.state_repository.add_state(&state_id, initial_state).await;
         state_id
     }
 
     pub async fn get_state(&self, state_id: &str) -> State {
-        data::get_state(&self.pool, state_id).await
+        self.state_repository.get_state(state_id).await
     }
 
     pub async fn patch_state(
@@ -60,18 +56,18 @@ impl StateService {
             return Err(StateError::InvalidState.into());
         }
 
-        let original = data::get_state(&self.pool, state_id).await;
+        let original = self.state_repository.get_state(state_id).await;
         state.merge(original);
 
         self.validate_state(&state, epub_id)?;
-        data::update_state(&self.pool, state_id, state).await;
+        self.state_repository.update_state(state_id, state).await;
 
         Ok(())
     }
 
     pub async fn update_state(&self, state_id: &str, epub_id: &str, state: State) -> Result<(), ProsaError> {
         self.validate_state(&state, epub_id)?;
-        data::update_state(&self.pool, state_id, state).await;
+        self.state_repository.update_state(state_id, state).await;
 
         Ok(())
     }
