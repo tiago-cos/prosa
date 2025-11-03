@@ -14,7 +14,7 @@ axum_typed_multipart = "0.16.4"
 base64 = "0.22.1"
 chrono = { version = "0.4.42", features = ["serde"] }
 config = "0.15.18"
-epub = "2.1.4"
+epub = "2.1.5"
 goodreads-metadata-scraper = "0.2.4"
 image = "0.25.8"
 jsonwebtoken = { version = "10.1.0", default-features = false, features = ["aws_lc_rs"] }
