@@ -29,14 +29,14 @@ pub fn get_routes(state: AppState) -> Router {
         .with_state(state)
 }
 
-pub async fn get_state_handler(
+async fn get_state_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<Json<models::State>, ProsaError> {
     state.controllers.state.get_state(book_id).await
 }
 
-pub async fn patch_state_handler(
+async fn patch_state_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
     Json(book_state): Json<models::State>,
@@ -44,7 +44,7 @@ pub async fn patch_state_handler(
     state.controllers.state.patch_state(book_id, book_state).await
 }
 
-pub async fn update_state_handler(
+async fn update_state_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
     Json(book_state): Json<models::State>,
