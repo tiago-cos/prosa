@@ -4,7 +4,6 @@ use crate::app::{
     books::models::BookError,
     error::ProsaError,
     shelves::models::{AddBookToShelfRequest, CreateShelfRequest, ShelfBookError, ShelfError},
-    users,
 };
 use axum::{
     Extension, Json,
@@ -13,7 +12,6 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
-use sqlx::SqlitePool;
 use std::collections::HashMap;
 
 fn user_id_matches(user_id: &str, token: &AuthToken) -> bool {
@@ -115,7 +113,7 @@ pub async fn can_delete_shelf(
 pub async fn can_search_shelves(
     Extension(token): Extension<AuthToken>,
     Query(params): Query<HashMap<String, String>>,
-    State(pool): State<SqlitePool>,
+    State(state): State<AppState>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -131,7 +129,7 @@ pub async fn can_search_shelves(
         return Err(AuthError::Forbidden.into());
     };
 
-    let user_id = match users::service::get_user_by_username(&pool, username).await {
+    let user_id = match state.services.user.get_user_by_username(username).await {
         Ok(u) => u.user_id,
         _ => return Err(AuthError::Forbidden.into()),
     };

@@ -44,14 +44,14 @@ async fn upload_book_handler(
     State(state): State<AppState>,
     TypedMultipart(data): TypedMultipart<UploadBoodRequest>,
 ) -> Result<String, ProsaError> {
-    state.controllers.book.upload_book(token, data, &state.pool).await
+    state.controllers.book.upload_book(token, data).await
 }
 
 async fn search_books_handler(
     State(state): State<AppState>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<PaginatedBooks>, ProsaError> {
-    state.controllers.book.search_books(params, &state.pool).await
+    state.controllers.book.search_books(params).await
 }
 
 async fn download_book_handler(

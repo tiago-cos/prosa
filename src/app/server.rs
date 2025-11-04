@@ -25,6 +25,7 @@ use crate::app::sync::controller::SyncController;
 use crate::app::sync::repository::SyncRepository;
 use crate::app::sync::service::SyncService;
 use crate::app::users::controller::UserController;
+use crate::app::users::service::UserService;
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
 use axum::Router;
@@ -104,6 +105,7 @@ pub struct Services {
     pub book: Arc<BookService>,
     pub shelf: Arc<ShelfService>,
     pub authentication: Arc<AuthenticationService>,
+    pub user: Arc<UserService>,
 }
 
 impl AppState {
@@ -171,13 +173,15 @@ impl AppState {
             sync_service.clone(),
         );
 
+        let user_service = Arc::new(UserService::new(pool.clone()));
+
         let metadata_controller = Arc::new(MetadataController::new(
-            pool.clone(),
             lock_manager.clone(),
             book_service.clone(),
             metadata_service.clone(),
             metadata_manager.clone(),
             sync_service.clone(),
+            user_service.clone(),
         ));
 
         let authentication_repository = Arc::new(AuthenticationRepository::new(pool.clone()));
@@ -196,11 +200,10 @@ impl AppState {
         let shelf_repository = Arc::new(ShelfRepository::new(pool.clone()));
         let shelf_service = Arc::new(ShelfService::new(shelf_repository.clone(), book_service.clone()));
         let shelf_controller = Arc::new(ShelfController::new(
-            book_service.clone(),
             shelf_service.clone(),
             lock_manager.clone(),
-            pool.clone(),
             sync_service.clone(),
+            user_service.clone(),
         ));
 
         let state_repository = Arc::new(StateRepository::new(pool.clone()));
@@ -226,20 +229,23 @@ impl AppState {
             metadata_service.clone(),
             state_service.clone(),
             sync_service.clone(),
+            user_service.clone(),
         ));
 
+        let user_service = Arc::new(UserService::new(pool.clone()));
         let sync_controller = Arc::new(SyncController::new(sync_service.clone()));
         let user_controller = Arc::new(UserController::new(
-            pool.clone(),
             &config.auth.admin_key,
             config.auth.allow_user_registration,
             authentication_service.clone(),
+            user_service.clone(),
         ));
 
         let services = Services {
             book: book_service,
             shelf: shelf_service,
             authentication: authentication_service,
+            user: user_service,
         };
         let controllers = Controllers {
             book: book_controller,

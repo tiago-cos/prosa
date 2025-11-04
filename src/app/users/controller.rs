@@ -1,41 +1,40 @@
-use super::{
-    models::{
-        CreateApiKeyRequest, CreateApiKeyResponse, GetApiKeyResponse, LoginUserRequest, Preferences,
-        RegisterUserRequest, UserError,
-    },
-    service,
+use super::models::{
+    CreateApiKeyRequest, CreateApiKeyResponse, GetApiKeyResponse, LoginUserRequest, Preferences,
+    RegisterUserRequest, UserError,
 };
 use crate::app::{
     authentication::service::AuthenticationService,
     error::ProsaError,
-    users::models::{AuthenticationResponse, RefreshTokenRequest, UserProfile},
+    users::{
+        models::{AuthenticationResponse, RefreshTokenRequest, UserProfile},
+        service::UserService,
+    },
 };
 use axum::{
     Json,
     http::{HeaderMap, StatusCode},
 };
-use sqlx::SqlitePool;
 use std::sync::Arc;
 
 pub struct UserController {
-    pool: SqlitePool,
     admin_key: String,
     allowed_registration: bool,
     authentication_service: Arc<AuthenticationService>,
+    user_service: Arc<UserService>,
 }
 
 impl UserController {
     pub fn new(
-        pool: SqlitePool,
         admin_key: &str,
         allowed_registration: bool,
         authentication_service: Arc<AuthenticationService>,
+        user_service: Arc<UserService>,
     ) -> Self {
         Self {
-            pool,
             admin_key: admin_key.to_owned(),
             allowed_registration,
             authentication_service,
+            user_service,
         }
     }
 
@@ -52,10 +51,11 @@ impl UserController {
             _ => return Err(UserError::InvalidCredentials.into()),
         }
 
-        let user_id = service::register_user(&self.pool, &body.username, &body.password, body.admin).await?;
-
+        let user_id = self
+            .user_service
+            .register_user(&body.username, &body.password, body.admin)
+            .await?;
         let jwt_token = self.authentication_service.generate_jwt(&user_id, body.admin);
-
         let refresh_token = self.authentication_service.generate_refresh_token(&user_id).await;
 
         let response = AuthenticationResponse {
@@ -71,7 +71,10 @@ impl UserController {
         &self,
         body: LoginUserRequest,
     ) -> Result<Json<AuthenticationResponse>, ProsaError> {
-        let user = service::login_user(&self.pool, &body.username, &body.password).await?;
+        let user = self
+            .user_service
+            .login_user(&body.username, &body.password)
+            .await?;
 
         let jwt_token = self
             .authentication_service
@@ -108,7 +111,7 @@ impl UserController {
             .renew_refresh_token(&body.refresh_token)
             .await?;
 
-        let user = service::get_user(&self.pool, &refresh_token.user_id).await?;
+        let user = self.user_service.get_user(&refresh_token.user_id).await?;
 
         let jwt_token = self
             .authentication_service
@@ -141,7 +144,10 @@ impl UserController {
         user_id: String,
         key_id: String,
     ) -> Result<Json<GetApiKeyResponse>, ProsaError> {
-        let key = service::get_api_key_information(&self.pool, &user_id, &key_id).await?;
+        let key = self
+            .user_service
+            .get_api_key_information(&user_id, &key_id)
+            .await?;
         let response = GetApiKeyResponse {
             name: key.name,
             capabilities: key.capabilities,
@@ -152,7 +158,7 @@ impl UserController {
     }
 
     pub async fn list_api_keys(&self, user_id: String) -> Result<Json<Vec<String>>, ProsaError> {
-        let keys = service::list_api_keys(&self.pool, &user_id).await?;
+        let keys = self.user_service.list_api_keys(&user_id).await?;
         Ok(Json(keys))
     }
 
@@ -165,7 +171,7 @@ impl UserController {
     }
 
     pub async fn get_preferences(&self, user_id: String) -> Result<Json<Preferences>, ProsaError> {
-        let preferences = service::get_preferences(&self.pool, &user_id).await?;
+        let preferences = self.user_service.get_preferences(&user_id).await?;
         Ok(Json(preferences))
     }
 
@@ -174,7 +180,7 @@ impl UserController {
         user_id: String,
         body: Preferences,
     ) -> Result<StatusCode, ProsaError> {
-        service::update_preferences(&self.pool, &user_id, body).await?;
+        self.user_service.update_preferences(&user_id, body).await?;
         Ok(StatusCode::NO_CONTENT)
     }
 
@@ -183,12 +189,12 @@ impl UserController {
         user_id: String,
         body: Preferences,
     ) -> Result<StatusCode, ProsaError> {
-        service::patch_preferences(&self.pool, &user_id, body).await?;
+        self.user_service.patch_preferences(&user_id, body).await?;
         Ok(StatusCode::NO_CONTENT)
     }
 
     pub async fn get_user_profile(&self, user_id: String) -> Result<Json<UserProfile>, ProsaError> {
-        let profile = service::get_user_profile(&self.pool, &user_id).await?;
+        let profile = self.user_service.get_user_profile(&user_id).await?;
         Ok(Json(profile))
     }
 
@@ -197,7 +203,7 @@ impl UserController {
         user_id: String,
         body: UserProfile,
     ) -> Result<StatusCode, ProsaError> {
-        service::update_user_profile(&self.pool, &user_id, body).await?;
+        self.user_service.update_user_profile(&user_id, body).await?;
         Ok(StatusCode::NO_CONTENT)
     }
 }

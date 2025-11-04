@@ -1,43 +1,42 @@
-use axum::Json;
-use axum::http::StatusCode;
-use sqlx::SqlitePool;
-use std::collections::HashMap;
-use std::sync::Arc;
-
 use crate::app::books::service::BookService;
 use crate::app::error::ProsaError;
 use crate::app::metadata::models::{Metadata, MetadataError, MetadataFetchRequest};
 use crate::app::metadata::service::MetadataService;
 use crate::app::sync::service::SyncService;
 use crate::app::users::models::{PreferencesError, VALID_PROVIDERS};
-use crate::app::{LockManager, MetadataManager, users};
+use crate::app::users::service::UserService;
+use crate::app::{LockManager, MetadataManager};
 use crate::metadata_manager::MetadataRequest;
+use axum::Json;
+use axum::http::StatusCode;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 pub struct MetadataController {
-    pool: SqlitePool,
     lock_manager: LockManager,
     book_service: Arc<BookService>,
     metadata_service: Arc<MetadataService>,
     metadata_manager: MetadataManager,
     sync_service: Arc<SyncService>,
+    user_service: Arc<UserService>,
 }
 
 impl MetadataController {
     pub fn new(
-        pool: SqlitePool,
         lock_manager: LockManager,
         book_service: Arc<BookService>,
         metadata_service: Arc<MetadataService>,
         metadata_manager: MetadataManager,
         sync_service: Arc<SyncService>,
+        user_service: Arc<UserService>,
     ) -> Self {
         Self {
-            pool,
             lock_manager,
             book_service,
             metadata_service,
             metadata_manager,
             sync_service,
+            user_service,
         }
     }
 
@@ -153,7 +152,9 @@ impl MetadataController {
 
         let providers = match request.metadata_providers {
             Some(p) => p,
-            None => users::service::get_preferences(&self.pool, &book.owner_id)
+            None => self
+                .user_service
+                .get_preferences(&book.owner_id)
                 .await?
                 .metadata_providers
                 .expect("Providers should be present"),

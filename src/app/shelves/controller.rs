@@ -1,6 +1,6 @@
-use crate::app::books::service::BookService;
 use crate::app::shelves::service::ShelfService;
 use crate::app::sync::service::SyncService;
+use crate::app::users::service::UserService;
 use crate::app::{
     LockManager,
     authentication::models::AuthToken,
@@ -9,34 +9,29 @@ use crate::app::{
         AddBookToShelfRequest, CreateShelfRequest, PaginatedShelves, Shelf, ShelfError, ShelfMetadata,
         UpdateShelfRequest,
     },
-    users,
 };
 use axum::{Json, http::StatusCode};
-use sqlx::SqlitePool;
 use std::{collections::HashMap, sync::Arc};
 
 pub struct ShelfController {
-    pub book_service: Arc<BookService>,
-    pub shelf_service: Arc<ShelfService>,
-    pub lock_manager: LockManager,
-    pub pool: SqlitePool,
+    shelf_service: Arc<ShelfService>,
+    lock_manager: LockManager,
     sync_service: Arc<SyncService>,
+    user_service: Arc<UserService>,
 }
 
 impl ShelfController {
     pub fn new(
-        book_service: Arc<BookService>,
         shelf_service: Arc<ShelfService>,
         lock_manager: LockManager,
-        pool: SqlitePool,
         sync_service: Arc<SyncService>,
+        user_service: Arc<UserService>,
     ) -> Self {
         Self {
-            book_service,
             shelf_service,
             lock_manager,
-            pool,
             sync_service,
+            user_service,
         }
     }
 
@@ -50,7 +45,7 @@ impl ShelfController {
             None => token.role.get_user(),
         };
 
-        users::service::get_user(&self.pool, owner_id).await?;
+        self.user_service.get_user(owner_id).await?;
 
         //TODO don't forget, can make it so that the route wrapper just calls state, check shelf router
         //TODO this logic should be done is service
@@ -117,7 +112,7 @@ impl ShelfController {
         query_params: HashMap<String, String>,
     ) -> Result<Json<PaginatedShelves>, ProsaError> {
         if let Some(username) = query_params.get("username") {
-            users::service::get_user_by_username(&self.pool, username).await?;
+            self.user_service.get_user_by_username(username).await?;
         }
 
         let page = query_params.get("page").map(|t| t.parse::<i64>());

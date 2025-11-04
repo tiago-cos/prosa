@@ -14,7 +14,7 @@ use crate::app::{
     metadata::service::MetadataService,
     state::service::StateService,
     sync::service::SyncService,
-    users,
+    users::service::UserService,
 };
 use std::{collections::HashMap, sync::Arc};
 
@@ -27,6 +27,7 @@ pub struct BookController {
     metadata_service: Arc<MetadataService>,
     state_service: Arc<StateService>,
     sync_service: Arc<SyncService>,
+    user_service: Arc<UserService>,
 }
 
 impl BookController {
@@ -39,6 +40,7 @@ impl BookController {
         metadata_service: Arc<MetadataService>,
         state_service: Arc<StateService>,
         sync_service: Arc<SyncService>,
+        user_service: Arc<UserService>,
     ) -> Self {
         Self {
             book_service,
@@ -49,6 +51,7 @@ impl BookController {
             metadata_service,
             state_service,
             sync_service,
+            user_service,
         }
     }
 
@@ -80,18 +83,13 @@ impl BookController {
         Ok(Json(metadata))
     }
 
-    pub async fn upload_book(
-        &self,
-        token: AuthToken,
-        data: UploadBoodRequest,
-        pool: &sqlx::SqlitePool,
-    ) -> Result<String, ProsaError> {
+    pub async fn upload_book(&self, token: AuthToken, data: UploadBoodRequest) -> Result<String, ProsaError> {
         let owner_id = match data.owner_id.as_deref() {
             Some(id) => id,
             None => token.role.get_user(),
         };
 
-        let preferences = users::service::get_preferences(pool, owner_id).await?;
+        let preferences = self.user_service.get_preferences(owner_id).await?;
         let epub_id = self.epub_service.write_epub(&data.epub.to_vec()).await?;
 
         if self.book_service.epub_is_in_use_by_user(&epub_id, owner_id).await {
@@ -135,10 +133,9 @@ impl BookController {
     pub async fn search_books(
         &self,
         params: HashMap<String, String>,
-        pool: &sqlx::SqlitePool,
     ) -> Result<Json<PaginatedBooks>, ProsaError> {
         if let Some(username) = params.get("username") {
-            users::service::get_user_by_username(pool, username).await?;
+            self.user_service.get_user_by_username(username).await?;
         }
 
         let page = match params.get("page").map(|t| t.parse::<i64>()) {
