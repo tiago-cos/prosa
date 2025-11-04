@@ -32,14 +32,14 @@ pub fn get_routes(state: AppState) -> Router {
         .with_state(state)
 }
 
-pub async fn get_cover_handler(
+async fn get_cover_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<Vec<u8>, ProsaError> {
     state.controllers.cover.get_cover(book_id).await
 }
 
-pub async fn add_cover_handler(
+async fn add_cover_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
     cover_data: Bytes,
@@ -47,14 +47,14 @@ pub async fn add_cover_handler(
     state.controllers.cover.add_cover(book_id, cover_data).await
 }
 
-pub async fn delete_cover_handler(
+async fn delete_cover_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<StatusCode, ProsaError> {
     state.controllers.cover.delete_cover(book_id).await
 }
 
-pub async fn update_cover_handler(
+async fn update_cover_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
     cover_data: Bytes,

@@ -10,11 +10,10 @@ use crate::app::{
         models::{Metadata, MetadataError},
         service::MetadataService,
     },
-    sync,
+    sync::service::SyncService,
 };
 use log::warn;
 use serde::Serialize;
-use sqlx::SqlitePool;
 use std::{collections::VecDeque, sync::Arc};
 use tokio::sync::{Mutex, Notify, RwLock};
 
@@ -28,35 +27,35 @@ pub struct MetadataRequest {
 pub struct MetadataManager {
     fetcher: Mutex<MetadataFetcher>,
     books: Arc<BookService>,
-    pool: SqlitePool,
     lock_manager: Arc<ProsaLockManager>,
     queue: RwLock<VecDeque<MetadataRequest>>,
     notify: Notify,
     epub_service: Arc<EpubService>,
     cover_service: Arc<CoverService>,
     metadata_service: Arc<MetadataService>,
+    sync_service: Arc<SyncService>,
 }
 
 impl MetadataManager {
     pub fn new(
-        pool: SqlitePool,
         books: Arc<BookService>,
         lock_manager: Arc<ProsaLockManager>,
         config: &Config,
         epub_service: Arc<EpubService>,
         cover_service: Arc<CoverService>,
         metadata_service: Arc<MetadataService>,
+        sync_service: Arc<SyncService>,
     ) -> Arc<Self> {
         let manager = Self {
             fetcher: Mutex::new(MetadataFetcher::new(config)),
             books,
-            pool,
             lock_manager,
             queue: RwLock::new(VecDeque::new()),
             notify: Notify::new(),
             epub_service,
             cover_service,
             metadata_service,
+            sync_service,
         };
         let manager = Arc::new(manager);
 
@@ -176,7 +175,9 @@ impl MetadataManager {
             .update_metadata(metadata_id, metadata)
             .await?;
 
-        sync::service::update_book_metadata_timestamp(&self.pool, &book_sync_id).await;
+        self.sync_service
+            .update_book_metadata_timestamp(&book_sync_id)
+            .await;
 
         Ok(())
     }
@@ -188,7 +189,9 @@ impl MetadataManager {
         book.metadata_id = Some(metadata_id);
         self.books.update_book(book_id, &book).await?;
 
-        sync::service::update_book_metadata_timestamp(&self.pool, &book_sync_id).await;
+        self.sync_service
+            .update_book_metadata_timestamp(&book_sync_id)
+            .await;
 
         Ok(())
     }
@@ -207,7 +210,7 @@ impl MetadataManager {
             self.cover_service.delete_cover(&old_cover_id).await?;
         }
 
-        sync::service::update_cover_timestamp(&self.pool, &book_sync_id).await;
+        self.sync_service.update_cover_timestamp(&book_sync_id).await;
 
         Ok(())
     }
@@ -219,7 +222,7 @@ impl MetadataManager {
         book.cover_id = Some(cover_id);
         self.books.update_book(book_id, &book).await?;
 
-        sync::service::update_cover_timestamp(&self.pool, &book_sync_id).await;
+        self.sync_service.update_cover_timestamp(&book_sync_id).await;
 
         Ok(())
     }

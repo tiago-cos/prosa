@@ -51,7 +51,7 @@ pub fn get_routes(state: AppState) -> Router {
         .with_state(state)
 }
 
-pub async fn add_shelf_handler(
+async fn add_shelf_handler(
     Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     Json(request): Json<CreateShelfRequest>,
@@ -59,14 +59,14 @@ pub async fn add_shelf_handler(
     state.controllers.shelf.add_shelf(token, request).await
 }
 
-pub async fn get_shelf_metadata_handler(
+async fn get_shelf_metadata_handler(
     State(state): State<AppState>,
     Path(shelf_id): Path<String>,
 ) -> Result<Json<ShelfMetadata>, ProsaError> {
     state.controllers.shelf.get_shelf_metadata(&shelf_id).await
 }
 
-pub async fn update_shelf_handler(
+async fn update_shelf_handler(
     State(state): State<AppState>,
     Path(shelf_id): Path<String>,
     Json(request): Json<UpdateShelfRequest>,
@@ -74,21 +74,21 @@ pub async fn update_shelf_handler(
     state.controllers.shelf.update_shelf(&shelf_id, request).await
 }
 
-pub async fn delete_shelf_handler(
+async fn delete_shelf_handler(
     State(state): State<AppState>,
     Path(shelf_id): Path<String>,
 ) -> Result<StatusCode, ProsaError> {
     state.controllers.shelf.delete_shelf(&shelf_id).await
 }
 
-pub async fn search_shelves_handler(
+async fn search_shelves_handler(
     State(state): State<AppState>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<PaginatedShelves>, ProsaError> {
     state.controllers.shelf.search_shelves(params).await
 }
 
-pub async fn add_book_to_shelf_handler(
+async fn add_book_to_shelf_handler(
     State(state): State<AppState>,
     Path(shelf_id): Path<String>,
     Json(request): Json<AddBookToShelfRequest>,
@@ -100,14 +100,14 @@ pub async fn add_book_to_shelf_handler(
         .await
 }
 
-pub async fn list_books_in_shelf_handler(
+async fn list_books_in_shelf_handler(
     State(state): State<AppState>,
     Path(shelf_id): Path<String>,
 ) -> Result<Json<Vec<String>>, ProsaError> {
     state.controllers.shelf.list_books_in_shelf(&shelf_id).await
 }
 
-pub async fn remove_book_from_shelf_handler(
+async fn remove_book_from_shelf_handler(
     State(state): State<AppState>,
     Path((shelf_id, book_id)): Path<(String, String)>,
 ) -> Result<StatusCode, ProsaError> {

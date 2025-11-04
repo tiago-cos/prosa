@@ -3,31 +3,30 @@ use crate::app::{
     books::service::BookService,
     error::ProsaError,
     state::{models::State, service::StateService},
-    sync,
+    sync::service::SyncService,
 };
 use axum::{Json, http::StatusCode};
-use sqlx::SqlitePool;
 use std::sync::Arc;
 
 pub struct StateController {
-    pool: SqlitePool,
     lock_manager: LockManager,
     book_service: Arc<BookService>,
     state_service: Arc<StateService>,
+    sync_service: Arc<SyncService>,
 }
 
 impl StateController {
     pub fn new(
-        pool: SqlitePool,
         lock_manager: LockManager,
         book_service: Arc<BookService>,
         state_service: Arc<StateService>,
+        sync_service: Arc<SyncService>,
     ) -> Self {
         Self {
-            pool,
             lock_manager,
             book_service,
             state_service,
+            sync_service,
         }
     }
 
@@ -51,7 +50,7 @@ impl StateController {
             .patch_state(&book.state_id, &book.epub_id, book_state)
             .await?;
 
-        sync::service::update_state_timestamp(&self.pool, &book.book_sync_id).await;
+        self.sync_service.update_state_timestamp(&book.book_sync_id).await;
 
         Ok(StatusCode::NO_CONTENT)
     }
@@ -66,7 +65,7 @@ impl StateController {
             .update_state(&book.state_id, &book.epub_id, book_state)
             .await?;
 
-        sync::service::update_state_timestamp(&self.pool, &book.book_sync_id).await;
+        self.sync_service.update_state_timestamp(&book.book_sync_id).await;
 
         Ok(StatusCode::NO_CONTENT)
     }

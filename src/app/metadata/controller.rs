@@ -8,8 +8,9 @@ use crate::app::books::service::BookService;
 use crate::app::error::ProsaError;
 use crate::app::metadata::models::{Metadata, MetadataError, MetadataFetchRequest};
 use crate::app::metadata::service::MetadataService;
+use crate::app::sync::service::SyncService;
 use crate::app::users::models::{PreferencesError, VALID_PROVIDERS};
-use crate::app::{LockManager, MetadataManager, sync, users};
+use crate::app::{LockManager, MetadataManager, users};
 use crate::metadata_manager::MetadataRequest;
 
 pub struct MetadataController {
@@ -18,6 +19,7 @@ pub struct MetadataController {
     book_service: Arc<BookService>,
     metadata_service: Arc<MetadataService>,
     metadata_manager: MetadataManager,
+    sync_service: Arc<SyncService>,
 }
 
 impl MetadataController {
@@ -27,6 +29,7 @@ impl MetadataController {
         book_service: Arc<BookService>,
         metadata_service: Arc<MetadataService>,
         metadata_manager: MetadataManager,
+        sync_service: Arc<SyncService>,
     ) -> Self {
         Self {
             pool,
@@ -34,6 +37,7 @@ impl MetadataController {
             book_service,
             metadata_service,
             metadata_manager,
+            sync_service,
         }
     }
 
@@ -66,7 +70,9 @@ impl MetadataController {
         book.metadata_id = Some(metadata_id);
         self.book_service.update_book(&book_id, &book).await?;
 
-        sync::service::update_book_metadata_timestamp(&self.pool, &book_sync_id).await;
+        self.sync_service
+            .update_book_metadata_timestamp(&book_sync_id)
+            .await;
 
         Ok(StatusCode::NO_CONTENT)
     }
@@ -82,7 +88,9 @@ impl MetadataController {
         };
 
         self.metadata_service.delete_metadata(&metadata_id).await?;
-        sync::service::update_book_metadata_timestamp(&self.pool, &book.book_sync_id).await;
+        self.sync_service
+            .update_book_metadata_timestamp(&book.book_sync_id)
+            .await;
 
         Ok(StatusCode::NO_CONTENT)
     }
@@ -105,7 +113,9 @@ impl MetadataController {
         self.metadata_service
             .patch_metadata(&metadata_id, metadata)
             .await?;
-        sync::service::update_book_metadata_timestamp(&self.pool, &book_sync_id).await;
+        self.sync_service
+            .update_book_metadata_timestamp(&book_sync_id)
+            .await;
 
         Ok(StatusCode::NO_CONTENT)
     }
@@ -128,7 +138,9 @@ impl MetadataController {
         self.metadata_service
             .update_metadata(&metadata_id, metadata)
             .await?;
-        sync::service::update_book_metadata_timestamp(&self.pool, &book_sync_id).await;
+        self.sync_service
+            .update_book_metadata_timestamp(&book_sync_id)
+            .await;
 
         Ok(StatusCode::NO_CONTENT)
     }

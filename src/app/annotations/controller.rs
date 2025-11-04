@@ -2,32 +2,32 @@ use super::models::{NewAnnotationRequest, PatchAnnotationRequest};
 use crate::app::annotations::models::Annotation;
 use crate::app::annotations::service::AnnotationService;
 use crate::app::books::service::BookService;
+use crate::app::concurrency::manager::ProsaLockManager;
 use crate::app::error::ProsaError;
-use crate::app::{concurrency::manager::ProsaLockManager, sync};
+use crate::app::sync::service::SyncService;
 use axum::Json;
 use axum::http::StatusCode;
-use sqlx::SqlitePool;
 use std::sync::Arc;
 
 pub struct AnnotationController {
-    pool: SqlitePool,
     lock_manager: Arc<ProsaLockManager>,
     book_service: Arc<BookService>,
     annotation_service: Arc<AnnotationService>,
+    sync_service: Arc<SyncService>,
 }
 
 impl AnnotationController {
     pub fn new(
-        pool: SqlitePool,
         lock_manager: Arc<ProsaLockManager>,
         book_service: Arc<BookService>,
         annotation_service: Arc<AnnotationService>,
+        sync_service: Arc<SyncService>,
     ) -> Self {
         Self {
-            pool,
             lock_manager,
             book_service,
             annotation_service,
+            sync_service,
         }
     }
 
@@ -46,7 +46,9 @@ impl AnnotationController {
             .add_annotation(book_id, annotation)
             .await?;
 
-        sync::service::update_annotations_timestamp(&self.pool, &book.book_sync_id).await;
+        self.sync_service
+            .update_annotations_timestamp(&book.book_sync_id)
+            .await;
 
         Ok(annotation_id)
     }
@@ -86,7 +88,9 @@ impl AnnotationController {
         let book = self.book_service.get_book(book_id).await?;
         self.annotation_service.delete_annotation(annotation_id).await?;
 
-        sync::service::update_annotations_timestamp(&self.pool, &book.book_sync_id).await;
+        self.sync_service
+            .update_annotations_timestamp(&book.book_sync_id)
+            .await;
 
         Ok(StatusCode::NO_CONTENT)
     }
@@ -105,7 +109,9 @@ impl AnnotationController {
             .patch_annotation(annotation_id, request.note)
             .await?;
 
-        sync::service::update_annotations_timestamp(&self.pool, &book.book_sync_id).await;
+        self.sync_service
+            .update_annotations_timestamp(&book.book_sync_id)
+            .await;
 
         Ok(StatusCode::NO_CONTENT)
     }

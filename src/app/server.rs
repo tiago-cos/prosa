@@ -22,6 +22,7 @@ use crate::app::state::controller::StateController;
 use crate::app::state::repository::StateRepository;
 use crate::app::state::service::StateService;
 use crate::app::sync::controller::SyncController;
+use crate::app::sync::service::SyncService;
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
 use axum::Router;
@@ -114,6 +115,7 @@ impl AppState {
             tag_length_cache: Arc::new(QuickCache::new(100000)),
         };
 
+        let sync_service = Arc::new(SyncService::new(pool.clone()));
         let epub_repository = Arc::new(EpubRepository::new(pool.clone()));
         let epub_service = Arc::new(EpubService::new(
             epub_repository,
@@ -131,10 +133,10 @@ impl AppState {
             cover_repository,
         ));
         let cover_controller = Arc::new(CoverController::new(
-            pool.clone(),
             lock_manager.clone(),
             book_service.clone(),
             cover_service.clone(),
+            sync_service.clone(),
         ));
         let annotation_repository = Arc::new(AnnotationRepository::new(pool.clone()));
         let annotation_service = Arc::new(AnnotationService::new(
@@ -146,23 +148,23 @@ impl AppState {
             annotation_repository.clone(),
         ));
         let annotation_controller = Arc::new(AnnotationController::new(
-            pool.clone(),
             lock_manager.clone(),
             book_service.clone(),
             annotation_service.clone(),
+            sync_service.clone(),
         ));
 
         let metadata_repository = Arc::new(MetadataRepository::new(pool.clone()));
         let metadata_service = Arc::new(MetadataService::new(metadata_repository.clone()));
 
         let metadata_manager = metadata_manager::MetadataManager::new(
-            pool.clone(),
             book_service.clone(),
             lock_manager.clone(),
             &config,
             epub_service.clone(),
             cover_service.clone(),
             metadata_service.clone(),
+            sync_service.clone(),
         );
 
         let metadata_controller = Arc::new(MetadataController::new(
@@ -171,6 +173,7 @@ impl AppState {
             book_service.clone(),
             metadata_service.clone(),
             metadata_manager.clone(),
+            sync_service.clone(),
         ));
 
         let authentication_repository = Arc::new(AuthenticationRepository::new(pool.clone()));
@@ -193,6 +196,7 @@ impl AppState {
             shelf_service.clone(),
             lock_manager.clone(),
             pool.clone(),
+            sync_service.clone(),
         ));
 
         let state_repository = Arc::new(StateRepository::new(pool.clone()));
@@ -203,10 +207,10 @@ impl AppState {
             cache.tag_cache.clone(),
         ));
         let state_controller = Arc::new(StateController::new(
-            pool.clone(),
             lock_manager.clone(),
             book_service.clone(),
             state_service.clone(),
+            sync_service.clone(),
         ));
 
         let book_controller = Arc::new(BookController::new(
@@ -217,9 +221,10 @@ impl AppState {
             cover_service.clone(),
             metadata_service.clone(),
             state_service.clone(),
+            sync_service.clone(),
         ));
 
-        let sync_controller = Arc::new(SyncController::new(pool.clone()));
+        let sync_controller = Arc::new(SyncController::new(sync_service.clone()));
 
         let services = Services {
             book: book_service,

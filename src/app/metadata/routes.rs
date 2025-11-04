@@ -48,14 +48,14 @@ pub fn get_routes(state: AppState) -> Router {
         .with_state(state)
 }
 
-pub async fn get_metadata_handler(
+async fn get_metadata_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<Json<Metadata>, ProsaError> {
     state.controllers.metadata.get_metadata(book_id).await
 }
 
-pub async fn add_metadata_handler(
+async fn add_metadata_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
     Json(metadata): Json<Metadata>,
@@ -63,14 +63,14 @@ pub async fn add_metadata_handler(
     state.controllers.metadata.add_metadata(book_id, metadata).await
 }
 
-pub async fn delete_metadata_handler(
+async fn delete_metadata_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<StatusCode, ProsaError> {
     state.controllers.metadata.delete_metadata(book_id).await
 }
 
-pub async fn patch_metadata_handler(
+async fn patch_metadata_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
     Json(metadata): Json<Metadata>,
@@ -78,7 +78,7 @@ pub async fn patch_metadata_handler(
     state.controllers.metadata.patch_metadata(book_id, metadata).await
 }
 
-pub async fn update_metadata_handler(
+async fn update_metadata_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
     Json(metadata): Json<Metadata>,
@@ -90,14 +90,14 @@ pub async fn update_metadata_handler(
         .await
 }
 
-pub async fn add_metadata_request_handler(
+async fn add_metadata_request_handler(
     State(state): State<AppState>,
     Json(request): Json<MetadataFetchRequest>,
 ) -> Result<StatusCode, ProsaError> {
     state.controllers.metadata.add_metadata_request(request).await
 }
 
-pub async fn list_metadata_requests_handler(
+async fn list_metadata_requests_handler(
     State(state): State<AppState>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<Vec<MetadataRequest>>, ProsaError> {

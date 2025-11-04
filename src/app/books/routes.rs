@@ -39,7 +39,7 @@ pub fn get_routes(state: AppState) -> Router {
         .with_state(state)
 }
 
-pub async fn upload_book_handler(
+async fn upload_book_handler(
     Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     TypedMultipart(data): TypedMultipart<UploadBoodRequest>,
@@ -47,28 +47,28 @@ pub async fn upload_book_handler(
     state.controllers.book.upload_book(token, data, &state.pool).await
 }
 
-pub async fn search_books_handler(
+async fn search_books_handler(
     State(state): State<AppState>,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<PaginatedBooks>, ProsaError> {
     state.controllers.book.search_books(params, &state.pool).await
 }
 
-pub async fn download_book_handler(
+async fn download_book_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<Vec<u8>, ProsaError> {
     state.controllers.book.download_book(book_id).await
 }
 
-pub async fn delete_book_handler(
+async fn delete_book_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<StatusCode, ProsaError> {
-    state.controllers.book.delete_book(book_id, &state.pool).await
+    state.controllers.book.delete_book(book_id).await
 }
 
-pub async fn get_book_file_metadata_handler(
+async fn get_book_file_metadata_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<Json<BookFileMetadata>, ProsaError> {

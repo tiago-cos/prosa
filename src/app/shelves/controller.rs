@@ -1,6 +1,6 @@
 use crate::app::books::service::BookService;
 use crate::app::shelves::service::ShelfService;
-use crate::app::sync::service as sync_service;
+use crate::app::sync::service::SyncService;
 use crate::app::{
     LockManager,
     authentication::models::AuthToken,
@@ -9,7 +9,7 @@ use crate::app::{
         AddBookToShelfRequest, CreateShelfRequest, PaginatedShelves, Shelf, ShelfError, ShelfMetadata,
         UpdateShelfRequest,
     },
-    sync, users,
+    users,
 };
 use axum::{Json, http::StatusCode};
 use sqlx::SqlitePool;
@@ -20,6 +20,7 @@ pub struct ShelfController {
     pub shelf_service: Arc<ShelfService>,
     pub lock_manager: LockManager,
     pub pool: SqlitePool,
+    sync_service: Arc<SyncService>,
 }
 
 impl ShelfController {
@@ -28,12 +29,14 @@ impl ShelfController {
         shelf_service: Arc<ShelfService>,
         lock_manager: LockManager,
         pool: SqlitePool,
+        sync_service: Arc<SyncService>,
     ) -> Self {
         Self {
             book_service,
             shelf_service,
             lock_manager,
             pool,
+            sync_service,
         }
     }
 
@@ -60,7 +63,7 @@ impl ShelfController {
             return Err(ShelfError::ShelfConflict.into());
         }
 
-        let shelf_sync_id = sync_service::initialize_shelf_sync(&self.pool).await;
+        let shelf_sync_id = self.sync_service.initialize_shelf_sync().await;
         let shelf = Shelf {
             name: request.name,
             owner_id: owner_id.to_string(),
@@ -89,7 +92,9 @@ impl ShelfController {
 
         let shelf = self.shelf_service.get_shelf(shelf_id).await?;
         self.shelf_service.update_shelf(shelf_id, &request.name).await?;
-        sync_service::update_shelf_metadata_timestamp(&self.pool, &shelf.shelf_sync_id).await;
+        self.sync_service
+            .update_shelf_metadata_timestamp(&shelf.shelf_sync_id)
+            .await;
 
         Ok(StatusCode::NO_CONTENT)
     }
@@ -100,7 +105,9 @@ impl ShelfController {
 
         let shelf = self.shelf_service.get_shelf(shelf_id).await?;
         self.shelf_service.delete_shelf(shelf_id).await?;
-        sync_service::update_shelf_delete_timestamp(&self.pool, &shelf.shelf_sync_id).await;
+        self.sync_service
+            .update_shelf_delete_timestamp(&shelf.shelf_sync_id)
+            .await;
 
         Ok(StatusCode::NO_CONTENT)
     }
@@ -154,7 +161,9 @@ impl ShelfController {
         self.shelf_service
             .add_book_to_shelf(shelf_id, &request.book_id)
             .await?;
-        sync::service::update_shelf_contents_timestamp(&self.pool, &shelf.shelf_sync_id).await;
+        self.sync_service
+            .update_shelf_contents_timestamp(&shelf.shelf_sync_id)
+            .await;
 
         Ok(StatusCode::NO_CONTENT)
     }
@@ -181,7 +190,9 @@ impl ShelfController {
         self.shelf_service
             .delete_book_from_shelf(shelf_id, book_id)
             .await?;
-        sync_service::update_shelf_contents_timestamp(&self.pool, &shelf.shelf_sync_id).await;
+        self.sync_service
+            .update_shelf_contents_timestamp(&shelf.shelf_sync_id)
+            .await;
 
         Ok(StatusCode::NO_CONTENT)
     }

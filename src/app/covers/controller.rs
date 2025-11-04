@@ -1,31 +1,30 @@
 use super::models::CoverError;
 use crate::app::{
     books::service::BookService, concurrency::manager::ProsaLockManager, covers::service::CoverService,
-    error::ProsaError, sync,
+    error::ProsaError, sync::service::SyncService,
 };
 use axum::{body::Bytes, http::StatusCode};
-use sqlx::SqlitePool;
 use std::sync::Arc;
 
 pub struct CoverController {
-    pool: SqlitePool,
     lock_manager: Arc<ProsaLockManager>,
     book_service: Arc<BookService>,
     cover_service: Arc<CoverService>,
+    sync_service: Arc<SyncService>,
 }
 
 impl CoverController {
     pub fn new(
-        pool: SqlitePool,
         lock_manager: Arc<ProsaLockManager>,
         book_service: Arc<BookService>,
         cover_service: Arc<CoverService>,
+        sync_service: Arc<SyncService>,
     ) -> Self {
         Self {
-            pool,
             lock_manager,
             book_service,
             cover_service,
+            sync_service,
         }
     }
 
@@ -59,7 +58,7 @@ impl CoverController {
         book.cover_id = Some(cover_id);
         self.book_service.update_book(&book_id, &book).await?;
 
-        sync::service::update_cover_timestamp(&self.pool, &book_sync_id).await;
+        self.sync_service.update_cover_timestamp(&book_sync_id).await;
 
         Ok(StatusCode::NO_CONTENT)
     }
@@ -82,7 +81,7 @@ impl CoverController {
             self.cover_service.delete_cover(&cover_id).await?;
         }
 
-        sync::service::update_cover_timestamp(&self.pool, &book_sync_id).await;
+        self.sync_service.update_cover_timestamp(&book_sync_id).await;
 
         Ok(StatusCode::NO_CONTENT)
     }
@@ -106,7 +105,7 @@ impl CoverController {
             self.cover_service.delete_cover(&old_cover_id).await?;
         }
 
-        sync::service::update_cover_timestamp(&self.pool, &book_sync_id).await;
+        self.sync_service.update_cover_timestamp(&book_sync_id).await;
 
         Ok(StatusCode::NO_CONTENT)
     }

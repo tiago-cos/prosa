@@ -13,7 +13,8 @@ use crate::app::{
     error::ProsaError,
     metadata::service::MetadataService,
     state::service::StateService,
-    sync, users,
+    sync::service::SyncService,
+    users,
 };
 use std::{collections::HashMap, sync::Arc};
 
@@ -25,6 +26,7 @@ pub struct BookController {
     cover_service: Arc<CoverService>,
     metadata_service: Arc<MetadataService>,
     state_service: Arc<StateService>,
+    sync_service: Arc<SyncService>,
 }
 
 impl BookController {
@@ -36,6 +38,7 @@ impl BookController {
         cover_service: Arc<CoverService>,
         metadata_service: Arc<MetadataService>,
         state_service: Arc<StateService>,
+        sync_service: Arc<SyncService>,
     ) -> Self {
         Self {
             book_service,
@@ -45,6 +48,7 @@ impl BookController {
             cover_service,
             metadata_service,
             state_service,
+            sync_service,
         }
     }
 
@@ -95,7 +99,7 @@ impl BookController {
         }
 
         let state_id = self.state_service.initialize_state().await;
-        let book_sync_id = sync::service::initialize_book_sync(pool).await;
+        let book_sync_id = self.sync_service.initialize_book_sync().await;
 
         let book = Book {
             owner_id: owner_id.to_string(),
@@ -165,11 +169,7 @@ impl BookController {
 
     //TODO make better tests for syncing, possibly refactor syncing
 
-    pub async fn delete_book(
-        &self,
-        book_id: String,
-        pool: &sqlx::SqlitePool,
-    ) -> Result<StatusCode, ProsaError> {
+    pub async fn delete_book(&self, book_id: String) -> Result<StatusCode, ProsaError> {
         let lock = self.lock_manager.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
@@ -184,7 +184,9 @@ impl BookController {
             self.epub_service.delete_epub(&book.epub_id).await?;
         }
 
-        sync::service::update_book_delete_timestamp(pool, &book.book_sync_id).await;
+        self.sync_service
+            .update_book_delete_timestamp(&book.book_sync_id)
+            .await;
 
         let Some(cover_id) = book.cover_id else {
             return Ok(StatusCode::NO_CONTENT);

@@ -1,17 +1,20 @@
-use super::{models::SyncError, service};
-use crate::app::{authentication::models::AuthToken, error::ProsaError, sync::models::UnsyncedResponse};
+use super::models::SyncError;
+use crate::app::{
+    authentication::models::AuthToken,
+    error::ProsaError,
+    sync::{models::UnsyncedResponse, service::SyncService},
+};
 use axum::Json;
 use chrono::{DateTime, Utc};
-use sqlx::SqlitePool;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 pub struct SyncController {
-    pool: SqlitePool,
+    sync_service: Arc<SyncService>,
 }
 
 impl SyncController {
-    pub fn new(pool: SqlitePool) -> Self {
-        Self { pool }
+    pub fn new(sync_service: Arc<SyncService>) -> Self {
+        Self { sync_service }
     }
 
     pub async fn get_unsynced(
@@ -36,8 +39,8 @@ impl SyncController {
             return Err(SyncError::InvalidTimestamp.into());
         };
 
-        let book = service::get_unsynced_books(&self.pool, user_id, since).await?;
-        let shelf = service::get_unsynced_shelves(&self.pool, user_id, since).await?;
+        let book = self.sync_service.get_unsynced_books(user_id, since).await?;
+        let shelf = self.sync_service.get_unsynced_shelves(user_id, since).await?;
 
         Ok(Json(UnsyncedResponse { book, shelf }))
     }

@@ -38,7 +38,7 @@ pub fn get_routes(state: AppState) -> Router {
         .with_state(state)
 }
 
-pub async fn add_annotation_handler(
+async fn add_annotation_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
     Json(annotation): Json<NewAnnotationRequest>,
@@ -50,7 +50,7 @@ pub async fn add_annotation_handler(
         .await
 }
 
-pub async fn get_annotation_handler(
+async fn get_annotation_handler(
     State(state): State<AppState>,
     Path((book_id, annotation_id)): Path<(String, String)>,
 ) -> Result<Json<Annotation>, ProsaError> {
@@ -61,14 +61,14 @@ pub async fn get_annotation_handler(
         .await
 }
 
-pub async fn list_annotation_handler(
+async fn list_annotation_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<Json<Vec<String>>, ProsaError> {
     state.controllers.annotation.list_annotations(&book_id).await
 }
 
-pub async fn delete_annotation_handler(
+async fn delete_annotation_handler(
     State(state): State<AppState>,
     Path((book_id, annotation_id)): Path<(String, String)>,
 ) -> Result<StatusCode, ProsaError> {
@@ -79,7 +79,7 @@ pub async fn delete_annotation_handler(
         .await
 }
 
-pub async fn patch_annotation_handler(
+async fn patch_annotation_handler(
     State(state): State<AppState>,
     Path((book_id, annotation_id)): Path<(String, String)>,
     Json(request): Json<PatchAnnotationRequest>,
