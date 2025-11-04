@@ -24,6 +24,7 @@ use crate::app::state::service::StateService;
 use crate::app::sync::controller::SyncController;
 use crate::app::sync::repository::SyncRepository;
 use crate::app::sync::service::SyncService;
+use crate::app::users::controller::UserController;
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
 use axum::Router;
@@ -95,6 +96,7 @@ pub struct Controllers {
     pub shelf: Arc<ShelfController>,
     pub state: Arc<StateController>,
     pub sync: Arc<SyncController>,
+    pub user: Arc<UserController>,
 }
 
 #[derive(Clone)]
@@ -227,6 +229,12 @@ impl AppState {
         ));
 
         let sync_controller = Arc::new(SyncController::new(sync_service.clone()));
+        let user_controller = Arc::new(UserController::new(
+            pool.clone(),
+            &config.auth.admin_key,
+            config.auth.allow_user_registration,
+            authentication_service.clone(),
+        ));
 
         let services = Services {
             book: book_service,
@@ -241,6 +249,7 @@ impl AppState {
             shelf: shelf_controller,
             state: state_controller,
             sync: sync_controller,
+            user: user_controller,
         };
 
         Self {
