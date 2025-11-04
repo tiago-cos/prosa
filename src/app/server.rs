@@ -22,6 +22,7 @@ use crate::app::state::controller::StateController;
 use crate::app::state::repository::StateRepository;
 use crate::app::state::service::StateService;
 use crate::app::sync::controller::SyncController;
+use crate::app::sync::repository::SyncRepository;
 use crate::app::sync::service::SyncService;
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
@@ -115,7 +116,8 @@ impl AppState {
             tag_length_cache: Arc::new(QuickCache::new(100000)),
         };
 
-        let sync_service = Arc::new(SyncService::new(pool.clone()));
+        let sync_repository = Arc::new(SyncRepository::new(pool.clone()));
+        let sync_service = Arc::new(SyncService::new(pool.clone(), sync_repository.clone()));
         let epub_repository = Arc::new(EpubRepository::new(pool.clone()));
         let epub_service = Arc::new(EpubService::new(
             epub_repository,
