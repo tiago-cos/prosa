@@ -1,25 +1,25 @@
-use super::{
-    data,
-    models::{ApiKey, Preferences, User, UserError},
-};
+use super::models::{ApiKey, Preferences, User, UserError};
 use crate::app::{
     authentication::service::AuthenticationService,
     error::ProsaError,
-    users::models::{PreferencesError, UserProfile, VALID_PROVIDERS},
+    users::{
+        models::{PreferencesError, UserProfile, VALID_PROVIDERS},
+        repository::UserRepository,
+    },
 };
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use merge::Merge;
 use regex::Regex;
-use sqlx::SqlitePool;
+use std::sync::Arc;
 use uuid::Uuid;
 
 pub struct UserService {
-    pool: SqlitePool,
+    user_repository: Arc<UserRepository>,
 }
 
 impl UserService {
-    pub fn new(pool: SqlitePool) -> Self {
-        Self { pool }
+    pub fn new(user_repository: Arc<UserRepository>) -> Self {
+        Self { user_repository }
     }
 
     pub async fn register_user(
@@ -33,14 +33,19 @@ impl UserService {
 
         let user_id = Uuid::new_v4().to_string();
         let password_hash = AuthenticationService::hash_secret(password);
-        data::add_user(&self.pool, username, &user_id, &password_hash, is_admin).await?;
-        data::add_providers(&self.pool, &user_id, vec![VALID_PROVIDERS[0].to_string()]).await;
+        self.user_repository
+            .add_user(username, &user_id, &password_hash, is_admin)
+            .await?;
+        self.user_repository
+            .add_providers(&user_id, vec![VALID_PROVIDERS[0].to_string()])
+            .await;
 
         Ok(user_id)
     }
 
     pub async fn login_user(&self, username: &str, password: &str) -> Result<User, UserError> {
-        let user = data::get_user_by_username(&self.pool, username).await?;
+        let user = self.user_repository.get_user_by_username(username).await?;
+        //TODO pass this logic as a static method of AuthenticationService
         let password_hash =
             PasswordHash::new(&user.password_hash).map_err(|_| UserError::InvalidCredentials)?;
 
@@ -52,17 +57,17 @@ impl UserService {
     }
 
     pub async fn get_user(&self, user_id: &str) -> Result<User, ProsaError> {
-        let user = data::get_user(&self.pool, user_id).await?;
+        let user = self.user_repository.get_user(user_id).await?;
         Ok(user)
     }
 
     pub async fn get_user_by_username(&self, username: &str) -> Result<User, ProsaError> {
-        let user = data::get_user_by_username(&self.pool, username).await?;
+        let user = self.user_repository.get_user_by_username(username).await?;
         Ok(user)
     }
 
     pub async fn get_user_profile(&self, user_id: &str) -> Result<UserProfile, ProsaError> {
-        let user = data::get_user(&self.pool, user_id).await?;
+        let user = self.user_repository.get_user(user_id).await?;
         Ok(UserProfile {
             username: user.username,
         })
@@ -70,25 +75,28 @@ impl UserService {
 
     pub async fn update_user_profile(&self, user_id: &str, profile: UserProfile) -> Result<(), ProsaError> {
         Self::verify_username(&profile.username)?;
-        data::update_user_profile(&self.pool, user_id, profile).await?;
+        self.user_repository.update_user_profile(user_id, profile).await?;
         Ok(())
     }
 
     pub async fn get_api_key_information(&self, user_id: &str, key_id: &str) -> Result<ApiKey, ProsaError> {
-        data::get_user(&self.pool, user_id).await?;
-        let key = data::get_api_key_information(&self.pool, user_id, key_id).await?;
+        self.user_repository.get_user(user_id).await?;
+        let key = self
+            .user_repository
+            .get_api_key_information(user_id, key_id)
+            .await?;
         Ok(key)
     }
 
     pub async fn list_api_keys(&self, user_id: &str) -> Result<Vec<String>, ProsaError> {
-        data::get_user(&self.pool, user_id).await?;
-        let keys = data::list_api_keys(&self.pool, user_id).await?;
+        self.user_repository.get_user(user_id).await?;
+        let keys = self.user_repository.list_api_keys(user_id).await?;
         Ok(keys)
     }
 
     pub async fn get_preferences(&self, user_id: &str) -> Result<Preferences, ProsaError> {
-        data::get_user(&self.pool, user_id).await?;
-        let preferences = data::get_preferences(&self.pool, user_id).await?;
+        self.user_repository.get_user(user_id).await?;
+        let preferences = self.user_repository.get_preferences(user_id).await?;
         Ok(preferences)
     }
 
@@ -97,7 +105,7 @@ impl UserService {
         user_id: &str,
         preferences: Preferences,
     ) -> Result<(), ProsaError> {
-        data::get_user(&self.pool, user_id).await?;
+        self.user_repository.get_user(user_id).await?;
 
         if preferences.automatic_metadata.is_none() {
             return Err(PreferencesError::MissingAutomaticMetadata.into());
@@ -107,7 +115,9 @@ impl UserService {
             return Err(PreferencesError::InvalidMetadataProvider.into());
         }
 
-        data::update_preferences(&self.pool, user_id, preferences).await?;
+        self.user_repository
+            .update_preferences(user_id, preferences)
+            .await?;
         Ok(())
     }
 
@@ -116,20 +126,22 @@ impl UserService {
         user_id: &str,
         mut preferences: Preferences,
     ) -> Result<(), ProsaError> {
-        data::get_user(&self.pool, user_id).await?;
+        self.user_repository.get_user(user_id).await?;
 
         if preferences.automatic_metadata.is_none() && preferences.metadata_providers.is_none() {
             return Err(PreferencesError::InvalidPreferences.into());
         }
 
-        let original = data::get_preferences(&self.pool, user_id).await?;
+        let original = self.user_repository.get_preferences(user_id).await?;
         preferences.merge(original);
 
         if preferences.automatic_metadata.is_none() {
             return Err(PreferencesError::MissingAutomaticMetadata.into());
         }
 
-        data::update_preferences(&self.pool, user_id, preferences).await?;
+        self.user_repository
+            .update_preferences(user_id, preferences)
+            .await?;
         Ok(())
     }
 

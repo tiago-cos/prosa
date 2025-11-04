@@ -5,22 +5,21 @@ use crate::app::{
         models::{ShelfSync, UnsyncedShelves},
         repository::SyncRepository,
     },
-    users,
+    users::repository::UserRepository,
 };
 use chrono::{DateTime, Utc};
-use sqlx::SqlitePool;
 use std::sync::Arc;
 use uuid::Uuid;
 
 pub struct SyncService {
-    pool: SqlitePool,
+    user_repository: Arc<UserRepository>,
     sync_repository: Arc<SyncRepository>,
 }
 
 impl SyncService {
-    pub fn new(pool: SqlitePool, sync_repository: Arc<SyncRepository>) -> Self {
+    pub fn new(user_repository: Arc<UserRepository>, sync_repository: Arc<SyncRepository>) -> Self {
         Self {
-            pool,
+            user_repository,
             sync_repository,
         }
     }
@@ -65,8 +64,9 @@ impl SyncService {
         owner_id: &str,
         since: DateTime<Utc>,
     ) -> Result<UnsyncedBooks, ProsaError> {
+        // TODO is this really the best way to check?
         // Ensure user exists
-        users::data::get_user(&self.pool, owner_id).await?;
+        self.user_repository.get_user(owner_id).await?;
         let unsynced = self.sync_repository.get_unsynced_books(owner_id, since).await;
         Ok(unsynced)
     }
@@ -77,7 +77,7 @@ impl SyncService {
         since: DateTime<Utc>,
     ) -> Result<UnsyncedShelves, ProsaError> {
         // Ensure user exists
-        users::data::get_user(&self.pool, owner_id).await?;
+        self.user_repository.get_user(owner_id).await?;
         let unsynced = self.sync_repository.get_unsynced_shelves(owner_id, since).await;
         Ok(unsynced)
     }

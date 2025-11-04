@@ -5,7 +5,7 @@ use crate::app::{
         repository::AuthenticationRepository,
     },
     error::ProsaError,
-    users,
+    users::repository::UserRepository,
 };
 use argon2::{
     Argon2, PasswordHasher,
@@ -18,7 +18,6 @@ use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::{DateTime, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
 use sha2::{Digest, Sha256};
-use sqlx::SqlitePool;
 use std::{
     path::Path,
     sync::Arc,
@@ -28,8 +27,8 @@ use tokio::fs;
 use uuid::Uuid;
 
 pub struct AuthenticationService {
-    pool: SqlitePool,
     authentication_repository: Arc<AuthenticationRepository>,
+    user_repository: Arc<UserRepository>,
     jwt_secret: Vec<u8>,
     jwt_duration: u64,
     refresh_token_duration: u64,
@@ -37,16 +36,16 @@ pub struct AuthenticationService {
 
 impl AuthenticationService {
     pub async fn new(
-        pool: SqlitePool,
         authentication_repository: Arc<AuthenticationRepository>,
+        user_repository: Arc<UserRepository>,
         jwt_key_path: &str,
         jwt_duration: u64,
         refresh_token_duration: u64,
     ) -> Self {
         let jwt_secret = generate_jwt_secret(jwt_key_path).await;
         Self {
-            pool,
             authentication_repository,
+            user_repository,
             jwt_secret,
             jwt_duration,
             refresh_token_duration,
@@ -156,7 +155,9 @@ impl AuthenticationService {
             .get_api_key_by_hash(&hash)
             .await
             .ok_or(ApiKeyError::InvalidKey)?;
-        let user = users::data::get_user(&self.pool, &key.user_id)
+        let user = self
+            .user_repository
+            .get_user(&key.user_id)
             .await
             .or(Err(ApiKeyError::InvalidKey))?;
 

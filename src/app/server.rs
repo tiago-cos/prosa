@@ -25,6 +25,7 @@ use crate::app::sync::controller::SyncController;
 use crate::app::sync::repository::SyncRepository;
 use crate::app::sync::service::SyncService;
 use crate::app::users::controller::UserController;
+use crate::app::users::repository::UserRepository;
 use crate::app::users::service::UserService;
 use crate::app::{shelves, tracing};
 use crate::{app::concurrency::manager::ProsaLockManager, config::Configuration, metadata_manager};
@@ -120,8 +121,11 @@ impl AppState {
             tag_length_cache: Arc::new(QuickCache::new(100000)),
         };
 
+        let user_repository = Arc::new(UserRepository::new(pool.clone()));
+        let user_service = Arc::new(UserService::new(user_repository.clone()));
+
         let sync_repository = Arc::new(SyncRepository::new(pool.clone()));
-        let sync_service = Arc::new(SyncService::new(pool.clone(), sync_repository.clone()));
+        let sync_service = Arc::new(SyncService::new(user_repository.clone(), sync_repository.clone()));
         let epub_repository = Arc::new(EpubRepository::new(pool.clone()));
         let epub_service = Arc::new(EpubService::new(
             epub_repository,
@@ -173,8 +177,6 @@ impl AppState {
             sync_service.clone(),
         );
 
-        let user_service = Arc::new(UserService::new(pool.clone()));
-
         let metadata_controller = Arc::new(MetadataController::new(
             lock_manager.clone(),
             book_service.clone(),
@@ -188,8 +190,8 @@ impl AppState {
 
         let authentication_service = Arc::new(
             AuthenticationService::new(
-                pool.clone(),
                 authentication_repository.clone(),
+                user_repository.clone(),
                 &config.auth.jwt_key_path,
                 config.auth.jwt_token_duration,
                 config.auth.refresh_token_duration,
@@ -232,7 +234,6 @@ impl AppState {
             user_service.clone(),
         ));
 
-        let user_service = Arc::new(UserService::new(pool.clone()));
         let sync_controller = Arc::new(SyncController::new(sync_service.clone()));
         let user_controller = Arc::new(UserController::new(
             &config.auth.admin_key,
