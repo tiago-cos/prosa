@@ -1,8 +1,5 @@
-use crate::app::AppState;
-use axum::extract::FromRef;
 use config::{Config, ConfigError, File};
 use serde::Deserialize;
-use std::sync::Arc;
 
 #[derive(Default, Deserialize, Clone)]
 #[serde(default)]
@@ -124,11 +121,5 @@ impl Configuration {
             .build()?;
 
         conf.try_deserialize()
-    }
-}
-
-impl FromRef<AppState> for Arc<Configuration> {
-    fn from_ref(state: &AppState) -> Arc<Configuration> {
-        Arc::clone(&state.config)
     }
 }

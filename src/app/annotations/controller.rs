@@ -2,7 +2,7 @@ use super::models::{NewAnnotationRequest, PatchAnnotationRequest};
 use crate::app::annotations::models::Annotation;
 use crate::app::annotations::service::AnnotationService;
 use crate::app::books::service::BookService;
-use crate::app::concurrency::manager::ProsaLockManager;
+use crate::app::core::locking::service::LockService;
 use crate::app::error::ProsaError;
 use crate::app::sync::service::SyncService;
 use axum::Json;
@@ -10,7 +10,7 @@ use axum::http::StatusCode;
 use std::sync::Arc;
 
 pub struct AnnotationController {
-    lock_manager: Arc<ProsaLockManager>,
+    lock_service: Arc<LockService>,
     book_service: Arc<BookService>,
     annotation_service: Arc<AnnotationService>,
     sync_service: Arc<SyncService>,
@@ -18,13 +18,13 @@ pub struct AnnotationController {
 
 impl AnnotationController {
     pub fn new(
-        lock_manager: Arc<ProsaLockManager>,
+        lock_service: Arc<LockService>,
         book_service: Arc<BookService>,
         annotation_service: Arc<AnnotationService>,
         sync_service: Arc<SyncService>,
     ) -> Self {
         Self {
-            lock_manager,
+            lock_service,
             book_service,
             annotation_service,
             sync_service,
@@ -36,7 +36,7 @@ impl AnnotationController {
         book_id: &str,
         annotation: NewAnnotationRequest,
     ) -> Result<String, ProsaError> {
-        let lock = self.lock_manager.get_book_lock(book_id).await;
+        let lock = self.lock_service.get_book_lock(book_id).await;
         let _guard = lock.write().await;
 
         let book = self.book_service.get_book(book_id).await?;
@@ -58,7 +58,7 @@ impl AnnotationController {
         book_id: &str,
         annotation_id: &str,
     ) -> Result<Json<Annotation>, ProsaError> {
-        let lock = self.lock_manager.get_book_lock(book_id).await;
+        let lock = self.lock_service.get_book_lock(book_id).await;
         let _guard = lock.read().await;
 
         self.book_service.get_book(book_id).await?;
@@ -68,7 +68,7 @@ impl AnnotationController {
     }
 
     pub async fn list_annotations(&self, book_id: &str) -> Result<Json<Vec<String>>, ProsaError> {
-        let lock = self.lock_manager.get_book_lock(book_id).await;
+        let lock = self.lock_service.get_book_lock(book_id).await;
         let _guard = lock.read().await;
 
         self.book_service.get_book(book_id).await?;
@@ -82,7 +82,7 @@ impl AnnotationController {
         book_id: &str,
         annotation_id: &str,
     ) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_manager.get_book_lock(book_id).await;
+        let lock = self.lock_service.get_book_lock(book_id).await;
         let _guard = lock.write().await;
 
         let book = self.book_service.get_book(book_id).await?;
@@ -101,7 +101,7 @@ impl AnnotationController {
         annotation_id: &str,
         request: PatchAnnotationRequest,
     ) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_manager.get_book_lock(book_id).await;
+        let lock = self.lock_service.get_book_lock(book_id).await;
         let _guard = lock.write().await;
 
         let book = self.book_service.get_book(book_id).await?;

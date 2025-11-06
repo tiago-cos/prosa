@@ -1,5 +1,5 @@
 use super::providers::{epub_extractor::EpubExtractor, goodreads::GoodreadsMetadataScraper};
-use crate::{app::metadata::models::Metadata, config::Configuration};
+use crate::app::metadata::models::Metadata;
 use async_trait::async_trait;
 use merge::Merge;
 use std::collections::HashMap;
@@ -14,9 +14,9 @@ pub struct MetadataFetcher {
 }
 
 impl MetadataFetcher {
-    pub fn new(config: &Configuration) -> Self {
-        let goodreads_scraper = GoodreadsMetadataScraper::new(config.metadata_cooldown.goodreads);
-        let epub_extractor = EpubExtractor::new(config.metadata_cooldown.epub_extractor);
+    pub fn new(epub_extractor_cooldown: u64, goodreads_cooldown: u64) -> Self {
+        let epub_extractor = EpubExtractor::new(epub_extractor_cooldown);
+        let goodreads_scraper = GoodreadsMetadataScraper::new(goodreads_cooldown);
         let mut providers: HashMap<String, Box<dyn MetadataProvider>> = HashMap::new();
 
         providers.insert(

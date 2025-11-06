@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use super::models::{AuthError, AuthToken};
 use crate::app::{AppState, authentication::service::AuthenticationService, error::ProsaError};
 use axum::{
@@ -8,6 +6,7 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
+use std::sync::Arc;
 
 pub async fn extract_token_middleware(
     State(state): State<AppState>,
@@ -20,7 +19,7 @@ pub async fn extract_token_middleware(
 
     let token = match (jwt_header, api_key_header) {
         (Some(header), _) => handle_jwt(header, &state.services.authentication)?,
-        (_, Some(header)) => handle_api_key(header, state.services.authentication).await?,
+        (_, Some(header)) => handle_api_key(header, state.services.authentication.clone()).await?,
         _ => Err(AuthError::MissingAuth)?,
     };
 
@@ -30,7 +29,7 @@ pub async fn extract_token_middleware(
 
 fn handle_jwt(
     header: &HeaderValue,
-    authentication_service: &Arc<AuthenticationService>,
+    authentication_service: &AuthenticationService,
 ) -> Result<AuthToken, ProsaError> {
     let header = header.to_str().expect("Failed to convert jwt header to string");
 

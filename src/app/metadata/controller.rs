@@ -1,47 +1,47 @@
 use crate::app::books::service::BookService;
+use crate::app::core::locking::service::LockService;
+use crate::app::core::metadata_fetcher::{MetadataFetcherRequest, MetadataFetcherService};
 use crate::app::error::ProsaError;
 use crate::app::metadata::models::{Metadata, MetadataError, MetadataFetchRequest};
 use crate::app::metadata::service::MetadataService;
 use crate::app::sync::service::SyncService;
 use crate::app::users::models::{PreferencesError, VALID_PROVIDERS};
 use crate::app::users::service::UserService;
-use crate::app::{LockManager, MetadataManager};
-use crate::metadata_manager::MetadataRequest;
 use axum::Json;
 use axum::http::StatusCode;
 use std::collections::HashMap;
 use std::sync::Arc;
 
 pub struct MetadataController {
-    lock_manager: LockManager,
+    lock_service: Arc<LockService>,
     book_service: Arc<BookService>,
     metadata_service: Arc<MetadataService>,
-    metadata_manager: MetadataManager,
+    metadata_fetcher_service: Arc<MetadataFetcherService>,
     sync_service: Arc<SyncService>,
     user_service: Arc<UserService>,
 }
 
 impl MetadataController {
     pub fn new(
-        lock_manager: LockManager,
+        lock_service: Arc<LockService>,
         book_service: Arc<BookService>,
         metadata_service: Arc<MetadataService>,
-        metadata_manager: MetadataManager,
+        metadata_fetcher_service: Arc<MetadataFetcherService>,
         sync_service: Arc<SyncService>,
         user_service: Arc<UserService>,
     ) -> Self {
         Self {
-            lock_manager,
+            lock_service,
             book_service,
             metadata_service,
-            metadata_manager,
+            metadata_fetcher_service,
             sync_service,
             user_service,
         }
     }
 
     pub async fn get_metadata(&self, book_id: String) -> Result<Json<Metadata>, ProsaError> {
-        let lock = self.lock_manager.get_book_lock(&book_id).await;
+        let lock = self.lock_service.get_book_lock(&book_id).await;
         let _guard = lock.read().await;
 
         let book = self.book_service.get_book(&book_id).await?;
@@ -55,7 +55,7 @@ impl MetadataController {
     }
 
     pub async fn add_metadata(&self, book_id: String, metadata: Metadata) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_manager.get_book_lock(&book_id).await;
+        let lock = self.lock_service.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
         let mut book = self.book_service.get_book(&book_id).await?;
@@ -77,7 +77,7 @@ impl MetadataController {
     }
 
     pub async fn delete_metadata(&self, book_id: String) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_manager.get_book_lock(&book_id).await;
+        let lock = self.lock_service.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
         let book = self.book_service.get_book(&book_id).await?;
@@ -99,7 +99,7 @@ impl MetadataController {
         book_id: String,
         metadata: Metadata,
     ) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_manager.get_book_lock(&book_id).await;
+        let lock = self.lock_service.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
         let book = self.book_service.get_book(&book_id).await?;
@@ -124,7 +124,7 @@ impl MetadataController {
         book_id: String,
         metadata: Metadata,
     ) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_manager.get_book_lock(&book_id).await;
+        let lock = self.lock_service.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
         let book = self.book_service.get_book(&book_id).await?;
@@ -164,7 +164,7 @@ impl MetadataController {
             return Err(PreferencesError::InvalidMetadataProvider.into());
         }
 
-        self.metadata_manager
+        self.metadata_fetcher_service
             .enqueue_request(&book.owner_id, &request.book_id, providers)
             .await?;
 
@@ -174,9 +174,9 @@ impl MetadataController {
     pub async fn list_metadata_requests(
         &self,
         query_params: HashMap<String, String>,
-    ) -> Result<Json<Vec<MetadataRequest>>, ProsaError> {
+    ) -> Result<Json<Vec<MetadataFetcherRequest>>, ProsaError> {
         let user_id = query_params.get("user_id").map(ToString::to_string);
-        let enqueued = self.metadata_manager.get_enqueued(user_id).await;
+        let enqueued = self.metadata_fetcher_service.get_enqueued(user_id).await;
 
         Ok(Json(enqueued))
     }

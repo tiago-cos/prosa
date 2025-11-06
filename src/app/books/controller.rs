@@ -1,13 +1,11 @@
-use axum::{Json, http::StatusCode};
-
 use super::models::{Book, BookError, UploadBoodRequest};
 use crate::app::{
-    LockManager, MetadataManager,
     authentication::models::AuthToken,
     books::{
         models::{BookFileMetadata, PaginatedBooks},
         service::BookService,
     },
+    core::{locking::service::LockService, metadata_fetcher::MetadataFetcherService},
     covers::service::CoverService,
     epubs::service::EpubService,
     error::ProsaError,
@@ -16,12 +14,13 @@ use crate::app::{
     sync::service::SyncService,
     users::service::UserService,
 };
+use axum::{Json, http::StatusCode};
 use std::{collections::HashMap, sync::Arc};
 
 pub struct BookController {
     book_service: Arc<BookService>,
-    lock_manager: LockManager,
-    metadata_manager: MetadataManager,
+    lock_service: Arc<LockService>,
+    metadata_fetcher_service: Arc<MetadataFetcherService>,
     epub_service: Arc<EpubService>,
     cover_service: Arc<CoverService>,
     metadata_service: Arc<MetadataService>,
@@ -33,8 +32,8 @@ pub struct BookController {
 impl BookController {
     pub fn new(
         book_service: Arc<BookService>,
-        lock_manager: LockManager,
-        metadata_manager: MetadataManager,
+        lock_service: Arc<LockService>,
+        metadata_fetcher_service: Arc<MetadataFetcherService>,
         epub_service: Arc<EpubService>,
         cover_service: Arc<CoverService>,
         metadata_service: Arc<MetadataService>,
@@ -44,8 +43,8 @@ impl BookController {
     ) -> Self {
         Self {
             book_service,
-            lock_manager,
-            metadata_manager,
+            lock_service,
+            metadata_fetcher_service,
             epub_service,
             cover_service,
             metadata_service,
@@ -56,7 +55,7 @@ impl BookController {
     }
 
     pub async fn download_book(&self, book_id: String) -> Result<Vec<u8>, ProsaError> {
-        let lock = self.lock_manager.get_book_lock(&book_id).await;
+        let lock = self.lock_service.get_book_lock(&book_id).await;
         let _guard = lock.read().await;
 
         let book = self.book_service.get_book(&book_id).await?;
@@ -69,7 +68,7 @@ impl BookController {
         &self,
         book_id: String,
     ) -> Result<Json<BookFileMetadata>, ProsaError> {
-        let lock = self.lock_manager.get_book_lock(&book_id).await;
+        let lock = self.lock_service.get_book_lock(&book_id).await;
         let _guard = lock.read().await;
 
         let book = self.book_service.get_book(&book_id).await?;
@@ -110,7 +109,7 @@ impl BookController {
 
         let book_id = self.book_service.add_book(&book).await?;
 
-        let lock = self.lock_manager.get_book_lock(&book_id).await;
+        let lock = self.lock_service.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
         let automatic_metadata = preferences
@@ -118,7 +117,7 @@ impl BookController {
             .expect("Metadata preference should be present");
 
         if automatic_metadata {
-            self.metadata_manager
+            self.metadata_fetcher_service
                 .enqueue_request(
                     owner_id,
                     &book_id,
@@ -167,7 +166,7 @@ impl BookController {
     //TODO make better tests for syncing, possibly refactor syncing
 
     pub async fn delete_book(&self, book_id: String) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_manager.get_book_lock(&book_id).await;
+        let lock = self.lock_service.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
         let book = self.book_service.get_book(&book_id).await?;

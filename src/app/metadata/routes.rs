@@ -1,15 +1,13 @@
-use crate::{
-    app::{
-        AppState,
-        authentication::middleware::extract_token_middleware,
-        authorization::{
-            books::{can_delete_book, can_read_book, can_update_book},
-            metadata::{can_add_metadata_request, can_list_metadata_requests},
-        },
-        error::ProsaError,
-        metadata::models::{Metadata, MetadataFetchRequest},
+use crate::app::{
+    AppState,
+    authentication::middleware::extract_token_middleware,
+    authorization::{
+        books::{can_delete_book, can_read_book, can_update_book},
+        metadata::{can_add_metadata_request, can_list_metadata_requests},
     },
-    metadata_manager::MetadataRequest,
+    core::metadata_fetcher::MetadataFetcherRequest,
+    error::ProsaError,
+    metadata::models::{Metadata, MetadataFetchRequest},
 };
 use axum::{
     Json, Router,
@@ -100,6 +98,6 @@ async fn add_metadata_request_handler(
 async fn list_metadata_requests_handler(
     State(state): State<AppState>,
     Query(params): Query<HashMap<String, String>>,
-) -> Result<Json<Vec<MetadataRequest>>, ProsaError> {
+) -> Result<Json<Vec<MetadataFetcherRequest>>, ProsaError> {
     state.controllers.metadata.list_metadata_requests(params).await
 }

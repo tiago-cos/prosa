@@ -2,7 +2,7 @@ mod annotations;
 mod authentication;
 mod authorization;
 pub mod books;
-pub mod concurrency;
+mod core;
 pub mod covers;
 pub mod epubs;
 pub mod error;

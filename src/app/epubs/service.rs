@@ -1,5 +1,5 @@
 use super::{models::EpubError, repository::EpubRepository};
-use crate::app::concurrency::manager::ProsaLockManager;
+use crate::app::core::locking::service::LockService;
 use base64::{Engine, prelude::BASE64_STANDARD};
 use epub::doc::EpubDoc;
 use sha2::{Digest, Sha256};
@@ -13,7 +13,7 @@ use uuid::Uuid;
 
 pub struct EpubService {
     epub_repository: Arc<EpubRepository>,
-    lock_manager: Arc<ProsaLockManager>,
+    lock_service: Arc<LockService>,
     kepubify_path: String,
     epub_path: String,
 }
@@ -21,13 +21,13 @@ pub struct EpubService {
 impl EpubService {
     pub fn new(
         epub_repository: Arc<EpubRepository>,
-        lock_manager: Arc<ProsaLockManager>,
+        lock_service: Arc<LockService>,
         kepubify_path: String,
         epub_path: String,
     ) -> Self {
         Self {
             epub_repository,
-            lock_manager,
+            lock_service,
             kepubify_path,
             epub_path,
         }
@@ -39,7 +39,7 @@ impl EpubService {
         }
 
         let hash = BASE64_STANDARD.encode(Sha256::digest(epub_data));
-        let lock = self.lock_manager.get_hash_lock(&hash).await;
+        let lock = self.lock_service.get_hash_lock(&hash).await;
         let _guard = lock.write().await;
 
         if let Some(epub_id) = self.epub_repository.get_epub_by_hash(&hash).await {

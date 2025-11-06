@@ -1,5 +1,5 @@
 use super::models::CoverError;
-use crate::app::{ImageCache, concurrency::manager::ProsaLockManager, covers::repository::CoverRepository};
+use crate::app::{ImageCache, core::locking::service::LockService, covers::repository::CoverRepository};
 use base64::{Engine, prelude::BASE64_STANDARD};
 use image::ImageFormat;
 use sha2::{Digest, Sha256};
@@ -11,7 +11,7 @@ use tokio::{
 use uuid::Uuid;
 
 pub struct CoverService {
-    lock_manager: Arc<ProsaLockManager>,
+    lock_service: Arc<LockService>,
     image_cache: Arc<ImageCache>,
     cover_path: String,
     cover_repository: Arc<CoverRepository>,
@@ -19,13 +19,13 @@ pub struct CoverService {
 
 impl CoverService {
     pub fn new(
-        lock_manager: Arc<ProsaLockManager>,
+        lock_service: Arc<LockService>,
         image_cache: Arc<ImageCache>,
         cover_path: String,
         cover_repository: Arc<CoverRepository>,
     ) -> Self {
         Self {
-            lock_manager,
+            lock_service,
             image_cache,
             cover_path,
             cover_repository,
@@ -38,7 +38,7 @@ impl CoverService {
         }
 
         let hash = BASE64_STANDARD.encode(Sha256::digest(cover_data));
-        let lock = self.lock_manager.get_hash_lock(&hash).await;
+        let lock = self.lock_service.get_hash_lock(&hash).await;
         let _guard = lock.write().await;
 
         if let Some(cover_id) = self.cover_repository.get_cover_by_hash(&hash).await {

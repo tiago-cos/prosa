@@ -4,12 +4,12 @@ use std::{
 };
 use tokio::sync::{Mutex, RwLock};
 
-pub struct ProsaLockManager {
+pub struct LockService {
     locks: Mutex<HashMap<String, Weak<RwLock<()>>>>,
     cleaning_threshold: usize,
 }
 
-impl ProsaLockManager {
+impl LockService {
     pub fn new(cleaning_threshold: usize) -> Self {
         Self {
             locks: Mutex::new(HashMap::new()),

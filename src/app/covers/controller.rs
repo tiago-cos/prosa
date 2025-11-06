@@ -1,13 +1,13 @@
 use super::models::CoverError;
 use crate::app::{
-    books::service::BookService, concurrency::manager::ProsaLockManager, covers::service::CoverService,
+    books::service::BookService, core::locking::service::LockService, covers::service::CoverService,
     error::ProsaError, sync::service::SyncService,
 };
 use axum::{body::Bytes, http::StatusCode};
 use std::sync::Arc;
 
 pub struct CoverController {
-    lock_manager: Arc<ProsaLockManager>,
+    lock_service: Arc<LockService>,
     book_service: Arc<BookService>,
     cover_service: Arc<CoverService>,
     sync_service: Arc<SyncService>,
@@ -15,13 +15,13 @@ pub struct CoverController {
 
 impl CoverController {
     pub fn new(
-        lock_manager: Arc<ProsaLockManager>,
+        lock_service: Arc<LockService>,
         book_service: Arc<BookService>,
         cover_service: Arc<CoverService>,
         sync_service: Arc<SyncService>,
     ) -> Self {
         Self {
-            lock_manager,
+            lock_service,
             book_service,
             cover_service,
             sync_service,
@@ -29,7 +29,7 @@ impl CoverController {
     }
 
     pub async fn get_cover(&self, book_id: String) -> Result<Vec<u8>, ProsaError> {
-        let lock = self.lock_manager.get_book_lock(&book_id).await;
+        let lock = self.lock_service.get_book_lock(&book_id).await;
         let _guard = lock.read().await;
 
         let book = self.book_service.get_book(&book_id).await?;
@@ -44,7 +44,7 @@ impl CoverController {
     }
 
     pub async fn add_cover(&self, book_id: String, cover_data: Bytes) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_manager.get_book_lock(&book_id).await;
+        let lock = self.lock_service.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
         let mut book = self.book_service.get_book(&book_id).await?;
@@ -64,7 +64,7 @@ impl CoverController {
     }
 
     pub async fn delete_cover(&self, book_id: String) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_manager.get_book_lock(&book_id).await;
+        let lock = self.lock_service.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
         let mut book = self.book_service.get_book(&book_id).await?;
@@ -87,7 +87,7 @@ impl CoverController {
     }
 
     pub async fn update_cover(&self, book_id: String, cover_data: Bytes) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_manager.get_book_lock(&book_id).await;
+        let lock = self.lock_service.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
         let mut book = self.book_service.get_book(&book_id).await?;

@@ -1,6 +1,4 @@
 use super::tables::{clear_tables, create_tables};
-use crate::app::AppState;
-use axum::extract::FromRef;
 use sqlx::{Pool, Sqlite, SqlitePool, sqlite::SqliteConnectOptions};
 
 #[allow(dead_code)]
@@ -28,10 +26,4 @@ pub async fn debug_init(filename: &str) -> Pool<Sqlite> {
     create_tables(&pool).await;
 
     pool
-}
-
-impl FromRef<AppState> for SqlitePool {
-    fn from_ref(state: &AppState) -> SqlitePool {
-        state.pool.clone()
-    }
 }

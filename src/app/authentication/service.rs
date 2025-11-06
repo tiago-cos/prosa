@@ -19,11 +19,11 @@ use chrono::{DateTime, Utc};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
 use sha2::{Digest, Sha256};
 use std::{
+    fs,
     path::Path,
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
 };
-use tokio::fs;
 use uuid::Uuid;
 
 pub struct AuthenticationService {
@@ -35,14 +35,14 @@ pub struct AuthenticationService {
 }
 
 impl AuthenticationService {
-    pub async fn new(
+    pub fn new(
         authentication_repository: Arc<AuthenticationRepository>,
         user_repository: Arc<UserRepository>,
         jwt_key_path: &str,
         jwt_duration: u64,
         refresh_token_duration: u64,
     ) -> Self {
-        let jwt_secret = generate_jwt_secret(jwt_key_path).await;
+        let jwt_secret = generate_jwt_secret(jwt_key_path);
         Self {
             authentication_repository,
             user_repository,
@@ -233,17 +233,13 @@ impl AuthenticationService {
     }
 }
 
-async fn generate_jwt_secret(secret_key_path: &str) -> Vec<u8> {
+fn generate_jwt_secret(secret_key_path: &str) -> Vec<u8> {
     if Path::new(secret_key_path).exists() {
-        return fs::read(&secret_key_path)
-            .await
-            .expect("Failed to read JWT secret file");
+        return fs::read(secret_key_path).expect("Failed to read JWT secret file");
     }
 
     let mut key = [0u8; 32];
     OsRng.fill_bytes(&mut key);
-    fs::write(&secret_key_path, &key)
-        .await
-        .expect("Failed to write JWT secret file");
+    fs::write(secret_key_path, key).expect("Failed to write JWT secret file");
     key.to_vec()
 }

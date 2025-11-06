@@ -1,7 +1,7 @@
 use super::rate_limiter::RateLimiter;
-use crate::{
-    app::metadata::models::{Contributor, Metadata, Series},
-    metadata_manager::fetcher::MetadataProvider,
+use crate::app::{
+    core::metadata_fetcher::fetcher::MetadataProvider,
+    metadata::models::{Contributor, Metadata, Series},
 };
 use async_trait::async_trait;
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};

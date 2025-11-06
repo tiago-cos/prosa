@@ -1,8 +1,8 @@
+use crate::app::core::locking::service::LockService;
 use crate::app::shelves::service::ShelfService;
 use crate::app::sync::service::SyncService;
 use crate::app::users::service::UserService;
 use crate::app::{
-    LockManager,
     authentication::models::AuthToken,
     error::ProsaError,
     shelves::models::{
@@ -15,7 +15,7 @@ use std::{collections::HashMap, sync::Arc};
 
 pub struct ShelfController {
     shelf_service: Arc<ShelfService>,
-    lock_manager: LockManager,
+    lock_service: Arc<LockService>,
     sync_service: Arc<SyncService>,
     user_service: Arc<UserService>,
 }
@@ -23,13 +23,13 @@ pub struct ShelfController {
 impl ShelfController {
     pub fn new(
         shelf_service: Arc<ShelfService>,
-        lock_manager: LockManager,
+        lock_service: Arc<LockService>,
         sync_service: Arc<SyncService>,
         user_service: Arc<UserService>,
     ) -> Self {
         Self {
             shelf_service,
-            lock_manager,
+            lock_service,
             sync_service,
             user_service,
         }
@@ -69,7 +69,7 @@ impl ShelfController {
     }
 
     pub async fn get_shelf_metadata(&self, shelf_id: &str) -> Result<Json<ShelfMetadata>, ProsaError> {
-        let lock = self.lock_manager.get_shelf_lock(shelf_id).await;
+        let lock = self.lock_service.get_shelf_lock(shelf_id).await;
         let _guard = lock.read().await;
 
         let metadata = self.shelf_service.get_shelf_metadata(shelf_id).await?;
@@ -82,7 +82,7 @@ impl ShelfController {
         shelf_id: &str,
         request: UpdateShelfRequest,
     ) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_manager.get_shelf_lock(shelf_id).await;
+        let lock = self.lock_service.get_shelf_lock(shelf_id).await;
         let _guard = lock.write().await;
 
         let shelf = self.shelf_service.get_shelf(shelf_id).await?;
@@ -95,7 +95,7 @@ impl ShelfController {
     }
 
     pub async fn delete_shelf(&self, shelf_id: &str) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_manager.get_shelf_lock(shelf_id).await;
+        let lock = self.lock_service.get_shelf_lock(shelf_id).await;
         let _guard = lock.write().await;
 
         let shelf = self.shelf_service.get_shelf(shelf_id).await?;
@@ -147,9 +147,9 @@ impl ShelfController {
         shelf_id: &str,
         request: AddBookToShelfRequest,
     ) -> Result<StatusCode, ProsaError> {
-        let book_lock = self.lock_manager.get_book_lock(&request.book_id).await;
+        let book_lock = self.lock_service.get_book_lock(&request.book_id).await;
         let _book_guard = book_lock.read().await;
-        let shelf_lock = self.lock_manager.get_shelf_lock(shelf_id).await;
+        let shelf_lock = self.lock_service.get_shelf_lock(shelf_id).await;
         let _shelf_guard = shelf_lock.write().await;
 
         let shelf = self.shelf_service.get_shelf(shelf_id).await?;
@@ -164,7 +164,7 @@ impl ShelfController {
     }
 
     pub async fn list_books_in_shelf(&self, shelf_id: &str) -> Result<Json<Vec<String>>, ProsaError> {
-        let lock = self.lock_manager.get_shelf_lock(shelf_id).await;
+        let lock = self.lock_service.get_shelf_lock(shelf_id).await;
         let _guard = lock.read().await;
 
         let books = self.shelf_service.list_shelf_books(shelf_id).await?;
@@ -176,9 +176,9 @@ impl ShelfController {
         shelf_id: &str,
         book_id: &str,
     ) -> Result<StatusCode, ProsaError> {
-        let book_lock = self.lock_manager.get_book_lock(book_id).await;
+        let book_lock = self.lock_service.get_book_lock(book_id).await;
         let _book_guard = book_lock.read().await;
-        let shelf_lock = self.lock_manager.get_shelf_lock(shelf_id).await;
+        let shelf_lock = self.lock_service.get_shelf_lock(shelf_id).await;
         let _shelf_guard = shelf_lock.write().await;
 
         let shelf = self.shelf_service.get_shelf(shelf_id).await?;

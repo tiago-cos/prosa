@@ -12,15 +12,15 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 pub struct SyncService {
-    user_repository: Arc<UserRepository>,
     sync_repository: Arc<SyncRepository>,
+    user_repository: Arc<UserRepository>,
 }
 
 impl SyncService {
-    pub fn new(user_repository: Arc<UserRepository>, sync_repository: Arc<SyncRepository>) -> Self {
+    pub fn new(sync_repository: Arc<SyncRepository>, user_repository: Arc<UserRepository>) -> Self {
         Self {
-            user_repository,
             sync_repository,
+            user_repository,
         }
     }
 

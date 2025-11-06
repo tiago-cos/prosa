@@ -9,30 +9,30 @@ use std::{collections::HashSet, sync::Arc};
 use uuid::Uuid;
 
 pub struct AnnotationService {
+    annotation_repository: Arc<AnnotationRepository>,
+    book_repository: Arc<BookRepository>,
     epub_path: String,
     source_cache: Arc<SourceCache>,
     tag_cache: Arc<TagCache>,
     tag_length_cache: Arc<TagLengthCache>,
-    book_repository: Arc<BookRepository>,
-    annotation_repository: Arc<AnnotationRepository>,
 }
 
 impl AnnotationService {
     pub fn new(
+        annotation_repository: Arc<AnnotationRepository>,
+        book_repository: Arc<BookRepository>,
         epub_path: String,
         source_cache: Arc<SourceCache>,
         tag_cache: Arc<TagCache>,
         tag_length_cache: Arc<TagLengthCache>,
-        book_repository: Arc<BookRepository>,
-        annotation_repository: Arc<AnnotationRepository>,
     ) -> Self {
         Self {
+            annotation_repository,
+            book_repository,
             epub_path,
             source_cache,
             tag_cache,
             tag_length_cache,
-            book_repository,
-            annotation_repository,
         }
     }
 
