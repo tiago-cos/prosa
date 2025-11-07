@@ -3,7 +3,6 @@
 #![allow(clippy::module_inception)]
 #![allow(clippy::struct_field_names)]
 #![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::match_bool)]
 #![allow(clippy::unreadable_literal)]
 #![allow(clippy::similar_names)]
 #![allow(clippy::match_same_arms)]
@@ -19,40 +18,33 @@ mod database;
 
 #[tokio::main]
 async fn main() {
-    let config = Configuration::new().unwrap();
-    let kepubify = Path::new(&config.kepubify.path);
+    let config = Configuration::new().expect("Failed to load configuration");
 
-    assert!(
-        kepubify.exists() && kepubify.is_file(),
-        "Kepubify must be present"
-    );
-
-    assert!(
-        config.auth.admin_key.len() >= 8,
-        "admin_key must be configured and at least 8 characters long"
-    );
-
-    create_parent_dir(&config.database.file_path).await.unwrap();
-    create_parent_dir(&config.auth.jwt_key_path).await.unwrap();
-    create_dir_all(&config.book_storage.epub_path).await.unwrap();
-    create_dir_all(&config.book_storage.cover_path).await.unwrap();
+    run_startup_checks(&config).await.expect("Startup checks failed");
 
     let db_pool = database::init(&config.database.file_path).await;
 
-    println!(
-        r"
- ───────────────────────────
-  ____                      
- |  _ \ _ __ ___  ___  __ _ 
- | |_) | '__/ _ \/ __|/ _` |
- |  __/| | | (_) \__ \ (_| |
- |_|   |_|  \___/|___/\__,_|
-
- ───────────────────────────
-        "
-    );
+    print_banner();
 
     app::run(config, db_pool).await;
+}
+
+async fn run_startup_checks(config: &Configuration) -> Result<(), Box<dyn std::error::Error>> {
+    let kepubify = Path::new(&config.kepubify.path);
+    if !kepubify.exists() || !kepubify.is_file() {
+        return Err("Kepubify must be present".into());
+    }
+
+    if config.auth.admin_key.len() < 8 {
+        return Err("admin_key must be configured and at least 8 characters long".into());
+    }
+
+    create_parent_dir(&config.database.file_path).await?;
+    create_parent_dir(&config.auth.jwt_key_path).await?;
+    create_dir_all(&config.book_storage.epub_path).await?;
+    create_dir_all(&config.book_storage.cover_path).await?;
+
+    Ok(())
 }
 
 async fn create_parent_dir(path: &str) -> Result<(), Error> {
@@ -60,9 +52,25 @@ async fn create_parent_dir(path: &str) -> Result<(), Error> {
 
     if !path.exists()
         && let Some(parent) = path.parent()
+        && !parent.exists()
     {
         fs::create_dir_all(parent).await?;
     }
 
     Ok(())
+}
+
+fn print_banner() {
+    println!(
+        r"
+ ───────────────────────────
+  ____                      
+ |  _ \ _ __ ___  ___  __ _ 
+ | |_) | '__/ _ \/ __|/ _` |
+ |  __/| | | (_) \__ \ (_| |
+ |_|   |_|  \___||___/\__,_|
+
+ ───────────────────────────
+        "
+    );
 }
