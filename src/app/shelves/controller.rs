@@ -47,7 +47,6 @@ impl ShelfController {
 
         self.user_service.get_user(owner_id).await?;
 
-        //TODO don't forget, can make it so that the route wrapper just calls state, check shelf router
         //TODO this logic should be done is service
         if self
             .shelf_service
