@@ -131,7 +131,7 @@ impl AppState {
         let core = Self::build_core(config);
         let repos = Self::build_repositories(pool);
         let services = Self::build_services(&core, &repos);
-        let controllers = Self::build_controllers(&core, &services);
+        let controllers = Self::build_controllers(&services);
 
         Self {
             services: Arc::new(services),
@@ -178,6 +178,8 @@ impl AppState {
             &core.configuration.auth.jwt_key_path,
             core.configuration.auth.jwt_token_duration,
             core.configuration.auth.refresh_token_duration,
+            &core.configuration.auth.admin_key,
+            core.configuration.auth.allow_user_registration,
         ));
 
         let sync_service = Arc::new(SyncService::new(repos.sync.clone(), repos.user.clone()));
@@ -241,7 +243,7 @@ impl AppState {
         }
     }
 
-    fn build_controllers(core: &Core, services: &Services) -> Controllers {
+    fn build_controllers(services: &Services) -> Controllers {
         let book_controller = Arc::new(BookController::new(
             services.book.clone(),
             services.lock.clone(),
@@ -294,8 +296,6 @@ impl AppState {
         let sync_controller = Arc::new(SyncController::new(services.sync.clone()));
 
         let user_controller = Arc::new(UserController::new(
-            &core.configuration.auth.admin_key,
-            core.configuration.auth.allow_user_registration,
             services.authentication.clone(),
             services.user.clone(),
         ));

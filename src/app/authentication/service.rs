@@ -1,14 +1,14 @@
 use super::models::{AuthRole, AuthToken, AuthType, CAPABILITIES, JWTClaims};
 use crate::app::{
     authentication::{
-        models::{ApiKeyError, AuthTokenError, RefreshToken},
+        models::{ApiKeyError, AuthError, AuthTokenError, RefreshToken},
         repository::AuthenticationRepository,
     },
     error::ProsaError,
     users::repository::UserRepository,
 };
 use argon2::{
-    Argon2, PasswordHasher,
+    Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
     password_hash::{
         SaltString,
         rand_core::{OsRng, RngCore},
@@ -32,6 +32,8 @@ pub struct AuthenticationService {
     jwt_secret: Vec<u8>,
     jwt_duration: u64,
     refresh_token_duration: u64,
+    admin_key: String,
+    allowed_registration: bool,
 }
 
 impl AuthenticationService {
@@ -41,6 +43,8 @@ impl AuthenticationService {
         jwt_key_path: &str,
         jwt_duration: u64,
         refresh_token_duration: u64,
+        admin_key: &str,
+        allowed_registration: bool,
     ) -> Self {
         let jwt_secret = generate_jwt_secret(jwt_key_path);
         Self {
@@ -49,6 +53,8 @@ impl AuthenticationService {
             jwt_secret,
             jwt_duration,
             refresh_token_duration,
+            admin_key: admin_key.to_string(),
+            allowed_registration,
         }
     }
 
@@ -230,6 +236,40 @@ impl AuthenticationService {
             .hash_password(secret.as_bytes(), &salt)
             .expect("Failed to hash password")
             .to_string()
+    }
+
+    pub fn verify_secret(hash: &str, secret: &str) -> bool {
+        let Ok(password_hash) = PasswordHash::new(hash) else {
+            return false;
+        };
+
+        Argon2::default()
+            .verify_password(secret.as_bytes(), &password_hash)
+            .is_ok()
+    }
+
+    pub fn can_register(&self, as_admin: bool, admin_key: Option<&str>) -> Result<(), AuthError> {
+        if let Some(key) = admin_key
+            && key == self.admin_key
+        {
+            return Ok(());
+        }
+
+        if let Some(key) = admin_key
+            && key != self.admin_key
+        {
+            return Err(AuthError::InvalidAdminKey);
+        }
+
+        if !self.allowed_registration {
+            return Err(AuthError::RegistrationDisabled);
+        }
+
+        if !as_admin {
+            return Ok(());
+        }
+
+        Err(AuthError::MissingAdminKey)
     }
 }
 

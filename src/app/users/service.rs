@@ -7,7 +7,6 @@ use crate::app::{
         repository::UserRepository,
     },
 };
-use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use merge::Merge;
 use regex::Regex;
 use std::sync::Arc;
@@ -45,13 +44,9 @@ impl UserService {
 
     pub async fn login_user(&self, username: &str, password: &str) -> Result<User, UserError> {
         let user = self.user_repository.get_user_by_username(username).await?;
-        //TODO pass this logic as a static method of AuthenticationService
-        let password_hash =
-            PasswordHash::new(&user.password_hash).map_err(|_| UserError::InvalidCredentials)?;
-
-        Argon2::default()
-            .verify_password(password.as_bytes(), &password_hash)
-            .map_err(|_| UserError::InvalidCredentials)?;
+        if !AuthenticationService::verify_secret(&user.password_hash, password) {
+            return Err(UserError::InvalidCredentials);
+        }
 
         Ok(user)
     }

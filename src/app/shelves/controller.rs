@@ -47,7 +47,6 @@ impl ShelfController {
 
         self.user_service.get_user(owner_id).await?;
 
-        //TODO this logic should be done is service
         if self
             .shelf_service
             .get_shelf_by_name_and_owner(&request.name, owner_id)

@@ -22,6 +22,18 @@ pub enum AuthError {
     #[strum(message = "Forbidden.")]
     #[strum(props(StatusCode = "403"))]
     Forbidden,
+
+    #[strum(message = "Registration without admin key is disabled.")]
+    #[strum(props(StatusCode = "403"))]
+    RegistrationDisabled,
+
+    #[strum(message = "The provided admin key is invalid.")]
+    #[strum(props(StatusCode = "400"))]
+    InvalidAdminKey,
+
+    #[strum(message = "No admin key was provided.")]
+    #[strum(props(StatusCode = "400"))]
+    MissingAdminKey,
 }
 
 #[derive(EnumMessage, EnumProperty, Debug)]

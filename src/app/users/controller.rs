@@ -1,6 +1,6 @@
 use super::models::{
     CreateApiKeyRequest, CreateApiKeyResponse, GetApiKeyResponse, LoginUserRequest, Preferences,
-    RegisterUserRequest, UserError,
+    RegisterUserRequest,
 };
 use crate::app::{
     authentication::service::AuthenticationService,
@@ -17,22 +17,13 @@ use axum::{
 use std::sync::Arc;
 
 pub struct UserController {
-    admin_key: String,
-    allowed_registration: bool,
     authentication_service: Arc<AuthenticationService>,
     user_service: Arc<UserService>,
 }
 
 impl UserController {
-    pub fn new(
-        admin_key: &str,
-        allowed_registration: bool,
-        authentication_service: Arc<AuthenticationService>,
-        user_service: Arc<UserService>,
-    ) -> Self {
+    pub fn new(authentication_service: Arc<AuthenticationService>, user_service: Arc<UserService>) -> Self {
         Self {
-            admin_key: admin_key.to_owned(),
-            allowed_registration,
             authentication_service,
             user_service,
         }
@@ -43,13 +34,8 @@ impl UserController {
         headers: HeaderMap,
         body: RegisterUserRequest,
     ) -> Result<Json<AuthenticationResponse>, ProsaError> {
-        //TODO pass this allowed check into a authorization function
-        match (self.allowed_registration, body.admin, headers.get("admin-key")) {
-            (false, _, None) => return Err(UserError::RegistrationDisabled.into()),
-            (_, _, Some(key)) if key == &self.admin_key => (),
-            (_, false, None) => (),
-            _ => return Err(UserError::InvalidCredentials.into()),
-        }
+        let admin_key = headers.get("admin-key").and_then(|h| h.to_str().ok());
+        self.authentication_service.can_register(body.admin, admin_key)?;
 
         let user_id = self
             .user_service
