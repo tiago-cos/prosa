@@ -95,6 +95,10 @@ impl CoverService {
     }
 
     fn is_valid_image(cover_data: &[u8]) -> bool {
+        if cover_data.len() > 10485760 {
+            return false;
+        }
+
         matches!(
             image::guess_format(cover_data),
             Ok(ImageFormat::Png | ImageFormat::Jpeg)

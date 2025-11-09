@@ -1,7 +1,7 @@
 use crate::app::{
     AppState,
     authentication::models::{AuthError, AuthRole, AuthToken, CREATE, DELETE, READ, UPDATE},
-    books::models::{BookError, UploadBoodRequest},
+    books::models::{BookError, UploadBookRequest},
     error::ProsaError,
 };
 use axum::{
@@ -39,7 +39,7 @@ pub async fn can_create_book(
     let request1 = Request::from_parts(parts.clone(), Body::from(body_bytes.clone()));
     let request2 = Request::from_parts(parts, Body::from(body_bytes));
 
-    let data = TypedMultipart::<UploadBoodRequest>::from_request(request1, &())
+    let data = TypedMultipart::<UploadBookRequest>::from_request(request1, &())
         .await
         .expect("Failed to parse request");
 

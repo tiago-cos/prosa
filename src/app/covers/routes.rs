@@ -7,7 +7,7 @@ use crate::app::{
 use axum::{
     Router,
     body::Bytes,
-    extract::{Path, State},
+    extract::{DefaultBodyLimit, Path, State},
     http::StatusCode,
     middleware::from_fn_with_state,
     routing::{delete, get, post, put},
@@ -29,6 +29,7 @@ pub fn get_routes(state: AppState) -> Router {
             .route_layer(from_fn_with_state(state.clone(), can_update_book))
         )
         .layer(from_fn_with_state(state.clone(), extract_token_middleware))
+        .layer(DefaultBodyLimit::max(15728640))
         .with_state(state)
 }
 
