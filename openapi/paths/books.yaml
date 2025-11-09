@@ -6,7 +6,9 @@ post:
     Upload a book file (EPUB format) to the server.  
     The uploaded file is associated with the specified user.  
   
-    **Note:** If `owner_id` is not provided, the user will be inferred from the authentication token.
+    **Note:**  
+      - If `owner_id` is not provided, the user will be inferred from the authentication token;  
+      - The request body may not be bigger than `50 MiBs`.  
   operationId: uploadBook
   requestBody:
     required: true
