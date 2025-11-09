@@ -3,12 +3,13 @@ post:
     - File
   summary: "Upload a book"
   description: |
-    Upload a book file (EPUB format) to the server.  
+    Upload a book file to the server.  
     The uploaded file is associated with the specified user.  
   
     **Note:**  
       - If `owner_id` is not provided, the user will be inferred from the authentication token;  
-      - The request body may not be bigger than `50 MiBs`.  
+      - The request body may not be bigger than `50 MiBs`;  
+      - The uploaded file must have the `EPUB` format.  
   operationId: uploadBook
   requestBody:
     required: true

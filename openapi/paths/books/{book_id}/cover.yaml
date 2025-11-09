@@ -3,7 +3,11 @@ post:
     - Cover
   summary: "Add book cover"
   description: |
-    Add a cover for a specific book owned by a user.
+    Add a cover for a specific book owned by a user.  
+
+    **Note:**  
+      - The cover must be an image file;  
+      - The cover must be smaller than `10 MiBs`.  
   operationId: addBookCover
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml
@@ -67,7 +71,11 @@ put:
     - Cover
   summary: "Update book cover"
   description: |
-    Update the cover of a specific book owned by a user.
+    Update the cover of a specific book owned by a user.  
+
+    **Note:**  
+      - The cover must be an image file;  
+      - The cover must be smaller than `10 MiBs`.  
   operationId: updateBookCover
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml
