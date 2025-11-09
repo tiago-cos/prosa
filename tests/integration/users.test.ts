@@ -8,6 +8,7 @@ import {
   getApiKeys,
   getPreferences,
   getUserProfile,
+  INVALID_ADMIN_KEY,
   INVALID_CAPABILITIES,
   INVALID_CREDENTIALS,
   INVALID_PREFERENCES,
@@ -17,6 +18,7 @@ import {
   INVALID_USERNAME_PASSWORD,
   loginUser,
   logoutUser,
+  MISSING_ADMIN_KEY,
   MISSING_METADATA_PREFERENCE,
   PASSWORD_TOO_BIG,
   patchPreferences,
@@ -77,16 +79,16 @@ describe('Register', () => {
     const adminKey = 'invalid_admin_key';
 
     const { response: registerResponse } = await registerUser(undefined, undefined, true, adminKey);
-    expect(registerResponse.status).toBe(403);
-    expect(registerResponse.text).toBe(INVALID_CREDENTIALS);
+    expect(registerResponse.status).toBe(400);
+    expect(registerResponse.text).toBe(INVALID_ADMIN_KEY);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, false, adminKey);
-    expect(registerResponse2.status).toBe(403);
-    expect(registerResponse2.text).toBe(INVALID_CREDENTIALS);
+    expect(registerResponse2.status).toBe(400);
+    expect(registerResponse2.text).toBe(INVALID_ADMIN_KEY);
 
     const { response: registerResponse3 } = await registerUser(undefined, undefined, true);
-    expect(registerResponse3.status).toBe(403);
-    expect(registerResponse3.text).toBe(INVALID_CREDENTIALS);
+    expect(registerResponse3.status).toBe(400);
+    expect(registerResponse3.text).toBe(MISSING_ADMIN_KEY);
   });
 
   test('User conflict', async () => {

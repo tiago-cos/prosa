@@ -2,6 +2,8 @@ import request from 'supertest';
 import { randomString, SERVER_URL } from './common';
 
 export const INVALID_CREDENTIALS = 'Invalid credentials provided.';
+export const INVALID_ADMIN_KEY = 'The provided admin key is invalid.';
+export const MISSING_ADMIN_KEY = 'No admin key was provided.';
 export const INVALID_USERNAME_PASSWORD = 'Username and password must not contain special characters.';
 export const USERNAME_TOO_BIG = 'Username must not exceed 20 characters.';
 export const PASSWORD_TOO_BIG = 'Password must not exceed 256 characters.';
