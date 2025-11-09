@@ -1,4 +1,4 @@
-use super::models::{Book, BookError, PaginatedBooks};
+use super::models::{BookEntity, BookError, PaginatedBookResponse};
 use crate::app::{books::repository::BookRepository, error::ProsaError};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -12,18 +12,18 @@ impl BookService {
         Self { books }
     }
 
-    pub async fn get_book(&self, book_id: &str) -> Result<Book, ProsaError> {
+    pub async fn get_book(&self, book_id: &str) -> Result<BookEntity, ProsaError> {
         let book = self.books.get_book(book_id).await?;
         Ok(book)
     }
 
-    pub async fn add_book(&self, book: &Book) -> Result<String, ProsaError> {
+    pub async fn add_book(&self, book: &BookEntity) -> Result<String, ProsaError> {
         let book_id = Uuid::new_v4().to_string();
         self.books.add_book(&book_id, book).await?;
         Ok(book_id)
     }
 
-    pub async fn update_book(&self, book_id: &str, book: &Book) -> Result<(), ProsaError> {
+    pub async fn update_book(&self, book_id: &str, book: &BookEntity) -> Result<(), ProsaError> {
         self.books.update_book(book_id, book).await?;
         Ok(())
     }
@@ -40,7 +40,7 @@ impl BookService {
         author: Option<String>,
         page: Option<i64>,
         page_size: Option<i64>,
-    ) -> Result<PaginatedBooks, ProsaError> {
+    ) -> Result<PaginatedBookResponse, ProsaError> {
         let page = page.unwrap_or(1);
         let page_size = page_size.unwrap_or(10);
 

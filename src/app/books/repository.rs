@@ -1,4 +1,4 @@
-use super::models::{Book, BookError, PaginatedBooks};
+use super::models::{BookEntity, BookError, PaginatedBookResponse};
 use sqlx::SqlitePool;
 
 pub struct BookRepository {
@@ -10,8 +10,8 @@ impl BookRepository {
         Self { pool }
     }
 
-    pub async fn get_book(&self, book_id: &str) -> Result<Book, BookError> {
-        let book = sqlx::query_as::<_, Book>(
+    pub async fn get_book(&self, book_id: &str) -> Result<BookEntity, BookError> {
+        let book = sqlx::query_as::<_, BookEntity>(
             r"
             SELECT owner_id, epub_id, metadata_id, cover_id, state_id, book_sync_id
             FROM books
@@ -25,7 +25,7 @@ impl BookRepository {
         Ok(book)
     }
 
-    pub async fn add_book(&self, book_id: &str, book: &Book) -> Result<(), BookError> {
+    pub async fn add_book(&self, book_id: &str, book: &BookEntity) -> Result<(), BookError> {
         sqlx::query(
             r"
             INSERT INTO books (book_id, owner_id, epub_id, metadata_id, cover_id, state_id, book_sync_id)
@@ -48,7 +48,7 @@ impl BookRepository {
     pub async fn delete_book(&self, book_id: &str) -> Result<(), BookError> {
         let mut tx = self.pool.begin().await?;
 
-        let book = sqlx::query_as::<_, Book>(
+        let book = sqlx::query_as::<_, BookEntity>(
             r"
             SELECT owner_id, epub_id, metadata_id, cover_id, state_id, book_sync_id
             FROM books
@@ -89,7 +89,7 @@ impl BookRepository {
         Ok(())
     }
 
-    pub async fn update_book(&self, book_id: &str, book: &Book) -> Result<(), BookError> {
+    pub async fn update_book(&self, book_id: &str, book: &BookEntity) -> Result<(), BookError> {
         let result = sqlx::query(
             r"
             UPDATE books
@@ -114,8 +114,8 @@ impl BookRepository {
         Ok(())
     }
 
-    pub async fn get_books_by_cover(&self, cover_id: &str) -> Vec<Book> {
-        sqlx::query_as::<_, Book>(
+    pub async fn get_books_by_cover(&self, cover_id: &str) -> Vec<BookEntity> {
+        sqlx::query_as::<_, BookEntity>(
             r"
             SELECT owner_id, epub_id, metadata_id, cover_id, state_id, book_sync_id
             FROM books
@@ -128,8 +128,8 @@ impl BookRepository {
         .expect("Failed to retrieve books by cover")
     }
 
-    pub async fn get_books_by_epub(&self, epub_id: &str) -> Vec<Book> {
-        sqlx::query_as::<_, Book>(
+    pub async fn get_books_by_epub(&self, epub_id: &str) -> Vec<BookEntity> {
+        sqlx::query_as::<_, BookEntity>(
             r"
             SELECT owner_id, epub_id, metadata_id, cover_id, state_id, book_sync_id
             FROM books
@@ -167,7 +167,7 @@ impl BookRepository {
         username: Option<String>,
         title: Option<String>,
         author: Option<String>,
-    ) -> PaginatedBooks {
+    ) -> PaginatedBookResponse {
         let offset = (page - 1) * page_size;
 
         let mut bind_params: Vec<String> = Vec::new();
@@ -219,7 +219,7 @@ impl BookRepository {
 
         let total_pages = (total_elements + page_size - 1) / page_size;
 
-        PaginatedBooks {
+        PaginatedBookResponse {
             book_ids,
             page_size,
             total_elements,

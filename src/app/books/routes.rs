@@ -4,7 +4,7 @@ use crate::app::{
     AppState,
     authentication::{middleware::extract_token_middleware, models::AuthToken},
     authorization::books::{can_create_book, can_delete_book, can_read_book, can_search_books},
-    books::models::{BookFileMetadata, PaginatedBooks, UploadBoodRequest},
+    books::models::{BookFileMetadataResponse, PaginatedBookResponse, UploadBookRequest},
     error::ProsaError,
 };
 use axum::{
@@ -35,14 +35,14 @@ pub fn get_routes(state: AppState) -> Router {
             .route_layer(from_fn_with_state(state.clone(), can_read_book))
         )
         .layer(from_fn_with_state(state.clone(), extract_token_middleware))
-        .layer(DefaultBodyLimit::max(31457280))
+        .layer(DefaultBodyLimit::max(57671680))
         .with_state(state)
 }
 
 async fn upload_book_handler(
     Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
-    TypedMultipart(data): TypedMultipart<UploadBoodRequest>,
+    TypedMultipart(data): TypedMultipart<UploadBookRequest>,
 ) -> Result<String, ProsaError> {
     state.controllers.book.upload_book(token, data).await
 }
@@ -50,7 +50,7 @@ async fn upload_book_handler(
 async fn search_books_handler(
     State(state): State<AppState>,
     Query(params): Query<HashMap<String, String>>,
-) -> Result<Json<PaginatedBooks>, ProsaError> {
+) -> Result<Json<PaginatedBookResponse>, ProsaError> {
     state.controllers.book.search_books(params).await
 }
 
@@ -71,6 +71,6 @@ async fn delete_book_handler(
 async fn get_book_file_metadata_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
-) -> Result<Json<BookFileMetadata>, ProsaError> {
+) -> Result<Json<BookFileMetadataResponse>, ProsaError> {
     state.controllers.book.get_book_file_metadata(book_id).await
 }

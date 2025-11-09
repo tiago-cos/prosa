@@ -46,7 +46,7 @@ impl From<&SqliteError> for BookError {
 }
 
 #[derive(FromRow)]
-pub struct Book {
+pub struct BookEntity {
     pub owner_id: String,
     pub epub_id: String,
     pub metadata_id: Option<String>,
@@ -56,14 +56,14 @@ pub struct Book {
 }
 
 #[derive(TryFromMultipart)]
-pub struct UploadBoodRequest {
+pub struct UploadBookRequest {
     pub owner_id: Option<String>,
-    #[form_data(limit = "30MiB")]
+    #[form_data(limit = "50MiB")]
     pub epub: Bytes,
 }
 
 #[derive(Serialize)]
-pub struct PaginatedBooks {
+pub struct PaginatedBookResponse {
     pub book_ids: Vec<String>,
     pub page_size: i64,
     pub total_elements: i64,
@@ -72,7 +72,7 @@ pub struct PaginatedBooks {
 }
 
 #[derive(Serialize)]
-pub struct BookFileMetadata {
+pub struct BookFileMetadataResponse {
     pub owner_id: String,
     pub file_size: u32,
 }

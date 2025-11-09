@@ -1,8 +1,8 @@
-use super::models::{Book, BookError, UploadBoodRequest};
+use super::models::{BookEntity, BookError, UploadBookRequest};
 use crate::app::{
     authentication::models::AuthToken,
     books::{
-        models::{BookFileMetadata, PaginatedBooks},
+        models::{BookFileMetadataResponse, PaginatedBookResponse},
         service::BookService,
     },
     core::{locking::service::LockService, metadata_fetcher::MetadataFetcherService},
@@ -67,14 +67,14 @@ impl BookController {
     pub async fn get_book_file_metadata(
         &self,
         book_id: String,
-    ) -> Result<Json<BookFileMetadata>, ProsaError> {
+    ) -> Result<Json<BookFileMetadataResponse>, ProsaError> {
         let lock = self.lock_service.get_book_lock(&book_id).await;
         let _guard = lock.read().await;
 
         let book = self.book_service.get_book(&book_id).await?;
         let file_size = self.epub_service.get_file_size(&book.epub_id).await;
 
-        let metadata = BookFileMetadata {
+        let metadata = BookFileMetadataResponse {
             owner_id: book.owner_id,
             file_size,
         };
@@ -82,7 +82,7 @@ impl BookController {
         Ok(Json(metadata))
     }
 
-    pub async fn upload_book(&self, token: AuthToken, data: UploadBoodRequest) -> Result<String, ProsaError> {
+    pub async fn upload_book(&self, token: AuthToken, data: UploadBookRequest) -> Result<String, ProsaError> {
         let owner_id = match data.owner_id.as_deref() {
             Some(id) => id,
             None => token.role.get_user(),
@@ -98,7 +98,7 @@ impl BookController {
         let state_id = self.state_service.initialize_state().await;
         let book_sync_id = self.sync_service.initialize_book_sync().await;
 
-        let book = Book {
+        let book = BookEntity {
             owner_id: owner_id.to_string(),
             epub_id,
             metadata_id: None,
@@ -132,7 +132,7 @@ impl BookController {
     pub async fn search_books(
         &self,
         params: HashMap<String, String>,
-    ) -> Result<Json<PaginatedBooks>, ProsaError> {
+    ) -> Result<Json<PaginatedBookResponse>, ProsaError> {
         if let Some(username) = params.get("username") {
             self.user_service.get_user_by_username(username).await?;
         }
