@@ -59,7 +59,7 @@ impl AuthenticationService {
     }
 
     #[rustfmt::skip]
-    pub fn generate_jwt(&self, user_id: &str, is_admin: bool) -> String {
+    pub fn generate_jwt(&self, user_id: &str, session_id: &str, is_admin: bool) -> String {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Failed to get time since epoch")
@@ -67,7 +67,7 @@ impl AuthenticationService {
 
         let capabilities = CAPABILITIES.iter().map(|&s| s.to_string()).collect();
         let role = if is_admin { AuthRole::Admin(user_id.to_string()) } else { AuthRole::User(user_id.to_string()) };
-        let claims = JWTClaims { role, capabilities, exp: now + self.jwt_duration };
+        let claims = JWTClaims { role, capabilities, exp: now + self.jwt_duration, session_id: session_id.to_string() };
 
         let token = jsonwebtoken::encode(
             &Header::default(),
@@ -114,7 +114,7 @@ impl AuthenticationService {
         Ok((key_id, encoded_key))
     }
 
-    pub async fn generate_refresh_token(&self, user_id: &str) -> String {
+    pub async fn generate_refresh_token(&self, user_id: &str, session_id: &str) -> String {
         let mut token = [0u8; 128];
         OsRng.fill_bytes(&mut token);
         let encoded_token = BASE64_STANDARD.encode(token);
@@ -131,7 +131,7 @@ impl AuthenticationService {
             DateTime::<Utc>::from_timestamp(expiration, 0).expect("Failed to obtain current timestamp");
 
         self.authentication_repository
-            .add_refresh_token(user_id, &hash, expiration)
+            .add_refresh_token(user_id, session_id, &hash, expiration)
             .await;
 
         encoded_token
@@ -150,6 +150,7 @@ impl AuthenticationService {
             role: token.claims.role,
             capabilities: token.claims.capabilities,
             auth_type: AuthType::Jwt,
+            session_id: token.claims.session_id,
         })
     }
 
@@ -185,6 +186,7 @@ impl AuthenticationService {
             role,
             capabilities: key.capabilities,
             auth_type: AuthType::ApiKey,
+            session_id: key.key_id, // each API key counts as a session
         })
     }
 
@@ -208,7 +210,9 @@ impl AuthenticationService {
             return Err(AuthTokenError::ExpiredToken);
         }
 
-        let encoded_token = self.generate_refresh_token(&token.user_id).await;
+        let encoded_token = self
+            .generate_refresh_token(&token.user_id, &token.session_id)
+            .await;
 
         Ok((token, encoded_token))
     }
@@ -270,6 +274,10 @@ impl AuthenticationService {
         }
 
         Err(AuthError::MissingAdminKey)
+    }
+
+    pub fn generate_new_session() -> String {
+        Uuid::new_v4().to_string()
     }
 }
 

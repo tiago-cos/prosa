@@ -41,8 +41,15 @@ impl UserController {
             .user_service
             .register_user(&body.username, &body.password, body.admin)
             .await?;
-        let jwt_token = self.authentication_service.generate_jwt(&user_id, body.admin);
-        let refresh_token = self.authentication_service.generate_refresh_token(&user_id).await;
+
+        let session_id = AuthenticationService::generate_new_session();
+        let jwt_token = self
+            .authentication_service
+            .generate_jwt(&user_id, &session_id, body.admin);
+        let refresh_token = self
+            .authentication_service
+            .generate_refresh_token(&user_id, &session_id)
+            .await;
 
         let response = AuthenticationResponse {
             jwt_token,
@@ -62,13 +69,15 @@ impl UserController {
             .login_user(&body.username, &body.password)
             .await?;
 
+        let session_id = AuthenticationService::generate_new_session();
+
         let jwt_token = self
             .authentication_service
-            .generate_jwt(&user.user_id, user.is_admin);
+            .generate_jwt(&user.user_id, &session_id, user.is_admin);
 
         let refresh_token = self
             .authentication_service
-            .generate_refresh_token(&user.user_id)
+            .generate_refresh_token(&user.user_id, &session_id)
             .await;
 
         let response = AuthenticationResponse {
@@ -92,16 +101,16 @@ impl UserController {
         &self,
         body: RefreshTokenRequest,
     ) -> Result<Json<AuthenticationResponse>, ProsaError> {
-        let (refresh_token, encoded_refresh_token) = self
+        let (token, encoded_refresh_token) = self
             .authentication_service
             .renew_refresh_token(&body.refresh_token)
             .await?;
 
-        let user = self.user_service.get_user(&refresh_token.user_id).await?;
+        let user = self.user_service.get_user(&token.user_id).await?;
 
-        let jwt_token = self
-            .authentication_service
-            .generate_jwt(&user.user_id, user.is_admin);
+        let jwt_token =
+            self.authentication_service
+                .generate_jwt(&user.user_id, &token.session_id, user.is_admin);
 
         let response = AuthenticationResponse {
             jwt_token,

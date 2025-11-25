@@ -151,6 +151,7 @@ pub struct JWTClaims {
     pub role: AuthRole,
     pub capabilities: Vec<String>,
     pub exp: u64,
+    pub session_id: String,
 }
 
 #[derive(Clone)]
@@ -158,12 +159,16 @@ pub struct AuthToken {
     pub role: AuthRole,
     pub capabilities: Vec<String>,
     pub auth_type: AuthType,
+    //TODO remove
+    #[allow(dead_code)]
+    pub session_id: String,
 }
 
 #[derive(FromRow)]
 #[allow(unused)]
 pub struct RefreshToken {
     pub user_id: String,
+    pub session_id: String,
     pub refresh_token_hash: String,
     pub expiration: DateTime<Utc>,
 }

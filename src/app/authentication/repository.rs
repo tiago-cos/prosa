@@ -15,16 +15,18 @@ impl AuthenticationRepository {
     pub async fn add_refresh_token(
         &self,
         user_id: &str,
+        session_id: &str,
         refresh_token_hash: &str,
         expiration: DateTime<Utc>,
     ) {
         sqlx::query(
             r"
-            INSERT INTO refresh_tokens (user_id, refresh_token_hash, expiration)
-            VALUES ($1, $2, $3)
+            INSERT INTO refresh_tokens (user_id, session_id, refresh_token_hash, expiration)
+            VALUES ($1, $2, $3, $4)
             ",
         )
         .bind(user_id)
+        .bind(session_id)
         .bind(refresh_token_hash)
         .bind(expiration)
         .execute(&self.pool)
@@ -37,6 +39,7 @@ impl AuthenticationRepository {
             r"
             SELECT 
                 user_id,
+                session_id,
                 refresh_token_hash,
                 expiration
             FROM refresh_tokens

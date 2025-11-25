@@ -14,6 +14,7 @@ pub async fn create_tables(pool: &SqlitePool) {
 
         CREATE TABLE IF NOT EXISTS refresh_tokens (
             user_id TEXT NOT NULL,
+            session_id TEXT NOT NULL,
             refresh_token_hash TEXT PRIMARY KEY NOT NULL,
             expiration DATETIME NOT NULL,
             FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
