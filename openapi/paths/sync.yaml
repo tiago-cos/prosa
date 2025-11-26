@@ -3,14 +3,23 @@ get:
     - Sync
   summary: "Sync device"
   description: |
-    Returns a list of book and shelf IDs belonging to a given user that have changed since the last sync.  
-    Results are categorized into two top-level groups: `book` and `shelf`.
+    Returns a list of book and shelf IDs belonging to a given user that have changed since the last sync token.
+
+    **Synchronization Logic:**
+    - This endpoint uses a **sync token** (an integer sequence number) to ensure robust synchronization.
+    - **Session Awareness:** 
+      - Each login or registration creates a unique, persistent **Session ID**.
+      - This Session ID is embedded in the JWT and persists across token refreshes.
+      - Changes made by the *current* session are excluded from the response to prevent "echoing" changes back to the device that made them.
+      - If you log out and log back in, a new Session ID is generated, and that new session will need to perform a full sync.
+      - API Key authentication is treated as a distinct session.
 
     **Book categories:**
     - `file`: Newly added books.  
     - `metadata`: Books with updated metadata.  
     - `cover`: Books with updated covers.  
     - `state`: Books with updated state.  
+    - `annotations`: Books with updated annotations.
     - `deleted`: Books that have been removed.
 
     **Shelf categories:**
@@ -32,24 +41,24 @@ get:
         format: uuid
         example: d98354c3-376a-4bb3-9aa6-53583f89cf5e
 
-    - name: since
+    - name: sync_token
       in: query
-      description: _(Optional)_ The UNIX timestamp (milliseconds) of the last sync. If empty, assumes first sync.
+      description: _(Optional)_ The last known sync token (integer sequence number). If empty or 0, a full sync (all current items) is returned.
       required: false
       schema:
         type: integer
         format: int64
-        example: 1705740000000
+        example: 15023
 
   responses:
     "200":
-      description: The list of books whose data has changed since the last sync.
+      description: The changes that occurred after the provided sync token.
       content:
         application/json:
           schema:
             $ref: ../components/schemas/Sync.yaml
     "400":
-      $ref: ../components/responses/sync/InvalidTimestamp.yaml
+      $ref: ../components/responses/sync/InvalidSyncToken.yaml
     "401":
       $ref: ../components/responses/Unauthorized.yaml
     "403":
