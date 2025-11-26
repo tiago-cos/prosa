@@ -1,6 +1,4 @@
-use super::models::{BookSync, UnsyncedBooks};
-use crate::app::sync::models::{ShelfSync, UnsyncedShelves};
-use chrono::{DateTime, Utc};
+use crate::app::sync::models::{ChangeLogAction, ChangeLogEntityType, ChangeLogEntry};
 use sqlx::SqlitePool;
 
 pub struct SyncRepository {
@@ -12,257 +10,66 @@ impl SyncRepository {
         Self { pool }
     }
 
-    pub async fn add_book_sync_timestamps(&self, sync_id: &str, sync: BookSync) {
+    pub async fn delete_log_entries(&self, entity_id: &str) {
         sqlx::query(
             r"
-            INSERT INTO book_sync (book_sync_id, file, metadata, cover, state, annotations, deleted)
-            VALUES ($1, $2, $3, $4, $5, $6, $7);
+            DELETE FROM change_log
+            WHERE entity_id = $1
             ",
         )
-        .bind(sync_id)
-        .bind(sync.file)
-        .bind(sync.metadata)
-        .bind(sync.cover)
-        .bind(sync.state)
-        .bind(sync.annotations)
-        .bind(sync.deleted)
+        .bind(entity_id)
         .execute(&self.pool)
         .await
-        .expect("Failed to add book sync data");
+        .expect("Failed to delete logs");
     }
 
-    pub async fn get_book_sync_timestamps(&self, sync_id: &str) -> BookSync {
-        sqlx::query_as(
-            r"
-            SELECT file, metadata, cover, state, annotations, deleted
-            FROM book_sync
-            WHERE book_sync_id = $1
-            ",
-        )
-        .bind(sync_id)
-        .fetch_one(&self.pool)
-        .await
-        .expect("Failed to get book sync data")
-    }
-
-    pub async fn update_book_sync_timestamps(&self, sync_id: &str, sync: BookSync) {
+    pub async fn log_change(
+        &self,
+        entity_id: &str,
+        entity_type: ChangeLogEntityType,
+        action: ChangeLogAction,
+        owner_id: &str,
+        session_id: &str,
+    ) {
         sqlx::query(
             r"
-            UPDATE book_sync
-            SET file = $1, metadata = $2, cover = $3, state = $4, annotations = $5, deleted = $6
-            WHERE book_sync_id = $7
+            INSERT INTO change_log (entity_id, entity_type, owner_id, session_id, action)
+            VALUES ($1, $2, $3, $4, $5)
             ",
         )
-        .bind(sync.file)
-        .bind(sync.metadata)
-        .bind(sync.cover)
-        .bind(sync.state)
-        .bind(sync.annotations)
-        .bind(sync.deleted)
-        .bind(sync_id)
+        .bind(entity_id)
+        .bind(entity_type)
+        .bind(owner_id)
+        .bind(session_id)
+        .bind(action)
         .execute(&self.pool)
         .await
-        .expect("Failed to update book sync data");
+        .expect("Failed to log change");
     }
 
-    pub async fn get_unsynced_books(&self, owner_id: &str, since: DateTime<Utc>) -> UnsyncedBooks {
-        let file: Vec<String> = sqlx::query_scalar(
+    pub async fn get_changes(
+        &self,
+        user_id: &str,
+        last_sync_token: i64,
+        session_id: &str,
+    ) -> Vec<ChangeLogEntry> {
+        let changes: Vec<ChangeLogEntry> = sqlx::query_as(
             r"
-            SELECT books.book_id
-            FROM books
-            JOIN book_sync ON books.book_sync_id = book_sync.book_sync_id
-            WHERE books.owner_id = $1
-            AND book_sync.file > $2
+            SELECT log_id, entity_id, entity_type, owner_id, session_id, action
+            FROM change_log
+            WHERE owner_id = $1
+            AND log_id > $2
+            AND session_id != $3
+            ORDER BY log_id ASC
             ",
         )
-        .bind(owner_id)
-        .bind(since)
+        .bind(user_id)
+        .bind(last_sync_token)
+        .bind(session_id)
         .fetch_all(&self.pool)
         .await
-        .expect("Failed to get books with unsynced files");
+        .expect("Failed to fetch change log");
 
-        let metadata: Vec<String> = sqlx::query_scalar(
-            r"
-            SELECT books.book_id
-            FROM books
-            JOIN book_sync ON books.book_sync_id = book_sync.book_sync_id
-            WHERE books.owner_id = $1
-            AND book_sync.metadata > $2
-            ",
-        )
-        .bind(owner_id)
-        .bind(since)
-        .fetch_all(&self.pool)
-        .await
-        .expect("Failed to get books with unsynced metadata");
-
-        let cover: Vec<String> = sqlx::query_scalar(
-            r"
-            SELECT books.book_id
-            FROM books
-            JOIN book_sync ON books.book_sync_id = book_sync.book_sync_id
-            WHERE books.owner_id = $1
-            AND book_sync.cover > $2
-            ",
-        )
-        .bind(owner_id)
-        .bind(since)
-        .fetch_all(&self.pool)
-        .await
-        .expect("Failed to get books with unsynced covers");
-
-        let state: Vec<String> = sqlx::query_scalar(
-            r"
-            SELECT books.book_id
-            FROM books
-            JOIN book_sync ON books.book_sync_id = book_sync.book_sync_id
-            WHERE books.owner_id = $1
-            AND book_sync.state > $2
-            ",
-        )
-        .bind(owner_id)
-        .bind(since)
-        .fetch_all(&self.pool)
-        .await
-        .expect("Failed to get books with unsynced state");
-
-        let annotations: Vec<String> = sqlx::query_scalar(
-            r"
-            SELECT books.book_id
-            FROM books
-            JOIN book_sync ON books.book_sync_id = book_sync.book_sync_id
-            WHERE books.owner_id = $1
-            AND book_sync.annotations > $2
-            ",
-        )
-        .bind(owner_id)
-        .bind(since)
-        .fetch_all(&self.pool)
-        .await
-        .expect("Failed to get books with unsynced annotations");
-
-        let deleted: Vec<String> = sqlx::query_scalar(
-            r"
-            SELECT deleted_books.book_id
-            FROM deleted_books
-            JOIN book_sync ON deleted_books.book_sync_id = book_sync.book_sync_id
-            WHERE deleted_books.owner_id = $1
-            AND book_sync.deleted > $2
-            ",
-        )
-        .bind(owner_id)
-        .bind(since)
-        .fetch_all(&self.pool)
-        .await
-        .expect("Failed to get unsynced deleted books");
-
-        UnsyncedBooks {
-            file,
-            metadata,
-            cover,
-            state,
-            annotations,
-            deleted,
-        }
-    }
-
-    pub async fn add_shelf_sync_timestamps(&self, sync_id: &str, sync: ShelfSync) {
-        sqlx::query(
-            r"
-            INSERT INTO shelf_sync (shelf_sync_id, contents, metadata, deleted)
-            VALUES ($1, $2, $3, $4);
-            ",
-        )
-        .bind(sync_id)
-        .bind(sync.contents)
-        .bind(sync.metadata)
-        .bind(sync.deleted)
-        .execute(&self.pool)
-        .await
-        .expect("Failed to add shelf sync data");
-    }
-
-    pub async fn get_shelf_sync_timestamps(&self, sync_id: &str) -> ShelfSync {
-        sqlx::query_as(
-            r"
-            SELECT contents, metadata, deleted
-            FROM shelf_sync
-            WHERE shelf_sync_id = $1
-            ",
-        )
-        .bind(sync_id)
-        .fetch_one(&self.pool)
-        .await
-        .expect("Failed to get shelf sync data")
-    }
-
-    pub async fn update_shelf_sync_timestamps(&self, sync_id: &str, sync: ShelfSync) {
-        sqlx::query(
-            r"
-            UPDATE shelf_sync
-            SET contents = $1, metadata = $2, deleted = $3
-            WHERE shelf_sync_id = $4
-            ",
-        )
-        .bind(sync.contents)
-        .bind(sync.metadata)
-        .bind(sync.deleted)
-        .bind(sync_id)
-        .execute(&self.pool)
-        .await
-        .expect("Failed to update shelf sync data");
-    }
-
-    pub async fn get_unsynced_shelves(&self, owner_id: &str, since: DateTime<Utc>) -> UnsyncedShelves {
-        let contents: Vec<String> = sqlx::query_scalar(
-            r"
-            SELECT shelf.shelf_id
-            FROM shelf
-            JOIN shelf_sync ON shelf.shelf_sync_id = shelf_sync.shelf_sync_id
-            WHERE shelf.owner_id = $1
-            AND shelf_sync.contents > $2
-            ",
-        )
-        .bind(owner_id)
-        .bind(since)
-        .fetch_all(&self.pool)
-        .await
-        .expect("Failed to get shelves with unsynced contents");
-
-        let metadata: Vec<String> = sqlx::query_scalar(
-            r"
-            SELECT shelf.shelf_id
-            FROM shelf
-            JOIN shelf_sync ON shelf.shelf_sync_id = shelf_sync.shelf_sync_id
-            WHERE shelf.owner_id = $1
-            AND shelf_sync.metadata > $2
-            ",
-        )
-        .bind(owner_id)
-        .bind(since)
-        .fetch_all(&self.pool)
-        .await
-        .expect("Failed to get shelves with unsynced metadata");
-
-        let deleted: Vec<String> = sqlx::query_scalar(
-            r"
-            SELECT deleted_shelves.shelf_id
-            FROM deleted_shelves
-            JOIN shelf_sync ON deleted_shelves.shelf_sync_id = shelf_sync.shelf_sync_id
-            WHERE deleted_shelves.owner_id = $1
-            AND shelf_sync.deleted > $2
-            ",
-        )
-        .bind(owner_id)
-        .bind(since)
-        .fetch_all(&self.pool)
-        .await
-        .expect("Failed to get unsynced deleted shelves");
-
-        UnsyncedShelves {
-            contents,
-            metadata,
-            deleted,
-        }
+        changes
     }
 }

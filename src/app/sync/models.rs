@@ -1,23 +1,43 @@
-use chrono::{DateTime, Utc};
 use serde::Serialize;
-use sqlx::prelude::FromRow;
+use sqlx::{Type, prelude::FromRow};
 use strum_macros::{EnumMessage, EnumProperty};
 
 #[derive(EnumMessage, EnumProperty, Debug)]
 pub enum SyncError {
-    #[strum(message = "The provided timestamp is invalid.")]
+    #[strum(message = "The provided sync token is invalid.")]
     #[strum(props(StatusCode = "400"))]
-    InvalidTimestamp,
+    InvalidSyncToken,
+}
+
+#[derive(Type, PartialEq)]
+#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
+pub enum ChangeLogEntityType {
+    BookFile,
+    BookMetadata,
+    BookCover,
+    BookState,
+    BookAnnotations,
+    ShelfMetadata,
+    ShelfContent,
+}
+
+#[derive(Type, PartialEq)]
+#[sqlx(type_name = "TEXT", rename_all = "lowercase")]
+pub enum ChangeLogAction {
+    Create,
+    Update,
+    Delete,
 }
 
 #[derive(FromRow)]
-pub struct BookSync {
-    pub file: DateTime<Utc>,
-    pub metadata: Option<DateTime<Utc>>,
-    pub cover: Option<DateTime<Utc>>,
-    pub state: DateTime<Utc>,
-    pub annotations: Option<DateTime<Utc>>,
-    pub deleted: Option<DateTime<Utc>>,
+#[allow(dead_code)]
+pub struct ChangeLogEntry {
+    pub log_id: i64,
+    pub entity_id: String,
+    pub entity_type: ChangeLogEntityType,
+    pub owner_id: String,
+    pub session_id: String,
+    pub action: ChangeLogAction,
 }
 
 #[derive(Serialize)]
@@ -30,13 +50,6 @@ pub struct UnsyncedBooks {
     pub deleted: Vec<String>,
 }
 
-#[derive(FromRow)]
-pub struct ShelfSync {
-    pub contents: Option<DateTime<Utc>>,
-    pub metadata: DateTime<Utc>,
-    pub deleted: Option<DateTime<Utc>>,
-}
-
 #[derive(Serialize)]
 pub struct UnsyncedShelves {
     pub contents: Vec<String>,
@@ -44,8 +57,11 @@ pub struct UnsyncedShelves {
     pub deleted: Vec<String>,
 }
 
+//TODO change sync structs in kobont, adjust logic accordingly
+
 #[derive(Serialize)]
 pub struct UnsyncedResponse {
-    pub book: UnsyncedBooks,
-    pub shelf: UnsyncedShelves,
+    pub new_sync_token: i64,
+    pub unsynced_books: UnsyncedBooks,
+    pub unsynced_shelves: UnsyncedShelves,
 }

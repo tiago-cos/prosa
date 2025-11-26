@@ -67,18 +67,24 @@ async fn get_shelf_metadata_handler(
 }
 
 async fn update_shelf_handler(
+    Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     Path(shelf_id): Path<String>,
     Json(request): Json<UpdateShelfRequest>,
 ) -> Result<StatusCode, ProsaError> {
-    state.controllers.shelf.update_shelf(&shelf_id, request).await
+    state
+        .controllers
+        .shelf
+        .update_shelf(token, &shelf_id, request)
+        .await
 }
 
 async fn delete_shelf_handler(
+    Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     Path(shelf_id): Path<String>,
 ) -> Result<StatusCode, ProsaError> {
-    state.controllers.shelf.delete_shelf(&shelf_id).await
+    state.controllers.shelf.delete_shelf(token, &shelf_id).await
 }
 
 async fn search_shelves_handler(
@@ -89,6 +95,7 @@ async fn search_shelves_handler(
 }
 
 async fn add_book_to_shelf_handler(
+    Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     Path(shelf_id): Path<String>,
     Json(request): Json<AddBookToShelfRequest>,
@@ -96,7 +103,7 @@ async fn add_book_to_shelf_handler(
     state
         .controllers
         .shelf
-        .add_book_to_shelf(&shelf_id, request)
+        .add_book_to_shelf(token, &shelf_id, request)
         .await
 }
 
@@ -108,12 +115,13 @@ async fn list_books_in_shelf_handler(
 }
 
 async fn remove_book_from_shelf_handler(
+    Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     Path((shelf_id, book_id)): Path<(String, String)>,
 ) -> Result<StatusCode, ProsaError> {
     state
         .controllers
         .shelf
-        .remove_book_from_shelf(&shelf_id, &book_id)
+        .remove_book_from_shelf(token, &shelf_id, &book_id)
         .await
 }

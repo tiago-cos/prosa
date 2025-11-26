@@ -1,9 +1,11 @@
+use crate::app::authentication::models::AuthToken;
 use crate::app::books::service::BookService;
 use crate::app::core::locking::service::LockService;
 use crate::app::core::metadata_fetcher::{MetadataFetcherRequest, MetadataFetcherService};
 use crate::app::error::ProsaError;
 use crate::app::metadata::models::{Metadata, MetadataError, MetadataFetchRequest};
 use crate::app::metadata::service::MetadataService;
+use crate::app::sync::models::{ChangeLogAction, ChangeLogEntityType};
 use crate::app::sync::service::SyncService;
 use crate::app::users::models::{PreferencesError, VALID_PROVIDERS};
 use crate::app::users::service::UserService;
@@ -40,11 +42,11 @@ impl MetadataController {
         }
     }
 
-    pub async fn get_metadata(&self, book_id: String) -> Result<Json<Metadata>, ProsaError> {
-        let lock = self.lock_service.get_book_lock(&book_id).await;
+    pub async fn get_metadata(&self, book_id: &str) -> Result<Json<Metadata>, ProsaError> {
+        let lock = self.lock_service.get_book_lock(book_id).await;
         let _guard = lock.read().await;
 
-        let book = self.book_service.get_book(&book_id).await?;
+        let book = self.book_service.get_book(book_id).await?;
 
         let Some(metadata_id) = book.metadata_id else {
             return Err(MetadataError::MetadataNotFound.into());
@@ -54,12 +56,16 @@ impl MetadataController {
         Ok(Json(metadata))
     }
 
-    pub async fn add_metadata(&self, book_id: String, metadata: Metadata) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_service.get_book_lock(&book_id).await;
+    pub async fn add_metadata(
+        &self,
+        token: AuthToken,
+        book_id: &str,
+        metadata: Metadata,
+    ) -> Result<StatusCode, ProsaError> {
+        let lock = self.lock_service.get_book_lock(book_id).await;
         let _guard = lock.write().await;
 
-        let mut book = self.book_service.get_book(&book_id).await?;
-        let book_sync_id = book.book_sync_id.clone();
+        let mut book = self.book_service.get_book(book_id).await?;
 
         let metadata_id = match book.metadata_id {
             None => self.metadata_service.add_metadata(metadata).await?,
@@ -67,28 +73,41 @@ impl MetadataController {
         };
 
         book.metadata_id = Some(metadata_id);
-        self.book_service.update_book(&book_id, &book).await?;
+        self.book_service.update_book(book_id, &book).await?;
 
         self.sync_service
-            .update_book_metadata_timestamp(&book_sync_id)
+            .log_change(
+                book_id,
+                ChangeLogEntityType::BookMetadata,
+                ChangeLogAction::Create,
+                &book.owner_id,
+                &token.session_id,
+            )
             .await;
 
         Ok(StatusCode::NO_CONTENT)
     }
 
-    pub async fn delete_metadata(&self, book_id: String) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_service.get_book_lock(&book_id).await;
+    pub async fn delete_metadata(&self, token: AuthToken, book_id: &str) -> Result<StatusCode, ProsaError> {
+        let lock = self.lock_service.get_book_lock(book_id).await;
         let _guard = lock.write().await;
 
-        let book = self.book_service.get_book(&book_id).await?;
+        let book = self.book_service.get_book(book_id).await?;
 
         let Some(metadata_id) = book.metadata_id else {
             return Err(MetadataError::MetadataNotFound.into());
         };
 
         self.metadata_service.delete_metadata(&metadata_id).await?;
+
         self.sync_service
-            .update_book_metadata_timestamp(&book.book_sync_id)
+            .log_change(
+                book_id,
+                ChangeLogEntityType::BookMetadata,
+                ChangeLogAction::Delete,
+                &book.owner_id,
+                &token.session_id,
+            )
             .await;
 
         Ok(StatusCode::NO_CONTENT)
@@ -96,14 +115,14 @@ impl MetadataController {
 
     pub async fn patch_metadata(
         &self,
-        book_id: String,
+        token: AuthToken,
+        book_id: &str,
         metadata: Metadata,
     ) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_service.get_book_lock(&book_id).await;
+        let lock = self.lock_service.get_book_lock(book_id).await;
         let _guard = lock.write().await;
 
-        let book = self.book_service.get_book(&book_id).await?;
-        let book_sync_id = book.book_sync_id.clone();
+        let book = self.book_service.get_book(book_id).await?;
 
         let Some(metadata_id) = book.metadata_id else {
             return Err(MetadataError::MetadataNotFound.into());
@@ -112,8 +131,15 @@ impl MetadataController {
         self.metadata_service
             .patch_metadata(&metadata_id, metadata)
             .await?;
+
         self.sync_service
-            .update_book_metadata_timestamp(&book_sync_id)
+            .log_change(
+                book_id,
+                ChangeLogEntityType::BookMetadata,
+                ChangeLogAction::Update,
+                &book.owner_id,
+                &token.session_id,
+            )
             .await;
 
         Ok(StatusCode::NO_CONTENT)
@@ -121,14 +147,14 @@ impl MetadataController {
 
     pub async fn update_metadata(
         &self,
-        book_id: String,
+        token: AuthToken,
+        book_id: &str,
         metadata: Metadata,
     ) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_service.get_book_lock(&book_id).await;
+        let lock = self.lock_service.get_book_lock(book_id).await;
         let _guard = lock.write().await;
 
-        let book = self.book_service.get_book(&book_id).await?;
-        let book_sync_id = book.book_sync_id.clone();
+        let book = self.book_service.get_book(book_id).await?;
 
         let Some(metadata_id) = book.metadata_id else {
             return Err(MetadataError::MetadataNotFound.into());
@@ -137,8 +163,15 @@ impl MetadataController {
         self.metadata_service
             .update_metadata(&metadata_id, metadata)
             .await?;
+
         self.sync_service
-            .update_book_metadata_timestamp(&book_sync_id)
+            .log_change(
+                book_id,
+                ChangeLogEntityType::BookMetadata,
+                ChangeLogAction::Update,
+                &book.owner_id,
+                &token.session_id,
+            )
             .await;
 
         Ok(StatusCode::NO_CONTENT)

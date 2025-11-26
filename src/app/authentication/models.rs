@@ -159,8 +159,6 @@ pub struct AuthToken {
     pub role: AuthRole,
     pub capabilities: Vec<String>,
     pub auth_type: AuthType,
-    //TODO remove
-    #[allow(dead_code)]
     pub session_id: String,
 }
 

@@ -79,8 +79,6 @@ impl AuthenticationService {
         BASE64_STANDARD.encode(token)
     }
 
-    //TODO use a validation crate to do input validations and possibly remove them from the services
-
     pub async fn generate_api_key(
         &self,
         user_id: &str,

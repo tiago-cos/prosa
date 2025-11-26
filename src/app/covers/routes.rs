@@ -1,11 +1,11 @@
 use crate::app::{
     AppState,
-    authentication::middleware::extract_token_middleware,
+    authentication::{middleware::extract_token_middleware, models::AuthToken},
     authorization::books::{can_delete_book, can_read_book, can_update_book},
     error::ProsaError,
 };
 use axum::{
-    Router,
+    Extension, Router,
     body::Bytes,
     extract::{DefaultBodyLimit, Path, State},
     http::StatusCode,
@@ -37,28 +37,39 @@ async fn get_cover_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<Vec<u8>, ProsaError> {
-    state.controllers.cover.get_cover(book_id).await
+    state.controllers.cover.get_cover(&book_id).await
 }
 
 async fn add_cover_handler(
+    Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     Path(book_id): Path<String>,
     cover_data: Bytes,
 ) -> Result<StatusCode, ProsaError> {
-    state.controllers.cover.add_cover(book_id, cover_data).await
+    state
+        .controllers
+        .cover
+        .add_cover(token, &book_id, cover_data)
+        .await
 }
 
 async fn delete_cover_handler(
+    Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<StatusCode, ProsaError> {
-    state.controllers.cover.delete_cover(book_id).await
+    state.controllers.cover.delete_cover(token, &book_id).await
 }
 
 async fn update_cover_handler(
+    Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     Path(book_id): Path<String>,
     cover_data: Bytes,
 ) -> Result<StatusCode, ProsaError> {
-    state.controllers.cover.update_cover(book_id, cover_data).await
+    state
+        .controllers
+        .cover
+        .update_cover(token, &book_id, cover_data)
+        .await
 }

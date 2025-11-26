@@ -5,7 +5,6 @@ use crate::app::{
     sync::{models::UnsyncedResponse, service::SyncService},
 };
 use axum::Json;
-use chrono::{DateTime, Utc};
 use std::{collections::HashMap, sync::Arc};
 
 pub struct SyncController {
@@ -22,26 +21,24 @@ impl SyncController {
         query_params: HashMap<String, String>,
         token: AuthToken,
     ) -> Result<Json<UnsyncedResponse>, ProsaError> {
-        let since = query_params.get("since").map(|t| t.parse::<i64>());
+        let sync_token = query_params.get("sync_token").map(|t| t.parse::<i64>());
 
         let user_id = match query_params.get("user_id") {
             Some(id) => id,
             None => token.role.get_user(),
         };
 
-        let since = match since {
-            Some(Ok(t)) => DateTime::<Utc>::from_timestamp_millis(t),
-            None => DateTime::<Utc>::from_timestamp_millis(0),
-            _ => return Err(SyncError::InvalidTimestamp.into()),
+        let sync_token = match sync_token {
+            Some(Ok(t)) => t,
+            None => -1,
+            _ => return Err(SyncError::InvalidSyncToken.into()),
         };
 
-        let Some(since) = since else {
-            return Err(SyncError::InvalidTimestamp.into());
-        };
+        let unsynced = self
+            .sync_service
+            .get_unsynced_changes(user_id, &token.session_id, sync_token)
+            .await?;
 
-        let book = self.sync_service.get_unsynced_books(user_id, since).await?;
-        let shelf = self.sync_service.get_unsynced_shelves(user_id, since).await?;
-
-        Ok(Json(UnsyncedResponse { book, shelf }))
+        Ok(Json(unsynced))
     }
 }

@@ -85,7 +85,6 @@ impl From<&SqliteError> for ShelfBookError {
 pub struct Shelf {
     pub name: String,
     pub owner_id: String,
-    pub shelf_sync_id: String,
 }
 
 #[derive(Serialize)]

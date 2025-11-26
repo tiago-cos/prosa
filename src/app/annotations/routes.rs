@@ -1,7 +1,7 @@
 use crate::app::{
     AppState,
     annotations::models::{Annotation, NewAnnotationRequest, PatchAnnotationRequest},
-    authentication::middleware::extract_token_middleware,
+    authentication::{middleware::extract_token_middleware, models::AuthToken},
     authorization::{
         annotations::{can_read_annotation, can_update_annotation},
         books::{can_read_book, can_update_book},
@@ -9,7 +9,7 @@ use crate::app::{
     error::ProsaError,
 };
 use axum::{
-    Json, Router,
+    Extension, Json, Router,
     extract::{Path, State},
     http::StatusCode,
     middleware::from_fn_with_state,
@@ -39,6 +39,7 @@ pub fn get_routes(state: AppState) -> Router {
 }
 
 async fn add_annotation_handler(
+    Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     Path(book_id): Path<String>,
     Json(annotation): Json<NewAnnotationRequest>,
@@ -46,7 +47,7 @@ async fn add_annotation_handler(
     state
         .controllers
         .annotation
-        .add_annotation(&book_id, annotation)
+        .add_annotation(token, &book_id, annotation)
         .await
 }
 
@@ -69,17 +70,19 @@ async fn list_annotation_handler(
 }
 
 async fn delete_annotation_handler(
+    Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     Path((book_id, annotation_id)): Path<(String, String)>,
 ) -> Result<StatusCode, ProsaError> {
     state
         .controllers
         .annotation
-        .delete_annotation(&book_id, &annotation_id)
+        .delete_annotation(token, &book_id, &annotation_id)
         .await
 }
 
 async fn patch_annotation_handler(
+    Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     Path((book_id, annotation_id)): Path<(String, String)>,
     Json(request): Json<PatchAnnotationRequest>,
@@ -87,6 +90,6 @@ async fn patch_annotation_handler(
     state
         .controllers
         .annotation
-        .patch_annotation(&book_id, &annotation_id, request)
+        .patch_annotation(token, &book_id, &annotation_id, request)
         .await
 }

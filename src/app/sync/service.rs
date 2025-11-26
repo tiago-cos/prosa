@@ -1,15 +1,13 @@
-use super::models::{BookSync, UnsyncedBooks};
+use super::models::UnsyncedBooks;
 use crate::app::{
     error::ProsaError,
     sync::{
-        models::{ShelfSync, UnsyncedShelves},
+        models::{ChangeLogAction, ChangeLogEntityType, UnsyncedResponse, UnsyncedShelves},
         repository::SyncRepository,
     },
     users::repository::UserRepository,
 };
-use chrono::{DateTime, Utc};
 use std::sync::Arc;
-use uuid::Uuid;
 
 pub struct SyncService {
     sync_repository: Arc<SyncRepository>,
@@ -24,125 +22,88 @@ impl SyncService {
         }
     }
 
-    pub async fn initialize_book_sync(&self) -> String {
-        let now = Utc::now();
-        let sync_id = Uuid::new_v4().to_string();
-
-        let sync = BookSync {
-            file: now,
-            metadata: None,
-            cover: None,
-            state: now,
-            annotations: None,
-            deleted: None,
-        };
-
-        self.sync_repository
-            .add_book_sync_timestamps(&sync_id, sync)
-            .await;
-        sync_id
-    }
-
-    pub async fn initialize_shelf_sync(&self) -> String {
-        let now = Utc::now();
-        let sync_id = Uuid::new_v4().to_string();
-
-        let sync = ShelfSync {
-            contents: None,
-            metadata: now,
-            deleted: None,
-        };
+    pub async fn log_change(
+        &self,
+        entity_id: &str,
+        entity_type: ChangeLogEntityType,
+        action: ChangeLogAction,
+        owner_id: &str,
+        session_id: &str,
+    ) {
+        if action == ChangeLogAction::Delete
+            && matches!(
+                entity_type,
+                ChangeLogEntityType::BookFile | ChangeLogEntityType::ShelfMetadata
+            )
+        {
+            self.sync_repository.delete_log_entries(entity_id).await;
+        }
 
         self.sync_repository
-            .add_shelf_sync_timestamps(&sync_id, sync)
+            .log_change(entity_id, entity_type, action, owner_id, session_id)
             .await;
-        sync_id
     }
 
-    pub async fn get_unsynced_books(
+    pub async fn get_unsynced_changes(
         &self,
         owner_id: &str,
-        since: DateTime<Utc>,
-    ) -> Result<UnsyncedBooks, ProsaError> {
+        session_id: &str,
+        sync_token: i64,
+    ) -> Result<UnsyncedResponse, ProsaError> {
         // TODO is this really the best way to check?
         // Ensure user exists
         self.user_repository.get_user(owner_id).await?;
-        let unsynced = self.sync_repository.get_unsynced_books(owner_id, since).await;
-        Ok(unsynced)
-    }
 
-    pub async fn get_unsynced_shelves(
-        &self,
-        owner_id: &str,
-        since: DateTime<Utc>,
-    ) -> Result<UnsyncedShelves, ProsaError> {
-        // Ensure user exists
-        self.user_repository.get_user(owner_id).await?;
-        let unsynced = self.sync_repository.get_unsynced_shelves(owner_id, since).await;
-        Ok(unsynced)
-    }
-
-    pub async fn update_book_metadata_timestamp(&self, sync_id: &str) {
-        let mut sync = self.sync_repository.get_book_sync_timestamps(sync_id).await;
-        sync.metadata = Some(Utc::now());
-        self.sync_repository
-            .update_book_sync_timestamps(sync_id, sync)
+        let changes = self
+            .sync_repository
+            .get_changes(owner_id, sync_token, session_id)
             .await;
-    }
 
-    pub async fn update_cover_timestamp(&self, sync_id: &str) {
-        let mut sync = self.sync_repository.get_book_sync_timestamps(sync_id).await;
-        sync.cover = Some(Utc::now());
-        self.sync_repository
-            .update_book_sync_timestamps(sync_id, sync)
-            .await;
-    }
+        let mut unsynced_books = UnsyncedBooks {
+            file: Vec::new(),
+            metadata: Vec::new(),
+            cover: Vec::new(),
+            state: Vec::new(),
+            annotations: Vec::new(),
+            deleted: Vec::new(),
+        };
 
-    pub async fn update_state_timestamp(&self, sync_id: &str) {
-        let mut sync = self.sync_repository.get_book_sync_timestamps(sync_id).await;
-        sync.state = Utc::now();
-        self.sync_repository
-            .update_book_sync_timestamps(sync_id, sync)
-            .await;
-    }
+        let mut unsynced_shelves = UnsyncedShelves {
+            contents: Vec::new(),
+            metadata: Vec::new(),
+            deleted: Vec::new(),
+        };
 
-    pub async fn update_annotations_timestamp(&self, sync_id: &str) {
-        let mut sync = self.sync_repository.get_book_sync_timestamps(sync_id).await;
-        sync.annotations = Some(Utc::now());
-        self.sync_repository
-            .update_book_sync_timestamps(sync_id, sync)
-            .await;
-    }
+        let new_sync_token = changes.last().map_or(sync_token, |entry| entry.log_id);
 
-    pub async fn update_book_delete_timestamp(&self, sync_id: &str) {
-        let mut sync = self.sync_repository.get_book_sync_timestamps(sync_id).await;
-        sync.deleted = Some(Utc::now());
-        self.sync_repository
-            .update_book_sync_timestamps(sync_id, sync)
-            .await;
-    }
+        for change in changes {
+            match change.entity_type {
+                ChangeLogEntityType::BookFile => {
+                    if change.action == ChangeLogAction::Delete {
+                        unsynced_books.deleted.push(change.entity_id);
+                    } else {
+                        unsynced_books.file.push(change.entity_id);
+                    }
+                }
+                ChangeLogEntityType::BookMetadata => unsynced_books.metadata.push(change.entity_id),
+                ChangeLogEntityType::BookCover => unsynced_books.cover.push(change.entity_id),
+                ChangeLogEntityType::BookState => unsynced_books.state.push(change.entity_id),
+                ChangeLogEntityType::BookAnnotations => unsynced_books.annotations.push(change.entity_id),
+                ChangeLogEntityType::ShelfMetadata => {
+                    if change.action == ChangeLogAction::Delete {
+                        unsynced_shelves.deleted.push(change.entity_id);
+                    } else {
+                        unsynced_shelves.metadata.push(change.entity_id);
+                    }
+                }
+                ChangeLogEntityType::ShelfContent => unsynced_shelves.contents.push(change.entity_id),
+            }
+        }
 
-    pub async fn update_shelf_contents_timestamp(&self, sync_id: &str) {
-        let mut sync = self.sync_repository.get_shelf_sync_timestamps(sync_id).await;
-        sync.contents = Some(Utc::now());
-        self.sync_repository
-            .update_shelf_sync_timestamps(sync_id, sync)
-            .await;
-    }
-
-    pub async fn update_shelf_metadata_timestamp(&self, sync_id: &str) {
-        let mut sync = self.sync_repository.get_shelf_sync_timestamps(sync_id).await;
-        sync.metadata = Utc::now();
-        self.sync_repository
-            .update_shelf_sync_timestamps(sync_id, sync)
-            .await;
-    }
-
-    pub async fn update_shelf_delete_timestamp(&self, sync_id: &str) {
-        let mut sync = self.sync_repository.get_shelf_sync_timestamps(sync_id).await;
-        sync.deleted = Some(Utc::now());
-        self.sync_repository
-            .update_shelf_sync_timestamps(sync_id, sync)
-            .await;
+        Ok(UnsyncedResponse {
+            new_sync_token,
+            unsynced_books,
+            unsynced_shelves,
+        })
     }
 }

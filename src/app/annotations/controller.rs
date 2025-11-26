@@ -1,9 +1,11 @@
 use super::models::{NewAnnotationRequest, PatchAnnotationRequest};
 use crate::app::annotations::models::Annotation;
 use crate::app::annotations::service::AnnotationService;
+use crate::app::authentication::models::AuthToken;
 use crate::app::books::service::BookService;
 use crate::app::core::locking::service::LockService;
 use crate::app::error::ProsaError;
+use crate::app::sync::models::{ChangeLogAction, ChangeLogEntityType};
 use crate::app::sync::service::SyncService;
 use axum::Json;
 use axum::http::StatusCode;
@@ -33,6 +35,7 @@ impl AnnotationController {
 
     pub async fn add_annotation(
         &self,
+        token: AuthToken,
         book_id: &str,
         annotation: NewAnnotationRequest,
     ) -> Result<String, ProsaError> {
@@ -40,14 +43,19 @@ impl AnnotationController {
         let _guard = lock.write().await;
 
         let book = self.book_service.get_book(book_id).await?;
-
         let annotation_id = self
             .annotation_service
             .add_annotation(book_id, annotation)
             .await?;
 
         self.sync_service
-            .update_annotations_timestamp(&book.book_sync_id)
+            .log_change(
+                book_id,
+                ChangeLogEntityType::BookAnnotations,
+                ChangeLogAction::Create,
+                &book.owner_id,
+                &token.session_id,
+            )
             .await;
 
         Ok(annotation_id)
@@ -79,6 +87,7 @@ impl AnnotationController {
 
     pub async fn delete_annotation(
         &self,
+        token: AuthToken,
         book_id: &str,
         annotation_id: &str,
     ) -> Result<StatusCode, ProsaError> {
@@ -89,7 +98,13 @@ impl AnnotationController {
         self.annotation_service.delete_annotation(annotation_id).await?;
 
         self.sync_service
-            .update_annotations_timestamp(&book.book_sync_id)
+            .log_change(
+                book_id,
+                ChangeLogEntityType::BookAnnotations,
+                ChangeLogAction::Delete,
+                &book.owner_id,
+                &token.session_id,
+            )
             .await;
 
         Ok(StatusCode::NO_CONTENT)
@@ -97,6 +112,7 @@ impl AnnotationController {
 
     pub async fn patch_annotation(
         &self,
+        token: AuthToken,
         book_id: &str,
         annotation_id: &str,
         request: PatchAnnotationRequest,
@@ -105,12 +121,19 @@ impl AnnotationController {
         let _guard = lock.write().await;
 
         let book = self.book_service.get_book(book_id).await?;
+
         self.annotation_service
             .patch_annotation(annotation_id, request.note)
             .await?;
 
         self.sync_service
-            .update_annotations_timestamp(&book.book_sync_id)
+            .log_change(
+                book_id,
+                ChangeLogEntityType::BookAnnotations,
+                ChangeLogAction::Update,
+                &book.owner_id,
+                &token.session_id,
+            )
             .await;
 
         Ok(StatusCode::NO_CONTENT)

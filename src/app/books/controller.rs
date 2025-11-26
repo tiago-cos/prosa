@@ -11,7 +11,10 @@ use crate::app::{
     error::ProsaError,
     metadata::service::MetadataService,
     state::service::StateService,
-    sync::service::SyncService,
+    sync::{
+        models::{ChangeLogAction, ChangeLogEntityType},
+        service::SyncService,
+    },
     users::service::UserService,
 };
 use axum::{Json, http::StatusCode};
@@ -96,7 +99,6 @@ impl BookController {
         }
 
         let state_id = self.state_service.initialize_state().await;
-        let book_sync_id = self.sync_service.initialize_book_sync().await;
 
         let book = BookEntity {
             owner_id: owner_id.to_string(),
@@ -104,10 +106,19 @@ impl BookController {
             metadata_id: None,
             cover_id: None,
             state_id,
-            book_sync_id,
         };
 
         let book_id = self.book_service.add_book(&book).await?;
+
+        self.sync_service
+            .log_change(
+                &book_id,
+                ChangeLogEntityType::BookFile,
+                ChangeLogAction::Create,
+                owner_id,
+                &token.session_id,
+            )
+            .await;
 
         let lock = self.lock_service.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
@@ -165,7 +176,7 @@ impl BookController {
 
     //TODO make better tests for syncing, possibly refactor syncing
 
-    pub async fn delete_book(&self, book_id: String) -> Result<StatusCode, ProsaError> {
+    pub async fn delete_book(&self, token: AuthToken, book_id: String) -> Result<StatusCode, ProsaError> {
         let lock = self.lock_service.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
 
@@ -181,7 +192,13 @@ impl BookController {
         }
 
         self.sync_service
-            .update_book_delete_timestamp(&book.book_sync_id)
+            .log_change(
+                &book_id,
+                ChangeLogEntityType::BookFile,
+                ChangeLogAction::Delete,
+                &book.owner_id,
+                &token.session_id,
+            )
             .await;
 
         let Some(cover_id) = book.cover_id else {

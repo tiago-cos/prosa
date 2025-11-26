@@ -13,7 +13,7 @@ impl BookRepository {
     pub async fn get_book(&self, book_id: &str) -> Result<BookEntity, BookError> {
         let book = sqlx::query_as::<_, BookEntity>(
             r"
-            SELECT owner_id, epub_id, metadata_id, cover_id, state_id, book_sync_id
+            SELECT owner_id, epub_id, metadata_id, cover_id, state_id
             FROM books
             WHERE book_id = ?
             ",
@@ -28,8 +28,8 @@ impl BookRepository {
     pub async fn add_book(&self, book_id: &str, book: &BookEntity) -> Result<(), BookError> {
         sqlx::query(
             r"
-            INSERT INTO books (book_id, owner_id, epub_id, metadata_id, cover_id, state_id, book_sync_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO books (book_id, owner_id, epub_id, metadata_id, cover_id, state_id)
+            VALUES (?, ?, ?, ?, ?, ?)
             ",
         )
         .bind(book_id)
@@ -38,7 +38,6 @@ impl BookRepository {
         .bind(&book.metadata_id)
         .bind(&book.cover_id)
         .bind(&book.state_id)
-        .bind(&book.book_sync_id)
         .execute(&self.pool)
         .await?;
 
@@ -46,19 +45,6 @@ impl BookRepository {
     }
 
     pub async fn delete_book(&self, book_id: &str) -> Result<(), BookError> {
-        let mut tx = self.pool.begin().await?;
-
-        let book = sqlx::query_as::<_, BookEntity>(
-            r"
-            SELECT owner_id, epub_id, metadata_id, cover_id, state_id, book_sync_id
-            FROM books
-            WHERE book_id = ?
-            ",
-        )
-        .bind(book_id)
-        .fetch_one(&mut *tx)
-        .await?;
-
         let result = sqlx::query(
             r"
             DELETE FROM books
@@ -66,26 +52,13 @@ impl BookRepository {
             ",
         )
         .bind(book_id)
-        .execute(&mut *tx)
+        .execute(&self.pool)
         .await?;
 
         if result.rows_affected() == 0 {
             return Err(BookError::BookNotFound);
         }
 
-        sqlx::query(
-            r"
-            INSERT INTO deleted_books (book_id, book_sync_id, owner_id)
-            VALUES (?, ?, ?)
-            ",
-        )
-        .bind(book_id)
-        .bind(&book.book_sync_id)
-        .bind(&book.owner_id)
-        .execute(&mut *tx)
-        .await?;
-
-        tx.commit().await?;
         Ok(())
     }
 
@@ -93,7 +66,7 @@ impl BookRepository {
         let result = sqlx::query(
             r"
             UPDATE books
-            SET owner_id = ?, epub_id = ?, metadata_id = ?, cover_id = ?, state_id = ?, book_sync_id = ?
+            SET owner_id = ?, epub_id = ?, metadata_id = ?, cover_id = ?, state_id = ?
             WHERE book_id = ?
             ",
         )
@@ -102,7 +75,6 @@ impl BookRepository {
         .bind(&book.metadata_id)
         .bind(&book.cover_id)
         .bind(&book.state_id)
-        .bind(&book.book_sync_id)
         .bind(book_id)
         .execute(&self.pool)
         .await?;
@@ -117,7 +89,7 @@ impl BookRepository {
     pub async fn get_books_by_cover(&self, cover_id: &str) -> Vec<BookEntity> {
         sqlx::query_as::<_, BookEntity>(
             r"
-            SELECT owner_id, epub_id, metadata_id, cover_id, state_id, book_sync_id
+            SELECT owner_id, epub_id, metadata_id, cover_id, state_id
             FROM books
             WHERE cover_id = ?
             ",
@@ -131,7 +103,7 @@ impl BookRepository {
     pub async fn get_books_by_epub(&self, epub_id: &str) -> Vec<BookEntity> {
         sqlx::query_as::<_, BookEntity>(
             r"
-            SELECT owner_id, epub_id, metadata_id, cover_id, state_id, book_sync_id
+            SELECT owner_id, epub_id, metadata_id, cover_id, state_id
             FROM books
             WHERE epub_id = ?
             ",

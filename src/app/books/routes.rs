@@ -62,10 +62,11 @@ async fn download_book_handler(
 }
 
 async fn delete_book_handler(
+    Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<StatusCode, ProsaError> {
-    state.controllers.book.delete_book(book_id).await
+    state.controllers.book.delete_book(token, book_id).await
 }
 
 async fn get_book_file_metadata_handler(

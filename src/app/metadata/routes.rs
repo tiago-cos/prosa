@@ -1,6 +1,6 @@
 use crate::app::{
     AppState,
-    authentication::middleware::extract_token_middleware,
+    authentication::{middleware::extract_token_middleware, models::AuthToken},
     authorization::{
         books::{can_delete_book, can_read_book, can_update_book},
         metadata::{can_add_metadata_request, can_list_metadata_requests},
@@ -10,7 +10,7 @@ use crate::app::{
     metadata::models::{Metadata, MetadataFetchRequest},
 };
 use axum::{
-    Json, Router,
+    Extension, Json, Router,
     extract::{Path, Query, State},
     http::StatusCode,
     middleware::from_fn_with_state,
@@ -50,33 +50,11 @@ async fn get_metadata_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<Json<Metadata>, ProsaError> {
-    state.controllers.metadata.get_metadata(book_id).await
+    state.controllers.metadata.get_metadata(&book_id).await
 }
 
 async fn add_metadata_handler(
-    State(state): State<AppState>,
-    Path(book_id): Path<String>,
-    Json(metadata): Json<Metadata>,
-) -> Result<StatusCode, ProsaError> {
-    state.controllers.metadata.add_metadata(book_id, metadata).await
-}
-
-async fn delete_metadata_handler(
-    State(state): State<AppState>,
-    Path(book_id): Path<String>,
-) -> Result<StatusCode, ProsaError> {
-    state.controllers.metadata.delete_metadata(book_id).await
-}
-
-async fn patch_metadata_handler(
-    State(state): State<AppState>,
-    Path(book_id): Path<String>,
-    Json(metadata): Json<Metadata>,
-) -> Result<StatusCode, ProsaError> {
-    state.controllers.metadata.patch_metadata(book_id, metadata).await
-}
-
-async fn update_metadata_handler(
+    Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     Path(book_id): Path<String>,
     Json(metadata): Json<Metadata>,
@@ -84,7 +62,41 @@ async fn update_metadata_handler(
     state
         .controllers
         .metadata
-        .update_metadata(book_id, metadata)
+        .add_metadata(token, &book_id, metadata)
+        .await
+}
+
+async fn delete_metadata_handler(
+    Extension(token): Extension<AuthToken>,
+    State(state): State<AppState>,
+    Path(book_id): Path<String>,
+) -> Result<StatusCode, ProsaError> {
+    state.controllers.metadata.delete_metadata(token, &book_id).await
+}
+
+async fn patch_metadata_handler(
+    Extension(token): Extension<AuthToken>,
+    State(state): State<AppState>,
+    Path(book_id): Path<String>,
+    Json(metadata): Json<Metadata>,
+) -> Result<StatusCode, ProsaError> {
+    state
+        .controllers
+        .metadata
+        .patch_metadata(token, &book_id, metadata)
+        .await
+}
+
+async fn update_metadata_handler(
+    Extension(token): Extension<AuthToken>,
+    State(state): State<AppState>,
+    Path(book_id): Path<String>,
+    Json(metadata): Json<Metadata>,
+) -> Result<StatusCode, ProsaError> {
+    state
+        .controllers
+        .metadata
+        .update_metadata(token, &book_id, metadata)
         .await
 }
 

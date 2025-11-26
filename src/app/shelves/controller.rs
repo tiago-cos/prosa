@@ -1,5 +1,6 @@
 use crate::app::core::locking::service::LockService;
 use crate::app::shelves::service::ShelfService;
+use crate::app::sync::models::{ChangeLogAction, ChangeLogEntityType};
 use crate::app::sync::service::SyncService;
 use crate::app::users::service::UserService;
 use crate::app::{
@@ -47,6 +48,7 @@ impl ShelfController {
 
         self.user_service.get_user(owner_id).await?;
 
+        //TODO this should be done in service
         if self
             .shelf_service
             .get_shelf_by_name_and_owner(&request.name, owner_id)
@@ -56,14 +58,24 @@ impl ShelfController {
             return Err(ShelfError::ShelfConflict.into());
         }
 
-        let shelf_sync_id = self.sync_service.initialize_shelf_sync().await;
         let shelf = Shelf {
             name: request.name,
             owner_id: owner_id.to_string(),
-            shelf_sync_id,
         };
 
-        self.shelf_service.add_shelf(shelf).await
+        let shelf_id = self.shelf_service.add_shelf(shelf).await?;
+
+        self.sync_service
+            .log_change(
+                &shelf_id,
+                ChangeLogEntityType::ShelfMetadata,
+                ChangeLogAction::Create,
+                owner_id,
+                &token.session_id,
+            )
+            .await;
+
+        Ok(shelf_id)
     }
 
     pub async fn get_shelf_metadata(&self, shelf_id: &str) -> Result<Json<ShelfMetadata>, ProsaError> {
@@ -77,6 +89,7 @@ impl ShelfController {
 
     pub async fn update_shelf(
         &self,
+        token: AuthToken,
         shelf_id: &str,
         request: UpdateShelfRequest,
     ) -> Result<StatusCode, ProsaError> {
@@ -85,21 +98,35 @@ impl ShelfController {
 
         let shelf = self.shelf_service.get_shelf(shelf_id).await?;
         self.shelf_service.update_shelf(shelf_id, &request.name).await?;
+
         self.sync_service
-            .update_shelf_metadata_timestamp(&shelf.shelf_sync_id)
+            .log_change(
+                shelf_id,
+                ChangeLogEntityType::ShelfMetadata,
+                ChangeLogAction::Update,
+                &shelf.owner_id,
+                &token.session_id,
+            )
             .await;
 
         Ok(StatusCode::NO_CONTENT)
     }
 
-    pub async fn delete_shelf(&self, shelf_id: &str) -> Result<StatusCode, ProsaError> {
+    pub async fn delete_shelf(&self, token: AuthToken, shelf_id: &str) -> Result<StatusCode, ProsaError> {
         let lock = self.lock_service.get_shelf_lock(shelf_id).await;
         let _guard = lock.write().await;
 
         let shelf = self.shelf_service.get_shelf(shelf_id).await?;
         self.shelf_service.delete_shelf(shelf_id).await?;
+
         self.sync_service
-            .update_shelf_delete_timestamp(&shelf.shelf_sync_id)
+            .log_change(
+                shelf_id,
+                ChangeLogEntityType::ShelfMetadata,
+                ChangeLogAction::Delete,
+                &shelf.owner_id,
+                &token.session_id,
+            )
             .await;
 
         Ok(StatusCode::NO_CONTENT)
@@ -142,6 +169,7 @@ impl ShelfController {
 
     pub async fn add_book_to_shelf(
         &self,
+        token: AuthToken,
         shelf_id: &str,
         request: AddBookToShelfRequest,
     ) -> Result<StatusCode, ProsaError> {
@@ -151,11 +179,19 @@ impl ShelfController {
         let _shelf_guard = shelf_lock.write().await;
 
         let shelf = self.shelf_service.get_shelf(shelf_id).await?;
+
         self.shelf_service
             .add_book_to_shelf(shelf_id, &request.book_id)
             .await?;
+
         self.sync_service
-            .update_shelf_contents_timestamp(&shelf.shelf_sync_id)
+            .log_change(
+                shelf_id,
+                ChangeLogEntityType::ShelfContent,
+                ChangeLogAction::Create,
+                &shelf.owner_id,
+                &token.session_id,
+            )
             .await;
 
         Ok(StatusCode::NO_CONTENT)
@@ -171,6 +207,7 @@ impl ShelfController {
 
     pub async fn remove_book_from_shelf(
         &self,
+        token: AuthToken,
         shelf_id: &str,
         book_id: &str,
     ) -> Result<StatusCode, ProsaError> {
@@ -180,11 +217,19 @@ impl ShelfController {
         let _shelf_guard = shelf_lock.write().await;
 
         let shelf = self.shelf_service.get_shelf(shelf_id).await?;
+
         self.shelf_service
             .delete_book_from_shelf(shelf_id, book_id)
             .await?;
+
         self.sync_service
-            .update_shelf_contents_timestamp(&shelf.shelf_sync_id)
+            .log_change(
+                shelf_id,
+                ChangeLogEntityType::ShelfContent,
+                ChangeLogAction::Delete,
+                &shelf.owner_id,
+                &token.session_id,
+            )
             .await;
 
         Ok(StatusCode::NO_CONTENT)

@@ -9,7 +9,10 @@ use crate::app::{
         models::{Metadata, MetadataError},
         service::MetadataService,
     },
-    sync::service::SyncService,
+    sync::{
+        models::{ChangeLogAction, ChangeLogEntityType},
+        service::SyncService,
+    },
 };
 use log::warn;
 use serde::Serialize;
@@ -169,14 +172,19 @@ impl MetadataFetcherService {
 
     async fn handle_metadata_update(&self, book_id: &str, metadata: Metadata) -> Result<(), ProsaError> {
         let book = self.book_service.get_book(book_id).await?;
-        let book_sync_id = book.book_sync_id.clone();
         let metadata_id = book.metadata_id.as_ref().expect("Failed to retrieve metadata id");
         self.metadata_service
             .update_metadata(metadata_id, metadata)
             .await?;
 
         self.sync_service
-            .update_book_metadata_timestamp(&book_sync_id)
+            .log_change(
+                book_id,
+                ChangeLogEntityType::BookMetadata,
+                ChangeLogAction::Update,
+                &book.owner_id,
+                "prosa",
+            )
             .await;
 
         Ok(())
@@ -184,13 +192,18 @@ impl MetadataFetcherService {
 
     async fn handle_metadata_create(&self, book_id: &str, metadata: Metadata) -> Result<(), ProsaError> {
         let mut book = self.book_service.get_book(book_id).await?;
-        let book_sync_id = book.book_sync_id.clone();
         let metadata_id = self.metadata_service.add_metadata(metadata).await?;
         book.metadata_id = Some(metadata_id);
         self.book_service.update_book(book_id, &book).await?;
 
         self.sync_service
-            .update_book_metadata_timestamp(&book_sync_id)
+            .log_change(
+                book_id,
+                ChangeLogEntityType::BookMetadata,
+                ChangeLogAction::Create,
+                &book.owner_id,
+                "prosa",
+            )
             .await;
 
         Ok(())
@@ -198,7 +211,6 @@ impl MetadataFetcherService {
 
     async fn handle_cover_update(&self, book_id: &str, cover: Vec<u8>) -> Result<(), ProsaError> {
         let mut book = self.book_service.get_book(book_id).await?;
-        let book_sync_id = book.book_sync_id.clone();
 
         let old_cover_id = book.cover_id.expect("Failed to retrieve old cover id");
         let new_cover_id = self.cover_service.write_cover(&cover).await?;
@@ -210,19 +222,34 @@ impl MetadataFetcherService {
             self.cover_service.delete_cover(&old_cover_id).await?;
         }
 
-        self.sync_service.update_cover_timestamp(&book_sync_id).await;
+        self.sync_service
+            .log_change(
+                book_id,
+                ChangeLogEntityType::BookCover,
+                ChangeLogAction::Update,
+                &book.owner_id,
+                "prosa",
+            )
+            .await;
 
         Ok(())
     }
 
     async fn handle_cover_create(&self, book_id: &str, cover: Vec<u8>) -> Result<(), ProsaError> {
         let mut book = self.book_service.get_book(book_id).await?;
-        let book_sync_id = book.book_sync_id.clone();
         let cover_id = self.cover_service.write_cover(&cover).await?;
         book.cover_id = Some(cover_id);
         self.book_service.update_book(book_id, &book).await?;
 
-        self.sync_service.update_cover_timestamp(&book_sync_id).await;
+        self.sync_service
+            .log_change(
+                book_id,
+                ChangeLogEntityType::BookCover,
+                ChangeLogAction::Create,
+                &book.owner_id,
+                "prosa",
+            )
+            .await;
 
         Ok(())
     }

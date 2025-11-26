@@ -1,12 +1,12 @@
 use crate::app::{
     AppState,
-    authentication::middleware::extract_token_middleware,
+    authentication::{middleware::extract_token_middleware, models::AuthToken},
     authorization::books::{can_read_book, can_update_book},
     error::ProsaError,
     state::models,
 };
 use axum::{
-    Json, Router,
+    Extension, Json, Router,
     extract::{Path, State},
     http::StatusCode,
     middleware::from_fn_with_state,
@@ -33,21 +33,31 @@ async fn get_state_handler(
     State(state): State<AppState>,
     Path(book_id): Path<String>,
 ) -> Result<Json<models::State>, ProsaError> {
-    state.controllers.state.get_state(book_id).await
+    state.controllers.state.get_state(&book_id).await
 }
 
 async fn patch_state_handler(
+    Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     Path(book_id): Path<String>,
     Json(book_state): Json<models::State>,
 ) -> Result<StatusCode, ProsaError> {
-    state.controllers.state.patch_state(book_id, book_state).await
+    state
+        .controllers
+        .state
+        .patch_state(token, &book_id, book_state)
+        .await
 }
 
 async fn update_state_handler(
+    Extension(token): Extension<AuthToken>,
     State(state): State<AppState>,
     Path(book_id): Path<String>,
     Json(book_state): Json<models::State>,
 ) -> Result<StatusCode, ProsaError> {
-    state.controllers.state.update_state(book_id, book_state).await
+    state
+        .controllers
+        .state
+        .update_state(token, &book_id, book_state)
+        .await
 }

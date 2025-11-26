@@ -14,7 +14,7 @@ impl ShelfRepository {
     pub async fn get_shelf(&self, shelf_id: &str) -> Result<Shelf, ShelfError> {
         let shelf: Shelf = sqlx::query_as(
             r"
-            SELECT name, owner_id, shelf_sync_id
+            SELECT name, owner_id
             FROM shelf
             WHERE shelf_id = $1
             ",
@@ -29,7 +29,7 @@ impl ShelfRepository {
     pub async fn get_shelf_by_name_and_owner(&self, name: &str, owner_id: &str) -> Option<Shelf> {
         sqlx::query_as(
             r"
-            SELECT name, owner_id, shelf_sync_id
+            SELECT name, owner_id
             FROM shelf
             WHERE name = $1 AND owner_id = $2
             ",
@@ -44,14 +44,13 @@ impl ShelfRepository {
     pub async fn add_shelf(&self, shelf_id: &str, shelf: Shelf) -> Result<(), ShelfError> {
         sqlx::query(
             r"
-            INSERT INTO shelf (shelf_id, name, owner_id, shelf_sync_id)
-            VALUES ($1, $2, $3, $4);
+            INSERT INTO shelf (shelf_id, name, owner_id)
+            VALUES ($1, $2, $3);
             ",
         )
         .bind(shelf_id)
         .bind(shelf.name)
         .bind(shelf.owner_id)
-        .bind(shelf.shelf_sync_id)
         .execute(&self.pool)
         .await?;
 
@@ -59,19 +58,6 @@ impl ShelfRepository {
     }
 
     pub async fn delete_shelf(&self, shelf_id: &str) -> Result<(), ShelfError> {
-        let shelf: Shelf = sqlx::query_as(
-            r"
-            SELECT name, owner_id, shelf_sync_id
-            FROM shelf
-            WHERE shelf_id = $1
-            ",
-        )
-        .bind(shelf_id)
-        .fetch_one(&self.pool)
-        .await?;
-
-        let mut tx = self.pool.begin().await?;
-
         let result = sqlx::query(
             r"
             DELETE FROM shelf
@@ -79,26 +65,13 @@ impl ShelfRepository {
             ",
         )
         .bind(shelf_id)
-        .execute(&mut *tx)
+        .execute(&self.pool)
         .await?;
 
         if result.rows_affected() == 0 {
             return Err(ShelfError::ShelfNotFound);
         }
 
-        sqlx::query(
-            r"
-            INSERT INTO deleted_shelves (shelf_id, shelf_sync_id, owner_id)
-            VALUES ($1, $2, $3);
-            ",
-        )
-        .bind(shelf_id)
-        .bind(shelf.shelf_sync_id)
-        .bind(shelf.owner_id)
-        .execute(&mut *tx)
-        .await?;
-
-        tx.commit().await?;
         Ok(())
     }
 
