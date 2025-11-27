@@ -188,8 +188,6 @@ impl AuthenticationService {
         })
     }
 
-    //TODO check that user refresh tokens are deleted when we delete a user
-
     pub async fn renew_refresh_token(&self, token: &str) -> Result<(RefreshToken, String), AuthTokenError> {
         let token = BASE64_STANDARD
             .decode(token)

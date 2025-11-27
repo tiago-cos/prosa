@@ -27,12 +27,6 @@ impl ShelfService {
         Ok(shelf)
     }
 
-    pub async fn get_shelf_by_name_and_owner(&self, shelf_name: &str, owner_id: &str) -> Option<Shelf> {
-        self.shelf_repository
-            .get_shelf_by_name_and_owner(shelf_name, owner_id)
-            .await
-    }
-
     pub async fn get_shelf_metadata(&self, shelf_id: &str) -> Result<ShelfMetadata, ProsaError> {
         let shelf = self.shelf_repository.get_shelf(shelf_id).await?;
         let book_count = self.shelf_repository.get_shelf_book_count(shelf_id).await;
@@ -48,6 +42,15 @@ impl ShelfService {
 
     pub async fn add_shelf(&self, shelf: Shelf) -> Result<String, ProsaError> {
         Self::verify_shelf_name(&shelf.name)?;
+
+        let old_shelf = self
+            .shelf_repository
+            .get_shelf_by_name_and_owner(&shelf.name, &shelf.owner_id)
+            .await;
+
+        if old_shelf.is_some() {
+            return Err(ShelfError::ShelfConflict.into());
+        }
 
         let shelf_id = Uuid::new_v4().to_string();
         self.shelf_repository.add_shelf(&shelf_id, shelf).await?;

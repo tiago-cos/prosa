@@ -48,16 +48,6 @@ impl ShelfController {
 
         self.user_service.get_user(owner_id).await?;
 
-        //TODO this should be done in service
-        if self
-            .shelf_service
-            .get_shelf_by_name_and_owner(&request.name, owner_id)
-            .await
-            .is_some()
-        {
-            return Err(ShelfError::ShelfConflict.into());
-        }
-
         let shelf = Shelf {
             name: request.name,
             owner_id: owner_id.to_string(),

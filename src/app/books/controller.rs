@@ -174,8 +174,6 @@ impl BookController {
         Ok(Json(books))
     }
 
-    //TODO make better tests for syncing, possibly refactor syncing
-
     pub async fn delete_book(&self, token: AuthToken, book_id: String) -> Result<StatusCode, ProsaError> {
         let lock = self.lock_service.get_book_lock(&book_id).await;
         let _guard = lock.write().await;
