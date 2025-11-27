@@ -5,52 +5,75 @@ import { deleteCover, updateCover } from '../utils/covers';
 import { deleteMetadata, EXAMPLE_METADATA, patchMetadata, updateMetadata } from '../utils/metadata';
 import { addBookToShelf, createShelf, deleteBookFromShelf, deleteShelf } from '../utils/shelves';
 import { ALICE_STATE, patchState, updateState } from '../utils/state';
-import { INVALID_TIMESTAMP, sync } from '../utils/sync';
-import { createApiKey, registerUser, USER_NOT_FOUND } from '../utils/users';
+import { INVALID_SYNC_TOKEN, sync } from '../utils/sync';
+import { createApiKey, loginUser, registerUser, USER_NOT_FOUND } from '../utils/users';
 
 describe('Sync JWT', () => {
-  test('Simple', async () => {
+  test('Same session', async () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
-    expect(uploadResponse.status).toBe(200);
-
-    // Wait for cover and metadata to be extracted
-    await wait(1);
-
-    let syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
+    let syncResponse = await sync(userId, undefined, { jwt: jwtToken });
     expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
+    expect(typeof currentSyncToken).toBe('number');
 
-    let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+    expect(syncResponse.body).toEqual({
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [],
+        metadata: [],
+        cover: [],
+        state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
-        metadata: [] as string[],
-        contents: [] as string[],
+      unsynced_shelves: {
+        metadata: [],
+        contents: [],
         deleted: []
       }
-    };
+    });
 
-    expect(syncResponse.body).toEqual(expectedResponse);
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
+    expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
+    await wait(1);
 
-    let now = Date.now();
+    syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken });
+    expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
-    const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
+    expect(syncResponse.body).toEqual({
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [],
+        // metadata and cover are asynchronous
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
+        annotations: [],
+        deleted: []
+      },
+      unsynced_shelves: {
+        metadata: [],
+        contents: [],
+        deleted: []
+      }
+    });
+
+    const addShelfResponse = await createShelf('shelf', userId, { jwt: jwtToken });
     expect(addShelfResponse.status).toBe(200);
 
-    syncResponse = await sync(userId, now, { jwt: registerResponse.body.jwt_token });
+    syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken });
     expect(syncResponse.status).toBe(200);
+    const oldSyncToken = currentSyncToken;
 
-    expectedResponse = {
-      book: {
+    expect(syncResponse.body).toEqual({
+      new_sync_token: syncResponse.body.new_sync_token,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
@@ -58,73 +81,68 @@ describe('Sync JWT', () => {
         annotations: [],
         deleted: []
       },
-      shelf: {
-        metadata: [addShelfResponse.text],
+      unsynced_shelves: {
+        metadata: [],
         contents: [],
         deleted: []
       }
-    };
+    });
 
-    expect(syncResponse.body).toEqual(expectedResponse);
-
-    const uploadResponse2 = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: registerResponse.body.jwt_token });
+    const uploadResponse2 = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: jwtToken });
     expect(uploadResponse2.status).toBe(200);
-
-    // Wait for cover and metadata to be extracted
+    const bookId2 = uploadResponse2.text;
     await wait(1);
 
-    syncResponse = await sync(userId, now, { jwt: registerResponse.body.jwt_token });
+    syncResponse = await sync(userId, oldSyncToken, { jwt: jwtToken });
     expect(syncResponse.status).toBe(200);
 
-    expectedResponse = {
-      book: {
-        file: [uploadResponse2.text],
-        metadata: [uploadResponse2.text],
-        cover: [uploadResponse2.text],
-        state: [uploadResponse2.text],
+    expect(syncResponse.body).toEqual({
+      new_sync_token: syncResponse.body.new_sync_token,
+      unsynced_books: {
+        file: [],
+        metadata: [bookId2],
+        cover: [bookId2],
+        state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
-        metadata: [addShelfResponse.text],
+      unsynced_shelves: {
+        metadata: [],
         contents: [],
         deleted: []
       }
-    };
+    });
 
-    expect(syncResponse.body).toEqual(expectedResponse);
-
-    syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
+    syncResponse = await sync(userId, undefined, { jwt: jwtToken });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
-    expectedResponse = {
-      book: {
-        file: [uploadResponse.text, uploadResponse2.text],
-        metadata: [uploadResponse.text, uploadResponse2.text],
-        cover: [uploadResponse.text, uploadResponse2.text],
-        state: [uploadResponse.text, uploadResponse2.text],
+    expect(syncResponse.body).toEqual({
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [],
+        metadata: [bookId, bookId2],
+        cover: [bookId, bookId2],
+        state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
-        metadata: [addShelfResponse.text],
+      unsynced_shelves: {
+        metadata: [],
         contents: [],
         deleted: []
       }
-    };
+    });
 
-    expect(syncResponse.body).toEqual(expectedResponse);
-
-    now = Date.now();
-
-    const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { jwt: jwtToken });
     expect(addBookToShelfResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { jwt: registerResponse.body.jwt_token });
+    syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken });
     expect(syncResponse.status).toBe(200);
 
-    expectedResponse = {
-      book: {
+    expect(syncResponse.body).toEqual({
+      new_sync_token: syncResponse.body.new_sync_token,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
@@ -132,142 +150,195 @@ describe('Sync JWT', () => {
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
-        contents: [addShelfResponse.text],
+        contents: [],
         deleted: []
       }
-    };
+    });
+  });
 
-    expect(syncResponse.body).toEqual(expectedResponse);
+  test('Different session', async () => {
+    const { response: registerResponse, username, password } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
+
+    const loginResponse = await loginUser(username, password);
+    expect(loginResponse.status).toBe(200);
+    const jwtToken2 = loginResponse.body.jwt_token;
+
+    let syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
+    expect(typeof currentSyncToken).toBe('number');
+
+    expect(syncResponse.body).toEqual({
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [],
+        metadata: [],
+        cover: [],
+        state: [],
+        annotations: [],
+        deleted: []
+      },
+      unsynced_shelves: {
+        metadata: [],
+        contents: [],
+        deleted: []
+      }
+    });
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
+    expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
+    await wait(1);
+
+    syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
+
+    expect(syncResponse.body).toEqual({
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
+        annotations: [],
+        deleted: []
+      },
+      unsynced_shelves: {
+        metadata: [],
+        contents: [],
+        deleted: []
+      }
+    });
+
+    let addShelfResponse = await createShelf('shelf', userId, { jwt: jwtToken });
+    expect(addShelfResponse.status).toBe(200);
+    const shelfId = addShelfResponse.text;
+
+    syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+    const oldSyncToken = currentSyncToken;
+
+    expect(syncResponse.body).toEqual({
+      new_sync_token: syncResponse.body.new_sync_token,
+      unsynced_books: {
+        file: [],
+        metadata: [],
+        cover: [],
+        state: [],
+        annotations: [],
+        deleted: []
+      },
+      unsynced_shelves: {
+        metadata: [shelfId],
+        contents: [],
+        deleted: []
+      }
+    });
+
+    const uploadResponse2 = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: jwtToken });
+    expect(uploadResponse2.status).toBe(200);
+    const bookId2 = uploadResponse2.text;
+    await wait(1);
+
+    syncResponse = await sync(userId, oldSyncToken, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+
+    expect(syncResponse.body).toEqual({
+      new_sync_token: syncResponse.body.new_sync_token,
+      unsynced_books: {
+        file: [bookId2],
+        metadata: [bookId2],
+        cover: [bookId2],
+        state: [],
+        annotations: [],
+        deleted: []
+      },
+      unsynced_shelves: {
+        metadata: [shelfId],
+        contents: [],
+        deleted: []
+      }
+    });
+
+    syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
+
+    expect(syncResponse.body).toEqual({
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId, bookId2],
+        metadata: [bookId, bookId2],
+        cover: [bookId, bookId2],
+        state: [],
+        annotations: [],
+        deleted: []
+      },
+      unsynced_shelves: {
+        metadata: [shelfId],
+        contents: [],
+        deleted: []
+      }
+    });
+
+    const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { jwt: jwtToken });
+    expect(addBookToShelfResponse.status).toBe(204);
+
+    syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+
+    expect(syncResponse.body).toEqual({
+      new_sync_token: syncResponse.body.new_sync_token,
+      unsynced_books: {
+        file: [],
+        metadata: [],
+        cover: [],
+        state: [],
+        annotations: [],
+        deleted: []
+      },
+      unsynced_shelves: {
+        metadata: [],
+        contents: [shelfId],
+        deleted: []
+      }
+    });
   });
 
   test('Implicit users', async () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
     expect(uploadResponse.status).toBe(200);
-
-    // Wait for cover and metadata to be extracted
+    const bookId = uploadResponse.text;
     await wait(1);
 
-    let syncResponse = await sync(undefined, undefined, { jwt: registerResponse.body.jwt_token });
+    const syncResponse = await sync(undefined, undefined, { jwt: jwtToken });
     expect(syncResponse.status).toBe(200);
+    const currentSyncToken = syncResponse.body.new_sync_token;
 
-    let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
-        annotations: [],
-        deleted: []
-      },
-      shelf: {
-        metadata: [] as string[],
-        contents: [] as string[],
-        deleted: []
-      }
-    };
-
-    expect(syncResponse.body).toEqual(expectedResponse);
-
-    let now = Date.now();
-
-    const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
-    expect(addShelfResponse.status).toBe(200);
-
-    syncResponse = await sync(undefined, now, { jwt: registerResponse.body.jwt_token });
-    expect(syncResponse.status).toBe(200);
-
-    expectedResponse = {
-      book: {
+    const expectedResponse = {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
-        metadata: [],
-        cover: [],
+        metadata: [bookId],
+        cover: [bookId],
         state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
-        metadata: [addShelfResponse.text],
-        contents: [],
-        deleted: []
-      }
-    };
-
-    expect(syncResponse.body).toEqual(expectedResponse);
-
-    const uploadResponse2 = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: registerResponse.body.jwt_token });
-    expect(uploadResponse2.status).toBe(200);
-
-    // Wait for cover and metadata to be extracted
-    await wait(1);
-
-    syncResponse = await sync(undefined, now, { jwt: registerResponse.body.jwt_token });
-    expect(syncResponse.status).toBe(200);
-
-    expectedResponse = {
-      book: {
-        file: [uploadResponse2.text],
-        metadata: [uploadResponse2.text],
-        cover: [uploadResponse2.text],
-        state: [uploadResponse2.text],
-        annotations: [],
-        deleted: []
-      },
-      shelf: {
-        metadata: [addShelfResponse.text],
-        contents: [],
-        deleted: []
-      }
-    };
-
-    expect(syncResponse.body).toEqual(expectedResponse);
-
-    syncResponse = await sync(undefined, undefined, { jwt: registerResponse.body.jwt_token });
-    expect(syncResponse.status).toBe(200);
-
-    expectedResponse = {
-      book: {
-        file: [uploadResponse.text, uploadResponse2.text],
-        metadata: [uploadResponse.text, uploadResponse2.text],
-        cover: [uploadResponse.text, uploadResponse2.text],
-        state: [uploadResponse.text, uploadResponse2.text],
-        annotations: [],
-        deleted: []
-      },
-      shelf: {
-        metadata: [addShelfResponse.text],
-        contents: [],
-        deleted: []
-      }
-    };
-
-    expect(syncResponse.body).toEqual(expectedResponse);
-
-    now = Date.now();
-
-    const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { jwt: registerResponse.body.jwt_token });
-    expect(addBookToShelfResponse.status).toBe(204);
-
-    syncResponse = await sync(undefined, now, { jwt: registerResponse.body.jwt_token });
-    expect(syncResponse.status).toBe(200);
-
-    expectedResponse = {
-      book: {
-        file: [],
+      unsynced_shelves: {
         metadata: [],
-        cover: [],
-        state: [],
-        annotations: [],
-        deleted: []
-      },
-      shelf: {
-        metadata: [],
-        contents: [addShelfResponse.text],
+        contents: [],
         deleted: []
       }
     };
@@ -276,29 +347,35 @@ describe('Sync JWT', () => {
   });
 
   test('Deleted book files', async () => {
-    const { response: registerResponse } = await registerUser();
+    const { response: registerResponse, username, password } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    const loginResponse = await loginUser(username, password);
+    expect(loginResponse.status).toBe(200);
+    const jwtToken2 = loginResponse.body.jwt_token;
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
     expect(uploadResponse.status).toBe(200);
-
-    // Wait for cover and metadata to be extracted
+    const bookId = uploadResponse.text;
     await wait(1);
 
-    let syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
+    let syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
 
     let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
         annotations: [],
         deleted: [] as string[]
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -307,22 +384,24 @@ describe('Sync JWT', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    const deleteResponse = await deleteBook(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    const deleteResponse = await deleteBook(uploadResponse.text, { jwt: jwtToken });
     expect(deleteResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
+    syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
         state: [],
         annotations: [],
-        deleted: [uploadResponse.text]
+        deleted: [bookId]
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -331,28 +410,32 @@ describe('Sync JWT', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    const uploadResponse2 = await uploadBook(userId, 'The_Great_Gatsby.epub', { jwt: registerResponse.body.jwt_token });
+    // This book has no metadata nor cover
+    const uploadResponse2 = await uploadBook(userId, 'The_Great_Gatsby.epub', { jwt: jwtToken });
     expect(uploadResponse2.status).toBe(200);
-
-    const uploadResponse3 = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: registerResponse.body.jwt_token });
-    expect(uploadResponse3.status).toBe(200);
-
-    // Wait for cover and metadata to be extracted
+    const bookId2 = uploadResponse2.text;
     await wait(1);
 
-    syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
+    const uploadResponse3 = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: jwtToken });
+    expect(uploadResponse3.status).toBe(200);
+    const bookId3 = uploadResponse3.text;
+    await wait(1);
+
+    syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
-        file: [uploadResponse2.text, uploadResponse3.text],
-        metadata: [uploadResponse3.text],
-        cover: [uploadResponse3.text],
-        state: [uploadResponse2.text, uploadResponse3.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId2, bookId3],
+        metadata: [bookId3],
+        cover: [bookId3],
+        state: [],
         annotations: [],
-        deleted: [uploadResponse.text]
+        deleted: [bookId]
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -363,62 +446,98 @@ describe('Sync JWT', () => {
   });
 
   test('Deleted shelves', async () => {
-    const { response: registerResponse } = await registerUser();
+    const { response: registerResponse, username, password } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    const loginResponse = await loginUser(username, password);
+    expect(loginResponse.status).toBe(200);
+    const jwtToken2 = loginResponse.body.jwt_token;
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
     expect(uploadResponse.status).toBe(200);
-
-    // Wait for cover and metadata to be extracted
+    const bookId = uploadResponse.text;
     await wait(1);
 
-    const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
+    const addShelfResponse = await createShelf('shelf', userId, { jwt: jwtToken });
     expect(addShelfResponse.status).toBe(200);
+    const shelfId = addShelfResponse.text;
 
-    const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    const addBookToShelfResponse = await addBookToShelf(shelfId, bookId, { jwt: jwtToken });
     expect(addBookToShelfResponse.status).toBe(204);
 
-    let syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
+    let syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
 
     let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
         annotations: [],
         deleted: [] as string[]
       },
-      shelf: {
-        metadata: [addShelfResponse.text],
-        contents: [addShelfResponse.text],
+      unsynced_shelves: {
+        metadata: [shelfId],
+        contents: [shelfId],
         deleted: [] as string[]
       }
     };
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    const addAnnotationResponse = await deleteShelf(addShelfResponse.text, { jwt: registerResponse.body.jwt_token });
-    expect(addAnnotationResponse.status).toBe(204);
+    const deleteShelfResponse = await deleteShelf(shelfId, { jwt: jwtToken });
+    expect(deleteShelfResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
+    syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
-        deleted: [addShelfResponse.text]
+        deleted: [shelfId]
+      }
+    };
+
+    expect(syncResponse.body).toEqual(expectedResponse);
+
+    const addShelfResponse2 = await createShelf('shelf 2', userId, { jwt: jwtToken });
+    expect(addShelfResponse2.status).toBe(200);
+    const shelfId2 = addShelfResponse2.text;
+
+    syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
+
+    expectedResponse = {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
+        annotations: [],
+        deleted: []
+      },
+      unsynced_shelves: {
+        metadata: [shelfId2],
+        contents: [],
+        deleted: [shelfId]
       }
     };
 
@@ -426,29 +545,37 @@ describe('Sync JWT', () => {
   });
 
   test('Changed metadata', async () => {
-    const { response: registerResponse } = await registerUser();
+    const { response: registerResponse, username, password } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    const loginResponse = await loginUser(username, password);
+    expect(loginResponse.status).toBe(200);
+    const jwtToken2 = loginResponse.body.jwt_token;
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
     expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
 
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    let syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
+    let syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
 
     let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
         annotations: [],
         deleted: [] as string[]
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -457,24 +584,24 @@ describe('Sync JWT', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    let now = Date.now();
-
-    let metadataResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA, { jwt: registerResponse.body.jwt_token });
+    let metadataResponse = await updateMetadata(bookId, EXAMPLE_METADATA, { jwt: jwtToken });
     expect(metadataResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { jwt: registerResponse.body.jwt_token });
+    syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
-        metadata: [uploadResponse.text],
+        metadata: [bookId],
         cover: [],
         state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -483,24 +610,24 @@ describe('Sync JWT', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    now = Date.now();
-
-    metadataResponse = await patchMetadata(uploadResponse.text, { title: 'title test' }, { jwt: registerResponse.body.jwt_token });
+    metadataResponse = await patchMetadata(bookId, { title: 'title test' }, { jwt: jwtToken });
     expect(metadataResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { jwt: registerResponse.body.jwt_token });
+    syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
-        metadata: [uploadResponse.text],
+        metadata: [bookId],
         cover: [],
         state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -509,24 +636,24 @@ describe('Sync JWT', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    now = Date.now();
-
-    metadataResponse = await deleteMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    metadataResponse = await deleteMetadata(bookId, { jwt: jwtToken });
     expect(metadataResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { jwt: registerResponse.body.jwt_token });
+    syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
-        metadata: [uploadResponse.text],
+        metadata: [bookId],
         cover: [],
         state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -537,29 +664,37 @@ describe('Sync JWT', () => {
   });
 
   test('Changed cover', async () => {
-    const { response: registerResponse } = await registerUser();
+    const { response: registerResponse, username, password } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    const loginResponse = await loginUser(username, password);
+    expect(loginResponse.status).toBe(200);
+    const jwtToken2 = loginResponse.body.jwt_token;
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
     expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
 
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    let syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
+    let syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
 
     let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
         annotations: [],
         deleted: [] as string[]
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -568,24 +703,24 @@ describe('Sync JWT', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    let now = Date.now();
-
-    let coverResponse = await updateCover(uploadResponse.text, 'Generic.jpeg', { jwt: registerResponse.body.jwt_token });
+    let coverResponse = await updateCover(bookId, 'Generic.jpeg', { jwt: jwtToken });
     expect(coverResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { jwt: registerResponse.body.jwt_token });
+    syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
-        cover: [uploadResponse.text],
+        cover: [bookId],
         state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -594,24 +729,24 @@ describe('Sync JWT', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    now = Date.now();
-
-    coverResponse = await deleteCover(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    coverResponse = await deleteCover(bookId, { jwt: jwtToken });
     expect(coverResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { jwt: registerResponse.body.jwt_token });
+    syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
-        cover: [uploadResponse.text],
+        cover: [bookId],
         state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -622,29 +757,37 @@ describe('Sync JWT', () => {
   });
 
   test('Changed state', async () => {
-    const { response: registerResponse } = await registerUser();
+    const { response: registerResponse, username, password } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    const loginResponse = await loginUser(username, password);
+    expect(loginResponse.status).toBe(200);
+    const jwtToken2 = loginResponse.body.jwt_token;
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
     expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
 
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    let syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
+    let syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
 
     let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [] as string[],
         annotations: [],
         deleted: [] as string[]
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -653,24 +796,24 @@ describe('Sync JWT', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    let now = Date.now();
-
-    let stateResponse = await updateState(uploadResponse.text, ALICE_STATE, { jwt: registerResponse.body.jwt_token });
+    let stateResponse = await updateState(bookId, ALICE_STATE, { jwt: jwtToken });
     expect(stateResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { jwt: registerResponse.body.jwt_token });
+    syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
-        state: [uploadResponse.text],
+        state: [bookId],
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -679,24 +822,24 @@ describe('Sync JWT', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    now = Date.now();
-
-    stateResponse = await patchState(uploadResponse.text, { statistics: { reading_status: 'Read' } }, { jwt: registerResponse.body.jwt_token });
+    stateResponse = await patchState(bookId, { statistics: { reading_status: 'Read' } }, { jwt: jwtToken });
     expect(stateResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { jwt: registerResponse.body.jwt_token });
+    syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
-        state: [uploadResponse.text],
+        state: [bookId],
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -707,29 +850,37 @@ describe('Sync JWT', () => {
   });
 
   test('Changed annotations', async () => {
-    const { response: registerResponse } = await registerUser();
+    const { response: registerResponse, username, password } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    const loginResponse = await loginUser(username, password);
+    expect(loginResponse.status).toBe(200);
+    const jwtToken2 = loginResponse.body.jwt_token;
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
     expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
 
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    let syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
+    let syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
 
     let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
         annotations: [] as string[],
         deleted: [] as string[]
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -738,24 +889,25 @@ describe('Sync JWT', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    let now = Date.now();
-
-    const addAnnotationResponse = await addAnnotation(uploadResponse.text, ALICE_NOTE, { jwt: registerResponse.body.jwt_token });
+    const addAnnotationResponse = await addAnnotation(bookId, ALICE_NOTE, { jwt: jwtToken });
     expect(addAnnotationResponse.status).toBe(200);
+    const annotationId = addAnnotationResponse.text;
 
-    syncResponse = await sync(userId, now, { jwt: registerResponse.body.jwt_token });
+    syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
         state: [],
-        annotations: [uploadResponse.text],
+        annotations: [bookId],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -764,24 +916,24 @@ describe('Sync JWT', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    now = Date.now();
-
-    let annotationResponse = await patchAnnotation(uploadResponse.text, addAnnotationResponse.text, 'note', { jwt: registerResponse.body.jwt_token });
+    let annotationResponse = await patchAnnotation(bookId, annotationId, 'note', { jwt: jwtToken });
     expect(annotationResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { jwt: registerResponse.body.jwt_token });
+    syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
         state: [],
-        annotations: [uploadResponse.text],
+        annotations: [bookId],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -790,24 +942,24 @@ describe('Sync JWT', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    now = Date.now();
-
-    annotationResponse = await deleteAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse.body.jwt_token });
+    annotationResponse = await deleteAnnotation(bookId, annotationId, { jwt: jwtToken });
     expect(annotationResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { jwt: registerResponse.body.jwt_token });
+    syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
         state: [],
-        annotations: [uploadResponse.text],
+        annotations: [bookId],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -818,33 +970,42 @@ describe('Sync JWT', () => {
   });
 
   test('Changed shelf books', async () => {
-    const { response: registerResponse } = await registerUser();
+    const { response: registerResponse, username, password } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    const loginResponse = await loginUser(username, password);
+    expect(loginResponse.status).toBe(200);
+    const jwtToken2 = loginResponse.body.jwt_token;
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
     expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
 
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
+    const addShelfResponse = await createShelf('shelf', userId, { jwt: jwtToken });
     expect(addShelfResponse.status).toBe(200);
+    const shelfId = addShelfResponse.text;
 
-    let syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
+    let syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
 
     let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
         annotations: [] as string[],
         deleted: [] as string[]
       },
-      shelf: {
-        metadata: [addShelfResponse.text],
+      unsynced_shelves: {
+        metadata: [shelfId],
         contents: [] as string[],
         deleted: []
       }
@@ -852,16 +1013,16 @@ describe('Sync JWT', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    let now = Date.now();
-
-    const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    const addBookToShelfResponse = await addBookToShelf(shelfId, bookId, { jwt: jwtToken });
     expect(addBookToShelfResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { jwt: registerResponse.body.jwt_token });
+    syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
@@ -869,25 +1030,25 @@ describe('Sync JWT', () => {
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
-        contents: [addShelfResponse.text],
+        contents: [shelfId],
         deleted: []
       }
     };
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    now = Date.now();
-
-    const removeBookFromShelfResponse = await deleteBookFromShelf(addShelfResponse.text, uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    const removeBookFromShelfResponse = await deleteBookFromShelf(shelfId, bookId, { jwt: jwtToken });
     expect(removeBookFromShelfResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { jwt: registerResponse.body.jwt_token });
+    syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
@@ -895,9 +1056,9 @@ describe('Sync JWT', () => {
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
-        contents: [addShelfResponse.text],
+        contents: [shelfId],
         deleted: []
       }
     };
@@ -909,71 +1070,77 @@ describe('Sync JWT', () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
+    const addShelfResponse = await createShelf('shelf', userId, { jwt: jwtToken });
     expect(addShelfResponse.status).toBe(200);
 
-    const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { jwt: jwtToken });
     expect(addBookToShelfResponse.status).toBe(204);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
+    const jwtToken2 = registerResponse2.body.jwt_token;
 
-    const uploadResponse2 = await uploadBook(userId2, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: registerResponse2.body.jwt_token });
+    const uploadResponse2 = await uploadBook(userId2, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: jwtToken2 });
     expect(uploadResponse2.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    const addShelfResponse2 = await createShelf('shelf', userId2, { jwt: registerResponse2.body.jwt_token });
+    const addShelfResponse2 = await createShelf('shelf', userId2, { jwt: jwtToken2 });
     expect(addShelfResponse2.status).toBe(200);
 
-    const addBookToShelfResponse2 = await addBookToShelf(addShelfResponse2.text, uploadResponse2.text, { jwt: registerResponse2.body.jwt_token });
+    const addBookToShelfResponse2 = await addBookToShelf(addShelfResponse2.text, uploadResponse2.text, { jwt: jwtToken2 });
     expect(addBookToShelfResponse2.status).toBe(204);
 
-    let syncResponse = await sync(userId, undefined, { jwt: registerResponse.body.jwt_token });
+    let syncResponse = await sync(userId, undefined, { jwt: jwtToken });
     expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
 
     let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [],
         metadata: [uploadResponse.text],
         cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+        state: [],
         annotations: [],
-        deleted: []
+        deleted: [] as string[]
       },
-      shelf: {
-        metadata: [addShelfResponse.text],
-        contents: [addShelfResponse.text],
-        deleted: []
+      unsynced_shelves: {
+        metadata: [],
+        contents: [],
+        deleted: [] as string[]
       }
     };
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    syncResponse = await sync(userId2, undefined, { jwt: registerResponse2.body.jwt_token });
+    syncResponse = await sync(userId2, undefined, { jwt: jwtToken2 });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
-        file: [uploadResponse2.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [],
         metadata: [uploadResponse2.text],
         cover: [uploadResponse2.text],
-        state: [uploadResponse2.text],
+        state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
-        metadata: [addShelfResponse2.text],
-        contents: [addShelfResponse2.text],
+      unsynced_shelves: {
+        metadata: [],
+        contents: [],
         deleted: []
       }
     };
@@ -981,90 +1148,14 @@ describe('Sync JWT', () => {
     expect(syncResponse.body).toEqual(expectedResponse);
   });
 
-  test('Different implicit users', async () => {
-    const { response: registerResponse } = await registerUser();
-    expect(registerResponse.status).toBe(200);
-    const userId = registerResponse.body.user_id;
-
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
-    expect(uploadResponse.status).toBe(200);
-
-    // Wait for cover and metadata to be extracted
-    await wait(1);
-
-    const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
-    expect(addShelfResponse.status).toBe(200);
-
-    const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { jwt: registerResponse.body.jwt_token });
-    expect(addBookToShelfResponse.status).toBe(204);
-
-    const { response: registerResponse2 } = await registerUser();
-    expect(registerResponse2.status).toBe(200);
-    const userId2 = registerResponse2.body.user_id;
-
-    const uploadResponse2 = await uploadBook(userId2, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: registerResponse2.body.jwt_token });
-    expect(uploadResponse2.status).toBe(200);
-
-    // Wait for cover and metadata to be extracted
-    await wait(1);
-
-    const addShelfResponse2 = await createShelf('shelf', userId2, { jwt: registerResponse2.body.jwt_token });
-    expect(addShelfResponse2.status).toBe(200);
-
-    const addBookToShelfResponse2 = await addBookToShelf(addShelfResponse2.text, uploadResponse2.text, { jwt: registerResponse2.body.jwt_token });
-    expect(addBookToShelfResponse2.status).toBe(204);
-
-    let syncResponse = await sync(undefined, undefined, { jwt: registerResponse.body.jwt_token });
-    expect(syncResponse.status).toBe(200);
-
-    let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
-        annotations: [],
-        deleted: []
-      },
-      shelf: {
-        metadata: [addShelfResponse.text],
-        contents: [addShelfResponse.text],
-        deleted: []
-      }
-    };
-
-    expect(syncResponse.body).toEqual(expectedResponse);
-
-    syncResponse = await sync(undefined, undefined, { jwt: registerResponse2.body.jwt_token });
-    expect(syncResponse.status).toBe(200);
-
-    expectedResponse = {
-      book: {
-        file: [uploadResponse2.text],
-        metadata: [uploadResponse2.text],
-        cover: [uploadResponse2.text],
-        state: [uploadResponse2.text],
-        annotations: [],
-        deleted: []
-      },
-      shelf: {
-        metadata: [addShelfResponse2.text],
-        contents: [addShelfResponse2.text],
-        deleted: []
-      }
-    };
-
-    expect(syncResponse.body).toEqual(expectedResponse);
-  });
-
-  test('Invalid timestamp', async () => {
+  test('Invalid sync token', async () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
     let syncResponse = await sync(userId, 'not valid', { jwt: registerResponse.body.jwt_token });
     expect(syncResponse.status).toBe(400);
-    expect(syncResponse.text).toBe(INVALID_TIMESTAMP);
+    expect(syncResponse.text).toBe(INVALID_SYNC_TOKEN);
   });
 
   test('Non-existent user', async () => {
@@ -1113,51 +1204,75 @@ describe('Sync JWT', () => {
 });
 
 describe('Sync api key', () => {
-  test('Simple', async () => {
+  test('Same session', async () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token });
+    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read', 'Update', 'Delete'], undefined, { jwt: jwtToken });
     expect(createApiKeyResponse.status).toBe(200);
+    const apiKey = createApiKeyResponse.body.key;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
-    expect(uploadResponse.status).toBe(200);
-
-    // Wait for cover and metadata to be extracted
-    await wait(1);
-
-    let syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
+    let syncResponse = await sync(userId, undefined, { apiKey });
     expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
+    expect(typeof currentSyncToken).toBe('number');
 
-    let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+    expect(syncResponse.body).toEqual({
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [],
+        metadata: [],
+        cover: [],
+        state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
-        metadata: [] as string[],
-        contents: [] as string[],
+      unsynced_shelves: {
+        metadata: [],
+        contents: [],
         deleted: []
       }
-    };
+    });
 
-    expect(syncResponse.body).toEqual(expectedResponse);
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { apiKey });
+    expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
+    await wait(1);
 
-    let now = Date.now();
+    syncResponse = await sync(userId, currentSyncToken, { apiKey });
+    expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
-    const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
+    expect(syncResponse.body).toEqual({
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [],
+        // metadata and cover are asynchronous
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
+        annotations: [],
+        deleted: []
+      },
+      unsynced_shelves: {
+        metadata: [],
+        contents: [],
+        deleted: []
+      }
+    });
+
+    const addShelfResponse = await createShelf('shelf', userId, { apiKey });
     expect(addShelfResponse.status).toBe(200);
 
-    syncResponse = await sync(userId, now, { apiKey: createApiKeyResponse.body.key });
+    syncResponse = await sync(userId, currentSyncToken, { apiKey });
     expect(syncResponse.status).toBe(200);
+    const oldSyncToken = currentSyncToken;
 
-    expectedResponse = {
-      book: {
+    expect(syncResponse.body).toEqual({
+      new_sync_token: syncResponse.body.new_sync_token,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
@@ -1165,73 +1280,68 @@ describe('Sync api key', () => {
         annotations: [],
         deleted: []
       },
-      shelf: {
-        metadata: [addShelfResponse.text],
+      unsynced_shelves: {
+        metadata: [],
         contents: [],
         deleted: []
       }
-    };
+    });
 
-    expect(syncResponse.body).toEqual(expectedResponse);
-
-    const uploadResponse2 = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: registerResponse.body.jwt_token });
+    const uploadResponse2 = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { apiKey });
     expect(uploadResponse2.status).toBe(200);
-
-    // Wait for cover and metadata to be extracted
+    const bookId2 = uploadResponse2.text;
     await wait(1);
 
-    syncResponse = await sync(userId, now, { apiKey: createApiKeyResponse.body.key });
+    syncResponse = await sync(userId, oldSyncToken, { apiKey });
     expect(syncResponse.status).toBe(200);
 
-    expectedResponse = {
-      book: {
-        file: [uploadResponse2.text],
-        metadata: [uploadResponse2.text],
-        cover: [uploadResponse2.text],
-        state: [uploadResponse2.text],
+    expect(syncResponse.body).toEqual({
+      new_sync_token: syncResponse.body.new_sync_token,
+      unsynced_books: {
+        file: [],
+        metadata: [bookId2],
+        cover: [bookId2],
+        state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
-        metadata: [addShelfResponse.text],
+      unsynced_shelves: {
+        metadata: [],
         contents: [],
         deleted: []
       }
-    };
+    });
 
-    expect(syncResponse.body).toEqual(expectedResponse);
-
-    syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
+    syncResponse = await sync(userId, undefined, { apiKey });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
-    expectedResponse = {
-      book: {
-        file: [uploadResponse.text, uploadResponse2.text],
-        metadata: [uploadResponse.text, uploadResponse2.text],
-        cover: [uploadResponse.text, uploadResponse2.text],
-        state: [uploadResponse.text, uploadResponse2.text],
+    expect(syncResponse.body).toEqual({
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [],
+        metadata: [bookId, bookId2],
+        cover: [bookId, bookId2],
+        state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
-        metadata: [addShelfResponse.text],
+      unsynced_shelves: {
+        metadata: [],
         contents: [],
         deleted: []
       }
-    };
+    });
 
-    expect(syncResponse.body).toEqual(expectedResponse);
-
-    now = Date.now();
-
-    const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { apiKey });
     expect(addBookToShelfResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { apiKey: createApiKeyResponse.body.key });
+    syncResponse = await sync(userId, currentSyncToken, { apiKey });
     expect(syncResponse.status).toBe(200);
 
-    expectedResponse = {
-      book: {
+    expect(syncResponse.body).toEqual({
+      new_sync_token: syncResponse.body.new_sync_token,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
@@ -1239,145 +1349,203 @@ describe('Sync api key', () => {
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
-        contents: [addShelfResponse.text],
+        contents: [],
         deleted: []
       }
-    };
+    });
+  });
 
-    expect(syncResponse.body).toEqual(expectedResponse);
+  test('Different session', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
+
+    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read', 'Update', 'Delete'], undefined, { jwt: jwtToken });
+    expect(createApiKeyResponse.status).toBe(200);
+    const apiKey = createApiKeyResponse.body.key;
+
+    const createApiKeyResponse2 = await createApiKey(userId, 'Test Key 2', ['Create', 'Read', 'Update', 'Delete'], undefined, { jwt: jwtToken });
+    expect(createApiKeyResponse2.status).toBe(200);
+    const apiKey2 = createApiKeyResponse2.body.key;
+
+    let syncResponse = await sync(userId, undefined, { apiKey });
+    expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
+    expect(typeof currentSyncToken).toBe('number');
+
+    expect(syncResponse.body).toEqual({
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [],
+        metadata: [],
+        cover: [],
+        state: [],
+        annotations: [],
+        deleted: []
+      },
+      unsynced_shelves: {
+        metadata: [],
+        contents: [],
+        deleted: []
+      }
+    });
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { apiKey: apiKey2 });
+    expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
+    await wait(1);
+
+    syncResponse = await sync(userId, currentSyncToken, { apiKey });
+    expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
+
+    expect(syncResponse.body).toEqual({
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
+        annotations: [],
+        deleted: []
+      },
+      unsynced_shelves: {
+        metadata: [],
+        contents: [],
+        deleted: []
+      }
+    });
+
+    let addShelfResponse = await createShelf('shelf', userId, { apiKey: apiKey2 });
+    expect(addShelfResponse.status).toBe(200);
+    const shelfId = addShelfResponse.text;
+
+    syncResponse = await sync(userId, currentSyncToken, { apiKey });
+    expect(syncResponse.status).toBe(200);
+    const oldSyncToken = currentSyncToken;
+
+    expect(syncResponse.body).toEqual({
+      new_sync_token: syncResponse.body.new_sync_token,
+      unsynced_books: {
+        file: [],
+        metadata: [],
+        cover: [],
+        state: [],
+        annotations: [],
+        deleted: []
+      },
+      unsynced_shelves: {
+        metadata: [shelfId],
+        contents: [],
+        deleted: []
+      }
+    });
+
+    const uploadResponse2 = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { apiKey: apiKey2 });
+    expect(uploadResponse2.status).toBe(200);
+    const bookId2 = uploadResponse2.text;
+    await wait(1);
+
+    syncResponse = await sync(userId, oldSyncToken, { apiKey });
+    expect(syncResponse.status).toBe(200);
+
+    expect(syncResponse.body).toEqual({
+      new_sync_token: syncResponse.body.new_sync_token,
+      unsynced_books: {
+        file: [bookId2],
+        metadata: [bookId2],
+        cover: [bookId2],
+        state: [],
+        annotations: [],
+        deleted: []
+      },
+      unsynced_shelves: {
+        metadata: [shelfId],
+        contents: [],
+        deleted: []
+      }
+    });
+
+    syncResponse = await sync(userId, undefined, { apiKey });
+    expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
+
+    expect(syncResponse.body).toEqual({
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId, bookId2],
+        metadata: [bookId, bookId2],
+        cover: [bookId, bookId2],
+        state: [],
+        annotations: [],
+        deleted: []
+      },
+      unsynced_shelves: {
+        metadata: [shelfId],
+        contents: [],
+        deleted: []
+      }
+    });
+
+    const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { apiKey: apiKey2 });
+    expect(addBookToShelfResponse.status).toBe(204);
+
+    syncResponse = await sync(userId, currentSyncToken, { apiKey });
+    expect(syncResponse.status).toBe(200);
+
+    expect(syncResponse.body).toEqual({
+      new_sync_token: syncResponse.body.new_sync_token,
+      unsynced_books: {
+        file: [],
+        metadata: [],
+        cover: [],
+        state: [],
+        annotations: [],
+        deleted: []
+      },
+      unsynced_shelves: {
+        metadata: [],
+        contents: [shelfId],
+        deleted: []
+      }
+    });
   });
 
   test('Implicit users', async () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token });
+    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read', 'Update', 'Delete'], undefined, { jwt: jwtToken });
     expect(createApiKeyResponse.status).toBe(200);
+    const apiKey = createApiKeyResponse.body.key;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { apiKey });
     expect(uploadResponse.status).toBe(200);
-
-    // Wait for cover and metadata to be extracted
+    const bookId = uploadResponse.text;
     await wait(1);
 
-    let syncResponse = await sync(undefined, undefined, { apiKey: createApiKeyResponse.body.key });
+    const syncResponse = await sync(undefined, undefined, { apiKey });
     expect(syncResponse.status).toBe(200);
+    const currentSyncToken = syncResponse.body.new_sync_token;
 
-    let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
-        annotations: [],
-        deleted: []
-      },
-      shelf: {
-        metadata: [] as string[],
-        contents: [] as string[],
-        deleted: []
-      }
-    };
-
-    expect(syncResponse.body).toEqual(expectedResponse);
-
-    let now = Date.now();
-
-    const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
-    expect(addShelfResponse.status).toBe(200);
-
-    syncResponse = await sync(undefined, now, { apiKey: createApiKeyResponse.body.key });
-    expect(syncResponse.status).toBe(200);
-
-    expectedResponse = {
-      book: {
+    const expectedResponse = {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
-        metadata: [],
-        cover: [],
+        metadata: [bookId],
+        cover: [bookId],
         state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
-        metadata: [addShelfResponse.text],
-        contents: [],
-        deleted: []
-      }
-    };
-
-    expect(syncResponse.body).toEqual(expectedResponse);
-
-    const uploadResponse2 = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: registerResponse.body.jwt_token });
-    expect(uploadResponse2.status).toBe(200);
-
-    // Wait for cover and metadata to be extracted
-    await wait(1);
-
-    syncResponse = await sync(undefined, now, { apiKey: createApiKeyResponse.body.key });
-    expect(syncResponse.status).toBe(200);
-
-    expectedResponse = {
-      book: {
-        file: [uploadResponse2.text],
-        metadata: [uploadResponse2.text],
-        cover: [uploadResponse2.text],
-        state: [uploadResponse2.text],
-        annotations: [],
-        deleted: []
-      },
-      shelf: {
-        metadata: [addShelfResponse.text],
-        contents: [],
-        deleted: []
-      }
-    };
-
-    expect(syncResponse.body).toEqual(expectedResponse);
-
-    syncResponse = await sync(undefined, undefined, { apiKey: createApiKeyResponse.body.key });
-    expect(syncResponse.status).toBe(200);
-
-    expectedResponse = {
-      book: {
-        file: [uploadResponse.text, uploadResponse2.text],
-        metadata: [uploadResponse.text, uploadResponse2.text],
-        cover: [uploadResponse.text, uploadResponse2.text],
-        state: [uploadResponse.text, uploadResponse2.text],
-        annotations: [],
-        deleted: []
-      },
-      shelf: {
-        metadata: [addShelfResponse.text],
-        contents: [],
-        deleted: []
-      }
-    };
-
-    expect(syncResponse.body).toEqual(expectedResponse);
-
-    now = Date.now();
-
-    const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { jwt: registerResponse.body.jwt_token });
-    expect(addBookToShelfResponse.status).toBe(204);
-
-    syncResponse = await sync(undefined, now, { apiKey: createApiKeyResponse.body.key });
-    expect(syncResponse.status).toBe(200);
-
-    expectedResponse = {
-      book: {
-        file: [],
+      unsynced_shelves: {
         metadata: [],
-        cover: [],
-        state: [],
-        annotations: [],
-        deleted: []
-      },
-      shelf: {
-        metadata: [],
-        contents: [addShelfResponse.text],
+        contents: [],
         deleted: []
       }
     };
@@ -1389,29 +1557,32 @@ describe('Sync api key', () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token });
+    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read', 'Update', 'Delete'], undefined, { jwt: jwtToken });
     expect(createApiKeyResponse.status).toBe(200);
+    const apiKey = createApiKeyResponse.body.key;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
     expect(uploadResponse.status).toBe(200);
-
-    // Wait for cover and metadata to be extracted
+    const bookId = uploadResponse.text;
     await wait(1);
 
-    let syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
+    let syncResponse = await sync(userId, undefined, { apiKey });
     expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
 
     let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
         annotations: [],
         deleted: [] as string[]
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -1420,22 +1591,24 @@ describe('Sync api key', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    const deleteResponse = await deleteBook(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    const deleteResponse = await deleteBook(uploadResponse.text, { jwt: jwtToken });
     expect(deleteResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
+    syncResponse = await sync(userId, undefined, { apiKey });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
         state: [],
         annotations: [],
-        deleted: [uploadResponse.text]
+        deleted: [bookId]
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -1444,28 +1617,32 @@ describe('Sync api key', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    const uploadResponse2 = await uploadBook(userId, 'The_Great_Gatsby.epub', { jwt: registerResponse.body.jwt_token });
+    // This book has no metadata nor cover
+    const uploadResponse2 = await uploadBook(userId, 'The_Great_Gatsby.epub', { jwt: jwtToken });
     expect(uploadResponse2.status).toBe(200);
-
-    const uploadResponse3 = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: registerResponse.body.jwt_token });
-    expect(uploadResponse3.status).toBe(200);
-
-    // Wait for cover and metadata to be extracted
+    const bookId2 = uploadResponse2.text;
     await wait(1);
 
-    syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
+    const uploadResponse3 = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: jwtToken });
+    expect(uploadResponse3.status).toBe(200);
+    const bookId3 = uploadResponse3.text;
+    await wait(1);
+
+    syncResponse = await sync(userId, undefined, { apiKey });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
-        file: [uploadResponse2.text, uploadResponse3.text],
-        metadata: [uploadResponse3.text],
-        cover: [uploadResponse3.text],
-        state: [uploadResponse2.text, uploadResponse3.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId2, bookId3],
+        metadata: [bookId3],
+        cover: [bookId3],
+        state: [],
         annotations: [],
-        deleted: [uploadResponse.text]
+        deleted: [bookId]
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -1479,62 +1656,95 @@ describe('Sync api key', () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token });
+    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read', 'Update', 'Delete'], undefined, { jwt: jwtToken });
     expect(createApiKeyResponse.status).toBe(200);
+    const apiKey = createApiKeyResponse.body.key;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
     expect(uploadResponse.status).toBe(200);
-
-    // Wait for cover and metadata to be extracted
+    const bookId = uploadResponse.text;
     await wait(1);
 
-    const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
+    const addShelfResponse = await createShelf('shelf', userId, { jwt: jwtToken });
     expect(addShelfResponse.status).toBe(200);
+    const shelfId = addShelfResponse.text;
 
-    const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    const addBookToShelfResponse = await addBookToShelf(shelfId, bookId, { jwt: jwtToken });
     expect(addBookToShelfResponse.status).toBe(204);
 
-    let syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
+    let syncResponse = await sync(userId, undefined, { apiKey });
     expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
 
     let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
         annotations: [],
         deleted: [] as string[]
       },
-      shelf: {
-        metadata: [addShelfResponse.text],
-        contents: [addShelfResponse.text],
+      unsynced_shelves: {
+        metadata: [shelfId],
+        contents: [shelfId],
         deleted: [] as string[]
       }
     };
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    const addAnnotationResponse = await deleteShelf(addShelfResponse.text, { jwt: registerResponse.body.jwt_token });
-    expect(addAnnotationResponse.status).toBe(204);
+    const deleteShelfResponse = await deleteShelf(shelfId, { jwt: jwtToken });
+    expect(deleteShelfResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
+    syncResponse = await sync(userId, undefined, { apiKey });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
-        deleted: [addShelfResponse.text]
+        deleted: [shelfId]
+      }
+    };
+
+    expect(syncResponse.body).toEqual(expectedResponse);
+
+    const addShelfResponse2 = await createShelf('shelf 2', userId, { jwt: jwtToken });
+    expect(addShelfResponse2.status).toBe(200);
+    const shelfId2 = addShelfResponse2.text;
+
+    syncResponse = await sync(userId, undefined, { apiKey });
+    expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
+
+    expectedResponse = {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
+        annotations: [],
+        deleted: []
+      },
+      unsynced_shelves: {
+        metadata: [shelfId2],
+        contents: [],
+        deleted: [shelfId]
       }
     };
 
@@ -1545,29 +1755,34 @@ describe('Sync api key', () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token });
+    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read', 'Update', 'Delete'], undefined, { jwt: jwtToken });
     expect(createApiKeyResponse.status).toBe(200);
+    const apiKey = createApiKeyResponse.body.key;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
     expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
 
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    let syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
+    let syncResponse = await sync(userId, undefined, { apiKey });
     expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
 
     let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
         annotations: [],
         deleted: [] as string[]
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -1576,24 +1791,24 @@ describe('Sync api key', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    let now = Date.now();
-
-    let metadataResponse = await updateMetadata(uploadResponse.text, EXAMPLE_METADATA, { jwt: registerResponse.body.jwt_token });
+    let metadataResponse = await updateMetadata(bookId, EXAMPLE_METADATA, { jwt: jwtToken });
     expect(metadataResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { apiKey: createApiKeyResponse.body.key });
+    syncResponse = await sync(userId, currentSyncToken, { apiKey });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
-        metadata: [uploadResponse.text],
+        metadata: [bookId],
         cover: [],
         state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -1602,24 +1817,24 @@ describe('Sync api key', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    now = Date.now();
-
-    metadataResponse = await patchMetadata(uploadResponse.text, { title: 'title test' }, { jwt: registerResponse.body.jwt_token });
+    metadataResponse = await patchMetadata(bookId, { title: 'title test' }, { jwt: jwtToken });
     expect(metadataResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { apiKey: createApiKeyResponse.body.key });
+    syncResponse = await sync(userId, currentSyncToken, { apiKey });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
-        metadata: [uploadResponse.text],
+        metadata: [bookId],
         cover: [],
         state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -1628,24 +1843,24 @@ describe('Sync api key', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    now = Date.now();
-
-    metadataResponse = await deleteMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    metadataResponse = await deleteMetadata(bookId, { jwt: jwtToken });
     expect(metadataResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { apiKey: createApiKeyResponse.body.key });
+    syncResponse = await sync(userId, currentSyncToken, { apiKey });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
-        metadata: [uploadResponse.text],
+        metadata: [bookId],
         cover: [],
         state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -1659,29 +1874,34 @@ describe('Sync api key', () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token });
+    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read', 'Update', 'Delete'], undefined, { jwt: jwtToken });
     expect(createApiKeyResponse.status).toBe(200);
+    const apiKey = createApiKeyResponse.body.key;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
     expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
 
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    let syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
+    let syncResponse = await sync(userId, undefined, { apiKey });
     expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
 
     let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
         annotations: [],
         deleted: [] as string[]
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -1690,24 +1910,24 @@ describe('Sync api key', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    let now = Date.now();
-
-    let coverResponse = await updateCover(uploadResponse.text, 'Generic.jpeg', { jwt: registerResponse.body.jwt_token });
+    let coverResponse = await updateCover(bookId, 'Generic.jpeg', { jwt: jwtToken });
     expect(coverResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { apiKey: createApiKeyResponse.body.key });
+    syncResponse = await sync(userId, currentSyncToken, { apiKey });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
-        cover: [uploadResponse.text],
+        cover: [bookId],
         state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -1716,24 +1936,24 @@ describe('Sync api key', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    now = Date.now();
-
-    coverResponse = await deleteCover(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    coverResponse = await deleteCover(bookId, { jwt: jwtToken });
     expect(coverResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { apiKey: createApiKeyResponse.body.key });
+    syncResponse = await sync(userId, currentSyncToken, { apiKey });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
-        cover: [uploadResponse.text],
+        cover: [bookId],
         state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -1747,29 +1967,34 @@ describe('Sync api key', () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token });
+    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read', 'Update', 'Delete'], undefined, { jwt: jwtToken });
     expect(createApiKeyResponse.status).toBe(200);
+    const apiKey = createApiKeyResponse.body.key;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
     expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
 
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    let syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
+    let syncResponse = await sync(userId, undefined, { apiKey });
     expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
 
     let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [] as string[],
         annotations: [],
         deleted: [] as string[]
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -1778,24 +2003,24 @@ describe('Sync api key', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    let now = Date.now();
-
-    let stateResponse = await updateState(uploadResponse.text, ALICE_STATE, { jwt: registerResponse.body.jwt_token });
+    let stateResponse = await updateState(bookId, ALICE_STATE, { jwt: jwtToken });
     expect(stateResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { apiKey: createApiKeyResponse.body.key });
+    syncResponse = await sync(userId, currentSyncToken, { apiKey });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
-        state: [uploadResponse.text],
+        state: [bookId],
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -1804,24 +2029,24 @@ describe('Sync api key', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    now = Date.now();
-
-    stateResponse = await patchState(uploadResponse.text, { statistics: { reading_status: 'Read' } }, { jwt: registerResponse.body.jwt_token });
+    stateResponse = await patchState(bookId, { statistics: { reading_status: 'Read' } }, { jwt: jwtToken });
     expect(stateResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { apiKey: createApiKeyResponse.body.key });
+    syncResponse = await sync(userId, currentSyncToken, { apiKey });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
-        state: [uploadResponse.text],
+        state: [bookId],
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -1835,29 +2060,34 @@ describe('Sync api key', () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token });
+    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read', 'Update', 'Delete'], undefined, { jwt: jwtToken });
     expect(createApiKeyResponse.status).toBe(200);
+    const apiKey = createApiKeyResponse.body.key;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
     expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
 
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    let syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
+    let syncResponse = await sync(userId, undefined, { apiKey });
     expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
 
     let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
         annotations: [] as string[],
         deleted: [] as string[]
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -1866,24 +2096,25 @@ describe('Sync api key', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    let now = Date.now();
-
-    const addAnnotationResponse = await addAnnotation(uploadResponse.text, ALICE_NOTE, { jwt: registerResponse.body.jwt_token });
+    const addAnnotationResponse = await addAnnotation(bookId, ALICE_NOTE, { jwt: jwtToken });
     expect(addAnnotationResponse.status).toBe(200);
+    const annotationId = addAnnotationResponse.text;
 
-    syncResponse = await sync(userId, now, { apiKey: createApiKeyResponse.body.key });
+    syncResponse = await sync(userId, currentSyncToken, { apiKey });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
         state: [],
-        annotations: [uploadResponse.text],
+        annotations: [bookId],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -1892,24 +2123,24 @@ describe('Sync api key', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    now = Date.now();
-
-    let annotationResponse = await patchAnnotation(uploadResponse.text, addAnnotationResponse.text, 'note', { jwt: registerResponse.body.jwt_token });
+    let annotationResponse = await patchAnnotation(bookId, annotationId, 'note', { jwt: jwtToken });
     expect(annotationResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { apiKey: createApiKeyResponse.body.key });
+    syncResponse = await sync(userId, currentSyncToken, { apiKey });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
         state: [],
-        annotations: [uploadResponse.text],
+        annotations: [bookId],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -1918,24 +2149,24 @@ describe('Sync api key', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    now = Date.now();
-
-    annotationResponse = await deleteAnnotation(uploadResponse.text, addAnnotationResponse.text, { jwt: registerResponse.body.jwt_token });
+    annotationResponse = await deleteAnnotation(bookId, annotationId, { jwt: jwtToken });
     expect(annotationResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { apiKey: createApiKeyResponse.body.key });
+    syncResponse = await sync(userId, currentSyncToken, { apiKey });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
         state: [],
-        annotations: [uploadResponse.text],
+        annotations: [bookId],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
         contents: [],
         deleted: []
@@ -1949,33 +2180,39 @@ describe('Sync api key', () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token });
+    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read', 'Update', 'Delete'], undefined, { jwt: jwtToken });
     expect(createApiKeyResponse.status).toBe(200);
+    const apiKey = createApiKeyResponse.body.key;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
     expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
 
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
+    const addShelfResponse = await createShelf('shelf', userId, { jwt: jwtToken });
     expect(addShelfResponse.status).toBe(200);
+    const shelfId = addShelfResponse.text;
 
-    let syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
+    let syncResponse = await sync(userId, undefined, { apiKey });
     expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
 
     let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [bookId],
+        metadata: [bookId],
+        cover: [bookId],
+        state: [],
         annotations: [] as string[],
         deleted: [] as string[]
       },
-      shelf: {
-        metadata: [addShelfResponse.text],
+      unsynced_shelves: {
+        metadata: [shelfId],
         contents: [] as string[],
         deleted: []
       }
@@ -1983,16 +2220,16 @@ describe('Sync api key', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    let now = Date.now();
-
-    const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    const addBookToShelfResponse = await addBookToShelf(shelfId, bookId, { jwt: jwtToken });
     expect(addBookToShelfResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { apiKey: createApiKeyResponse.body.key });
+    syncResponse = await sync(userId, currentSyncToken, { apiKey });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
@@ -2000,25 +2237,25 @@ describe('Sync api key', () => {
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
-        contents: [addShelfResponse.text],
+        contents: [shelfId],
         deleted: []
       }
     };
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    now = Date.now();
-
-    const removeBookFromShelfResponse = await deleteBookFromShelf(addShelfResponse.text, uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    const removeBookFromShelfResponse = await deleteBookFromShelf(shelfId, bookId, { jwt: jwtToken });
     expect(removeBookFromShelfResponse.status).toBe(204);
 
-    syncResponse = await sync(userId, now, { apiKey: createApiKeyResponse.body.key });
+    syncResponse = await sync(userId, currentSyncToken, { apiKey });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
         file: [],
         metadata: [],
         cover: [],
@@ -2026,9 +2263,9 @@ describe('Sync api key', () => {
         annotations: [],
         deleted: []
       },
-      shelf: {
+      unsynced_shelves: {
         metadata: [],
-        contents: [addShelfResponse.text],
+        contents: [shelfId],
         deleted: []
       }
     };
@@ -2040,77 +2277,85 @@ describe('Sync api key', () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
 
-    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token });
+    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read', 'Update', 'Delete'], undefined, { jwt: jwtToken });
     expect(createApiKeyResponse.status).toBe(200);
+    const apiKey = createApiKeyResponse.body.key;
 
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { apiKey });
     expect(uploadResponse.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
+    const addShelfResponse = await createShelf('shelf', userId, { apiKey });
     expect(addShelfResponse.status).toBe(200);
 
-    const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { apiKey });
     expect(addBookToShelfResponse.status).toBe(204);
 
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
+    const jwtToken2 = registerResponse2.body.jwt_token;
 
-    const createApiKeyResponse2 = await createApiKey(userId2, 'Test Key', ['Read'], undefined, { jwt: registerResponse2.body.jwt_token });
+    const createApiKeyResponse2 = await createApiKey(userId2, 'Test Key', ['Create', 'Read', 'Update', 'Delete'], undefined, { jwt: jwtToken2 });
     expect(createApiKeyResponse2.status).toBe(200);
+    const apiKey2 = createApiKeyResponse2.body.key;
 
-    const uploadResponse2 = await uploadBook(userId2, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: registerResponse2.body.jwt_token });
+    const uploadResponse2 = await uploadBook(userId2, 'The_Wonderful_Wizard_of_Oz.epub', { apiKey: apiKey2 });
     expect(uploadResponse2.status).toBe(200);
 
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    const addShelfResponse2 = await createShelf('shelf', userId2, { jwt: registerResponse2.body.jwt_token });
+    const addShelfResponse2 = await createShelf('shelf', userId2, { apiKey: apiKey2 });
     expect(addShelfResponse2.status).toBe(200);
 
-    const addBookToShelfResponse2 = await addBookToShelf(addShelfResponse2.text, uploadResponse2.text, { jwt: registerResponse2.body.jwt_token });
+    const addBookToShelfResponse2 = await addBookToShelf(addShelfResponse2.text, uploadResponse2.text, { apiKey: apiKey2 });
     expect(addBookToShelfResponse2.status).toBe(204);
 
-    let syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
+    let syncResponse = await sync(userId, undefined, { apiKey });
     expect(syncResponse.status).toBe(200);
+    let currentSyncToken = syncResponse.body.new_sync_token;
 
     let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [],
         metadata: [uploadResponse.text],
         cover: [uploadResponse.text],
-        state: [uploadResponse.text],
+        state: [],
         annotations: [],
-        deleted: []
+        deleted: [] as string[]
       },
-      shelf: {
-        metadata: [addShelfResponse.text],
-        contents: [addShelfResponse.text],
-        deleted: []
+      unsynced_shelves: {
+        metadata: [],
+        contents: [],
+        deleted: [] as string[]
       }
     };
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    syncResponse = await sync(userId2, undefined, { apiKey: createApiKeyResponse2.body.key });
+    syncResponse = await sync(userId2, undefined, { apiKey: apiKey2 });
     expect(syncResponse.status).toBe(200);
+    currentSyncToken = syncResponse.body.new_sync_token;
 
     expectedResponse = {
-      book: {
-        file: [uploadResponse2.text],
+      new_sync_token: currentSyncToken,
+      unsynced_books: {
+        file: [],
         metadata: [uploadResponse2.text],
         cover: [uploadResponse2.text],
-        state: [uploadResponse2.text],
+        state: [],
         annotations: [],
         deleted: []
       },
-      shelf: {
-        metadata: [addShelfResponse2.text],
-        contents: [addShelfResponse2.text],
+      unsynced_shelves: {
+        metadata: [],
+        contents: [],
         deleted: []
       }
     };
@@ -2118,89 +2363,7 @@ describe('Sync api key', () => {
     expect(syncResponse.body).toEqual(expectedResponse);
   });
 
-  test('Different implicit users', async () => {
-    const { response: registerResponse } = await registerUser();
-    expect(registerResponse.status).toBe(200);
-    const userId = registerResponse.body.user_id;
-
-    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token });
-    expect(createApiKeyResponse.status).toBe(200);
-
-    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
-    expect(uploadResponse.status).toBe(200);
-
-    // Wait for cover and metadata to be extracted
-    await wait(1);
-
-    const addShelfResponse = await createShelf('shelf', userId, { jwt: registerResponse.body.jwt_token });
-    expect(addShelfResponse.status).toBe(200);
-
-    const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { jwt: registerResponse.body.jwt_token });
-    expect(addBookToShelfResponse.status).toBe(204);
-
-    const { response: registerResponse2 } = await registerUser();
-    expect(registerResponse2.status).toBe(200);
-    const userId2 = registerResponse2.body.user_id;
-
-    const createApiKeyResponse2 = await createApiKey(userId2, 'Test Key', ['Read'], undefined, { jwt: registerResponse2.body.jwt_token });
-    expect(createApiKeyResponse2.status).toBe(200);
-
-    const uploadResponse2 = await uploadBook(userId2, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: registerResponse2.body.jwt_token });
-    expect(uploadResponse2.status).toBe(200);
-
-    // Wait for cover and metadata to be extracted
-    await wait(1);
-
-    const addShelfResponse2 = await createShelf('shelf', userId2, { jwt: registerResponse2.body.jwt_token });
-    expect(addShelfResponse2.status).toBe(200);
-
-    const addBookToShelfResponse2 = await addBookToShelf(addShelfResponse2.text, uploadResponse2.text, { jwt: registerResponse2.body.jwt_token });
-    expect(addBookToShelfResponse2.status).toBe(204);
-
-    let syncResponse = await sync(undefined, undefined, { apiKey: createApiKeyResponse.body.key });
-    expect(syncResponse.status).toBe(200);
-
-    let expectedResponse = {
-      book: {
-        file: [uploadResponse.text],
-        metadata: [uploadResponse.text],
-        cover: [uploadResponse.text],
-        state: [uploadResponse.text],
-        annotations: [],
-        deleted: []
-      },
-      shelf: {
-        metadata: [addShelfResponse.text],
-        contents: [addShelfResponse.text],
-        deleted: []
-      }
-    };
-
-    expect(syncResponse.body).toEqual(expectedResponse);
-
-    syncResponse = await sync(undefined, undefined, { apiKey: createApiKeyResponse2.body.key });
-    expect(syncResponse.status).toBe(200);
-
-    expectedResponse = {
-      book: {
-        file: [uploadResponse2.text],
-        metadata: [uploadResponse2.text],
-        cover: [uploadResponse2.text],
-        state: [uploadResponse2.text],
-        annotations: [],
-        deleted: []
-      },
-      shelf: {
-        metadata: [addShelfResponse2.text],
-        contents: [addShelfResponse2.text],
-        deleted: []
-      }
-    };
-
-    expect(syncResponse.body).toEqual(expectedResponse);
-  });
-
-  test('Invalid timestamp', async () => {
+  test('Invalid sync token', async () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
@@ -2210,7 +2373,7 @@ describe('Sync api key', () => {
 
     let syncResponse = await sync(userId, 'not valid', { apiKey: createApiKeyResponse.body.key });
     expect(syncResponse.status).toBe(400);
-    expect(syncResponse.text).toBe(INVALID_TIMESTAMP);
+    expect(syncResponse.text).toBe(INVALID_SYNC_TOKEN);
   });
 
   test('Non-existent user', async () => {

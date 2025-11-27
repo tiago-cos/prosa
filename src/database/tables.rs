@@ -161,8 +161,6 @@ pub async fn create_tables(pool: &SqlitePool) {
     .await
     .expect("Failed to create shelf tables");
 
-    //TODO add annotations to openapi sync response
-
     // Sync tables
     sqlx::query(
         r"
