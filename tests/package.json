@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
-    "@types/node": "^24.1.0",
+    "@types/node": "^25.0.3",
     "@types/supertest": "^6.0.3",
     "@types/wait-on": "^5.3.4",
     "@typescript-eslint/eslint-plugin": "^8.38.0",
