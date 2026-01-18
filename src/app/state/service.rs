@@ -127,7 +127,7 @@ impl StateService {
             let sources: HashSet<String> = doc
                 .resources
                 .iter()
-                .filter_map(|r| r.1.0.to_str().map(ToString::to_string))
+                .filter_map(|r| r.1.path.to_str().map(ToString::to_string))
                 .collect();
             let sources = Arc::new(sources);
             self.source_cache

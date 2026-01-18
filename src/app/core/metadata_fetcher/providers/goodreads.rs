@@ -32,25 +32,25 @@ impl MetadataProvider for GoodreadsMetadataScraper {
         let epub = Cursor::new(epub_data);
         let epub = EpubDoc::from_reader(epub).unwrap();
 
-        let title = epub.mdata("title");
-        let author = epub.mdata("creator");
-        let isbn = epub.mdata("identifier");
+        let title = epub.mdata("title").map(|v| &v.value);
+        let author = epub.mdata("creator").map(|v| &v.value);
+        let isbn = epub.mdata("identifier").map(|v| &v.value);
 
         let metadata = match (title, author) {
             (Some(t), Some(a)) => {
                 MetadataRequestBuilder::default()
-                    .with_title(&t)
-                    .with_author(&a)
+                    .with_title(t)
+                    .with_author(a)
                     .execute()
                     .await
             }
-            (Some(t), None) => MetadataRequestBuilder::default().with_title(&t).execute().await,
+            (Some(t), None) => MetadataRequestBuilder::default().with_title(t).execute().await,
             _ => return (None, None),
         };
 
         let metadata = match (metadata, isbn) {
             (Ok(Some(m)), _) => Ok(Some(m)),
-            (_, Some(isbn)) => MetadataRequestBuilder::default().with_isbn(&isbn).execute().await,
+            (_, Some(isbn)) => MetadataRequestBuilder::default().with_isbn(isbn).execute().await,
             _ => return (None, None),
         };
 

@@ -28,18 +28,18 @@ impl MetadataProvider for EpubExtractor {
         let epub = Cursor::new(epub_data);
         let mut epub = EpubDoc::from_reader(epub).expect("Failed to open epub");
 
-        let title = epub.mdata("title");
-        let subtitle = epub.mdata("subtitle");
-        let description = epub.mdata("description");
-        let publisher = epub.mdata("publisher");
-        let isbn = epub.mdata("identifier");
-        let series = epub.mdata("calibre:series");
+        let title = epub.mdata("title").map(|m| m.value.clone());
+        let subtitle = epub.mdata("subtitle").map(|m| m.value.clone());
+        let description = epub.mdata("description").map(|m| m.value.clone());
+        let publisher = epub.mdata("publisher").map(|m| m.value.clone());
+        let isbn = epub.mdata("identifier").map(|m| m.value.clone());
+        let series = epub.mdata("calibre:series").map(|m| m.value.clone());
         let page_count = None;
-        let language = epub.mdata("language");
+        let language = epub.mdata("language").map(|m| m.value.clone());
 
         let series_number = epub
             .mdata("calibre:series_index")
-            .map(|num| num.parse().expect("Failed to parse series number"));
+            .map(|num| num.value.parse().expect("Failed to parse series number"));
 
         let series = match (series, series_number) {
             (Some(series), Some(number)) => Some(Series {
@@ -51,17 +51,24 @@ impl MetadataProvider for EpubExtractor {
 
         let contributors = match epub.mdata("creator") {
             Some(c) => Some(vec![Contributor {
-                name: c,
+                name: c.value.clone(),
                 role: "Author".to_string(),
             }]),
             None => None,
         };
 
-        let genres = epub.metadata.get("subject").map(ToOwned::to_owned);
+        let genres: Vec<String> = epub
+            .metadata
+            .iter()
+            .filter(|m| m.property == "subject")
+            .map(|m| m.value.clone())
+            .collect();
+
+        let genres = (!genres.is_empty()).then_some(genres);
 
         let publication_date = epub
             .mdata("date")
-            .map(|date| parse_date(&date).expect("Failed to parse date"));
+            .map(|date| parse_date(&date.value).expect("Failed to parse date"));
 
         let metadata = Metadata {
             title,

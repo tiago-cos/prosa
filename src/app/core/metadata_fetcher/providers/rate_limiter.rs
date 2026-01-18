@@ -14,10 +14,11 @@ impl RateLimiter {
     }
 
     pub async fn cooldown(&mut self) {
-        let elapsed_time = Instant::now().duration_since(self.last_request);
+        let elapsed = self.last_request.elapsed();
+        let sleep_time = self.cooldown.saturating_sub(elapsed);
 
-        if elapsed_time < self.cooldown {
-            sleep(self.cooldown - elapsed_time).await;
+        if !sleep_time.is_zero() {
+            sleep(sleep_time).await;
         }
 
         self.last_request = Instant::now();
