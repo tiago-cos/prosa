@@ -6,7 +6,7 @@ post:
   operationId: login
   requestBody:
     required: true
-    description: Request body for adding a new user.
+    description: Request body for logging in.
     content:
       application/json:
         schema:
