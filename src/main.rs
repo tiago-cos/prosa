@@ -9,40 +9,48 @@
 #![allow(clippy::too_many_lines)]
 
 use config::Configuration;
-use std::{io::Error, path::Path};
-use tokio::fs::{self, create_dir_all};
+use sqlx::SqlitePool;
+use std::{
+    io::Error,
+    path::Path,
+    sync::{LazyLock, OnceLock},
+};
+use tokio::fs::create_dir_all;
 
 mod app;
 mod config;
 mod database;
 
+static DB_POOL: OnceLock<SqlitePool> = OnceLock::new();
+static CONFIG: LazyLock<Configuration> =
+    LazyLock::new(|| Configuration::new().expect("Failed to load configuration"));
+
 #[tokio::main]
 async fn main() {
-    let config = Configuration::new().expect("Failed to load configuration");
+    run_startup_checks().await.expect("Startup checks failed");
 
-    run_startup_checks(&config).await.expect("Startup checks failed");
-
-    let db_pool = database::init(&config.database.file_path).await;
+    let db_pool = database::init(&CONFIG.database.file_path).await;
+    DB_POOL.set(db_pool).expect("Failed to set database pool");
 
     print_banner();
 
-    app::run(config, db_pool).await;
+    app::run().await;
 }
 
-async fn run_startup_checks(config: &Configuration) -> Result<(), Box<dyn std::error::Error>> {
-    let kepubify = Path::new(&config.kepubify.path);
+async fn run_startup_checks() -> Result<(), Box<dyn std::error::Error>> {
+    let kepubify = Path::new(&CONFIG.kepubify.path);
     if !kepubify.exists() || !kepubify.is_file() {
         return Err("Kepubify must be present".into());
     }
 
-    if config.auth.admin_key.len() < 8 {
+    if CONFIG.auth.admin_key.len() < 8 {
         return Err("admin_key must be configured and at least 8 characters long".into());
     }
 
-    create_parent_dir(&config.database.file_path).await?;
-    create_parent_dir(&config.auth.jwt_key_path).await?;
-    create_dir_all(&config.book_storage.epub_path).await?;
-    create_dir_all(&config.book_storage.cover_path).await?;
+    create_parent_dir(&CONFIG.database.file_path).await?;
+    create_parent_dir(&CONFIG.auth.jwt_key_path).await?;
+    create_dir_all(&CONFIG.book_storage.epub_path).await?;
+    create_dir_all(&CONFIG.book_storage.cover_path).await?;
 
     Ok(())
 }
@@ -54,7 +62,7 @@ async fn create_parent_dir(path: &str) -> Result<(), Error> {
         && let Some(parent) = path.parent()
         && !parent.exists()
     {
-        fs::create_dir_all(parent).await?;
+        create_dir_all(parent).await?;
     }
 
     Ok(())

@@ -1,15 +1,13 @@
 use super::models::{AuthError, AuthToken};
-use crate::app::{AppState, authentication::service::AuthenticationService, error::ProsaError};
+use crate::app::{authentication::service, error::ProsaError};
 use axum::{
-    extract::{Request, State},
+    extract::Request,
     http::{HeaderMap, HeaderValue},
     middleware::Next,
     response::IntoResponse,
 };
-use std::sync::Arc;
 
 pub async fn extract_token_middleware(
-    State(state): State<AppState>,
     headers: HeaderMap,
     mut request: Request,
     next: Next,
@@ -18,8 +16,8 @@ pub async fn extract_token_middleware(
     let api_key_header = headers.get("api-key");
 
     let token = match (jwt_header, api_key_header) {
-        (Some(header), _) => handle_jwt(header, &state.services.authentication)?,
-        (_, Some(header)) => handle_api_key(header, state.services.authentication.clone()).await?,
+        (Some(header), _) => handle_jwt(header)?,
+        (_, Some(header)) => handle_api_key(header).await?,
         _ => Err(AuthError::MissingAuth)?,
     };
 
@@ -27,10 +25,7 @@ pub async fn extract_token_middleware(
     Ok(next.run(request).await)
 }
 
-fn handle_jwt(
-    header: &HeaderValue,
-    authentication_service: &AuthenticationService,
-) -> Result<AuthToken, ProsaError> {
+fn handle_jwt(header: &HeaderValue) -> Result<AuthToken, ProsaError> {
     let header = header.to_str().expect("Failed to convert jwt header to string");
 
     let (_, token) = header
@@ -40,17 +35,14 @@ fn handle_jwt(
         .map(|parts| (parts[0], parts[1]))
         .ok_or(AuthError::InvalidAuthHeader)?;
 
-    let token = authentication_service.verify_jwt(token)?;
+    let token = service::verify_jwt(token)?;
 
     Ok(token)
 }
 
-async fn handle_api_key(
-    header: &HeaderValue,
-    authentication_service: Arc<AuthenticationService>,
-) -> Result<AuthToken, ProsaError> {
+async fn handle_api_key(header: &HeaderValue) -> Result<AuthToken, ProsaError> {
     let api_key = header.to_str().expect("Failed to convert key header to string");
-    let token = authentication_service.verify_api_key(api_key).await?;
+    let token = service::verify_api_key(api_key).await?;
 
     Ok(token)
 }

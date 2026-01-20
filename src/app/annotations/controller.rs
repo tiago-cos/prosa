@@ -1,141 +1,102 @@
 use super::models::{NewAnnotationRequest, PatchAnnotationRequest};
 use crate::app::annotations::models::Annotation;
-use crate::app::annotations::service::AnnotationService;
+use crate::app::annotations::service;
 use crate::app::authentication::models::AuthToken;
-use crate::app::books::service::BookService;
-use crate::app::core::locking::service::LockService;
 use crate::app::error::ProsaError;
+use crate::app::server::LOCKS;
 use crate::app::sync::models::{ChangeLogAction, ChangeLogEntityType};
-use crate::app::sync::service::SyncService;
-use axum::Json;
+use crate::app::{books, sync};
+use axum::extract::Path;
 use axum::http::StatusCode;
-use std::sync::Arc;
+use axum::{Extension, Json};
 
-pub struct AnnotationController {
-    lock_service: Arc<LockService>,
-    book_service: Arc<BookService>,
-    annotation_service: Arc<AnnotationService>,
-    sync_service: Arc<SyncService>,
+pub async fn add_annotation_handler(
+    Extension(token): Extension<AuthToken>,
+    Path(book_id): Path<String>,
+    Json(annotation): Json<NewAnnotationRequest>,
+) -> Result<String, ProsaError> {
+    let lock = LOCKS.get_book_lock(&book_id).await;
+    let _guard = lock.write().await;
+
+    let book = books::service::get_book(&book_id).await?;
+    let annotation_id = service::add_annotation(&book_id, annotation).await?;
+
+    sync::service::log_change(
+        &book_id,
+        ChangeLogEntityType::BookAnnotations,
+        ChangeLogAction::Create,
+        &book.owner_id,
+        &token.session_id,
+    )
+    .await;
+
+    Ok(annotation_id)
 }
 
-impl AnnotationController {
-    pub fn new(
-        lock_service: Arc<LockService>,
-        book_service: Arc<BookService>,
-        annotation_service: Arc<AnnotationService>,
-        sync_service: Arc<SyncService>,
-    ) -> Self {
-        Self {
-            lock_service,
-            book_service,
-            annotation_service,
-            sync_service,
-        }
-    }
+pub async fn get_annotation_handler(
+    Path((book_id, annotation_id)): Path<(String, String)>,
+) -> Result<Json<Annotation>, ProsaError> {
+    let lock = LOCKS.get_book_lock(&book_id).await;
+    let _guard = lock.read().await;
 
-    pub async fn add_annotation(
-        &self,
-        token: AuthToken,
-        book_id: &str,
-        annotation: NewAnnotationRequest,
-    ) -> Result<String, ProsaError> {
-        let lock = self.lock_service.get_book_lock(book_id).await;
-        let _guard = lock.write().await;
+    books::service::get_book(&book_id).await?;
+    let annotation = service::get_annotation(&annotation_id).await?;
 
-        let book = self.book_service.get_book(book_id).await?;
-        let annotation_id = self
-            .annotation_service
-            .add_annotation(book_id, annotation)
-            .await?;
+    Ok(Json(annotation))
+}
 
-        self.sync_service
-            .log_change(
-                book_id,
-                ChangeLogEntityType::BookAnnotations,
-                ChangeLogAction::Create,
-                &book.owner_id,
-                &token.session_id,
-            )
-            .await;
+pub async fn list_annotations_handler(Path(book_id): Path<String>) -> Result<Json<Vec<String>>, ProsaError> {
+    let lock = LOCKS.get_book_lock(&book_id).await;
+    let _guard = lock.read().await;
 
-        Ok(annotation_id)
-    }
+    books::service::get_book(&book_id).await?;
+    let annotations = service::get_annotations(&book_id).await;
 
-    pub async fn get_annotation(
-        &self,
-        book_id: &str,
-        annotation_id: &str,
-    ) -> Result<Json<Annotation>, ProsaError> {
-        let lock = self.lock_service.get_book_lock(book_id).await;
-        let _guard = lock.read().await;
+    Ok(Json(annotations))
+}
 
-        self.book_service.get_book(book_id).await?;
-        let annotation = self.annotation_service.get_annotation(annotation_id).await?;
+pub async fn delete_annotation_handler(
+    Extension(token): Extension<AuthToken>,
+    Path((book_id, annotation_id)): Path<(String, String)>,
+) -> Result<StatusCode, ProsaError> {
+    let lock = LOCKS.get_book_lock(&book_id).await;
+    let _guard = lock.write().await;
 
-        Ok(Json(annotation))
-    }
+    let book = books::service::get_book(&book_id).await?;
+    service::delete_annotation(&annotation_id).await?;
 
-    pub async fn list_annotations(&self, book_id: &str) -> Result<Json<Vec<String>>, ProsaError> {
-        let lock = self.lock_service.get_book_lock(book_id).await;
-        let _guard = lock.read().await;
+    sync::service::log_change(
+        &book_id,
+        ChangeLogEntityType::BookAnnotations,
+        ChangeLogAction::Delete,
+        &book.owner_id,
+        &token.session_id,
+    )
+    .await;
 
-        self.book_service.get_book(book_id).await?;
-        let annotations = self.annotation_service.get_annotations(book_id).await;
+    Ok(StatusCode::NO_CONTENT)
+}
 
-        Ok(Json(annotations))
-    }
+pub async fn patch_annotation_handler(
+    Extension(token): Extension<AuthToken>,
+    Path((book_id, annotation_id)): Path<(String, String)>,
+    Json(request): Json<PatchAnnotationRequest>,
+) -> Result<StatusCode, ProsaError> {
+    let lock = LOCKS.get_book_lock(&book_id).await;
+    let _guard = lock.write().await;
 
-    pub async fn delete_annotation(
-        &self,
-        token: AuthToken,
-        book_id: &str,
-        annotation_id: &str,
-    ) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_service.get_book_lock(book_id).await;
-        let _guard = lock.write().await;
+    let book = books::service::get_book(&book_id).await?;
 
-        let book = self.book_service.get_book(book_id).await?;
-        self.annotation_service.delete_annotation(annotation_id).await?;
+    service::patch_annotation(&annotation_id, request.note).await?;
 
-        self.sync_service
-            .log_change(
-                book_id,
-                ChangeLogEntityType::BookAnnotations,
-                ChangeLogAction::Delete,
-                &book.owner_id,
-                &token.session_id,
-            )
-            .await;
+    sync::service::log_change(
+        &book_id,
+        ChangeLogEntityType::BookAnnotations,
+        ChangeLogAction::Update,
+        &book.owner_id,
+        &token.session_id,
+    )
+    .await;
 
-        Ok(StatusCode::NO_CONTENT)
-    }
-
-    pub async fn patch_annotation(
-        &self,
-        token: AuthToken,
-        book_id: &str,
-        annotation_id: &str,
-        request: PatchAnnotationRequest,
-    ) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_service.get_book_lock(book_id).await;
-        let _guard = lock.write().await;
-
-        let book = self.book_service.get_book(book_id).await?;
-
-        self.annotation_service
-            .patch_annotation(annotation_id, request.note)
-            .await?;
-
-        self.sync_service
-            .log_change(
-                book_id,
-                ChangeLogEntityType::BookAnnotations,
-                ChangeLogAction::Update,
-                &book.owner_id,
-                &token.session_id,
-            )
-            .await;
-
-        Ok(StatusCode::NO_CONTENT)
-    }
+    Ok(StatusCode::NO_CONTENT)
 }

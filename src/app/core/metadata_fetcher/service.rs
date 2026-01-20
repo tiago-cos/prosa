@@ -1,17 +1,15 @@
 use super::fetcher::MetadataFetcher;
 use crate::app::{
-    books::service::BookService,
-    core::locking::service::LockService,
-    covers::service::CoverService,
-    epubs::service::EpubService,
+    books, covers, epubs,
     error::ProsaError,
     metadata::{
+        self,
         models::{Metadata, MetadataError},
-        service::MetadataService,
     },
+    server::LOCKS,
     sync::{
+        self,
         models::{ChangeLogAction, ChangeLogEntityType},
-        service::SyncService,
     },
 };
 use log::warn;
@@ -30,35 +28,14 @@ pub struct MetadataFetcherService {
     queue: RwLock<VecDeque<MetadataFetcherRequest>>,
     notify: Notify,
     fetcher: Mutex<MetadataFetcher>,
-    book_service: Arc<BookService>,
-    cover_service: Arc<CoverService>,
-    epub_service: Arc<EpubService>,
-    lock_service: Arc<LockService>,
-    metadata_service: Arc<MetadataService>,
-    sync_service: Arc<SyncService>,
 }
 
 impl MetadataFetcherService {
-    pub fn new(
-        epub_extractor_cooldown: u64,
-        goodreads_cooldown: u64,
-        book_service: Arc<BookService>,
-        cover_service: Arc<CoverService>,
-        epub_service: Arc<EpubService>,
-        lock_service: Arc<LockService>,
-        metadata_service: Arc<MetadataService>,
-        sync_service: Arc<SyncService>,
-    ) -> Arc<Self> {
+    pub fn new(epub_extractor_cooldown: u64, goodreads_cooldown: u64) -> Arc<Self> {
         let manager = Self {
             queue: RwLock::new(VecDeque::new()),
             notify: Notify::new(),
             fetcher: Mutex::new(MetadataFetcher::new(epub_extractor_cooldown, goodreads_cooldown)),
-            book_service,
-            cover_service,
-            epub_service,
-            lock_service,
-            metadata_service,
-            sync_service,
         };
 
         let manager = Arc::new(manager);
@@ -125,14 +102,14 @@ impl MetadataFetcherService {
         book_id: &str,
         providers: Vec<String>,
     ) -> (Option<Metadata>, Option<Vec<u8>>) {
-        let lock = self.lock_service.get_book_lock(book_id).await;
+        let lock = LOCKS.get_book_lock(book_id).await;
         let _guard = lock.read().await;
 
-        let Ok(book) = self.book_service.get_book(book_id).await else {
+        let Ok(book) = books::service::get_book(book_id).await else {
             warn!("Background metadata fetching failed for book {book_id}");
             return (None, None);
         };
-        let Ok(epub_data) = self.epub_service.read_epub(&book.epub_id).await else {
+        let Ok(epub_data) = epubs::service::read_epub(&book.epub_id).await else {
             warn!("Background metadata fetching failed for book {book_id}");
             return (None, None);
         };
@@ -145,10 +122,10 @@ impl MetadataFetcherService {
     }
 
     async fn store_metadata(&self, book_id: &str, metadata: Option<Metadata>, image: Option<Vec<u8>>) -> () {
-        let lock = self.lock_service.get_book_lock(book_id).await;
+        let lock = LOCKS.get_book_lock(book_id).await;
         let _guard = lock.write().await;
 
-        let Ok(book) = self.book_service.get_book(book_id).await else {
+        let Ok(book) = books::service::get_book(book_id).await else {
             warn!("Background metadata fetching failed for book {book_id}");
             return;
         };
@@ -171,85 +148,79 @@ impl MetadataFetcherService {
     }
 
     async fn handle_metadata_update(&self, book_id: &str, metadata: Metadata) -> Result<(), ProsaError> {
-        let book = self.book_service.get_book(book_id).await?;
+        let book = books::service::get_book(book_id).await?;
         let metadata_id = book.metadata_id.as_ref().expect("Failed to retrieve metadata id");
-        self.metadata_service
-            .update_metadata(metadata_id, metadata)
-            .await?;
+        metadata::service::update_metadata(metadata_id, metadata).await?;
 
-        self.sync_service
-            .log_change(
-                book_id,
-                ChangeLogEntityType::BookMetadata,
-                ChangeLogAction::Update,
-                &book.owner_id,
-                "prosa",
-            )
-            .await;
+        sync::service::log_change(
+            book_id,
+            ChangeLogEntityType::BookMetadata,
+            ChangeLogAction::Update,
+            &book.owner_id,
+            "prosa",
+        )
+        .await;
 
         Ok(())
     }
 
     async fn handle_metadata_create(&self, book_id: &str, metadata: Metadata) -> Result<(), ProsaError> {
-        let mut book = self.book_service.get_book(book_id).await?;
-        let metadata_id = self.metadata_service.add_metadata(metadata).await?;
+        let mut book = books::service::get_book(book_id).await?;
+        let metadata_id = metadata::service::add_metadata(metadata).await?;
         book.metadata_id = Some(metadata_id);
-        self.book_service.update_book(book_id, &book).await?;
+        books::service::update_book(book_id, &book).await?;
 
-        self.sync_service
-            .log_change(
-                book_id,
-                ChangeLogEntityType::BookMetadata,
-                ChangeLogAction::Create,
-                &book.owner_id,
-                "prosa",
-            )
-            .await;
+        sync::service::log_change(
+            book_id,
+            ChangeLogEntityType::BookMetadata,
+            ChangeLogAction::Create,
+            &book.owner_id,
+            "prosa",
+        )
+        .await;
 
         Ok(())
     }
 
     async fn handle_cover_update(&self, book_id: &str, cover: Vec<u8>) -> Result<(), ProsaError> {
-        let mut book = self.book_service.get_book(book_id).await?;
+        let mut book = books::service::get_book(book_id).await?;
 
         let old_cover_id = book.cover_id.expect("Failed to retrieve old cover id");
-        let new_cover_id = self.cover_service.write_cover(&cover).await?;
+        let new_cover_id = covers::service::write_cover(&cover).await?;
 
         book.cover_id = Some(new_cover_id);
-        self.book_service.update_book(book_id, &book).await?;
+        books::service::update_book(book_id, &book).await?;
 
-        if !self.book_service.cover_is_in_use(&old_cover_id).await {
-            self.cover_service.delete_cover(&old_cover_id).await?;
+        if !books::service::cover_is_in_use(&old_cover_id).await {
+            covers::service::delete_cover(&old_cover_id).await?;
         }
 
-        self.sync_service
-            .log_change(
-                book_id,
-                ChangeLogEntityType::BookCover,
-                ChangeLogAction::Update,
-                &book.owner_id,
-                "prosa",
-            )
-            .await;
+        sync::service::log_change(
+            book_id,
+            ChangeLogEntityType::BookCover,
+            ChangeLogAction::Update,
+            &book.owner_id,
+            "prosa",
+        )
+        .await;
 
         Ok(())
     }
 
     async fn handle_cover_create(&self, book_id: &str, cover: Vec<u8>) -> Result<(), ProsaError> {
-        let mut book = self.book_service.get_book(book_id).await?;
-        let cover_id = self.cover_service.write_cover(&cover).await?;
+        let mut book = books::service::get_book(book_id).await?;
+        let cover_id = covers::service::write_cover(&cover).await?;
         book.cover_id = Some(cover_id);
-        self.book_service.update_book(book_id, &book).await?;
+        books::service::update_book(book_id, &book).await?;
 
-        self.sync_service
-            .log_change(
-                book_id,
-                ChangeLogEntityType::BookCover,
-                ChangeLogAction::Create,
-                &book.owner_id,
-                "prosa",
-            )
-            .await;
+        sync::service::log_change(
+            book_id,
+            ChangeLogEntityType::BookCover,
+            ChangeLogAction::Create,
+            &book.owner_id,
+            "prosa",
+        )
+        .await;
 
         Ok(())
     }

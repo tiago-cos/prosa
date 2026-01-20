@@ -1,14 +1,17 @@
 use crate::app::{
-    AppState,
     authentication::models::{AuthError, AuthRole, AuthToken, CREATE, DELETE, READ, UPDATE},
-    books::models::BookError,
+    books::{self, models::BookError},
     error::ProsaError,
-    shelves::models::{AddBookToShelfRequest, CreateShelfRequest, ShelfBookError, ShelfError},
+    shelves::{
+        self,
+        models::{AddBookToShelfRequest, CreateShelfRequest, ShelfBookError, ShelfError},
+    },
+    users,
 };
 use axum::{
     Extension, Json,
     body::{Body, to_bytes},
-    extract::{FromRequest, Path, Query, Request, State},
+    extract::{FromRequest, Path, Query, Request},
     middleware::Next,
     response::IntoResponse,
 };
@@ -53,7 +56,6 @@ pub async fn can_create_shelf(
 pub async fn can_read_shelf(
     Extension(token): Extension<AuthToken>,
     Path(shelf_id): Path<String>,
-    State(state): State<AppState>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -61,7 +63,7 @@ pub async fn can_read_shelf(
         return Err(AuthError::Forbidden.into());
     }
 
-    let shelf = state.services.shelf.get_shelf(&shelf_id).await?;
+    let shelf = shelves::service::get_shelf(&shelf_id).await?;
 
     if !user_id_matches(&shelf.owner_id, &token) {
         return Err(ShelfError::ShelfNotFound.into());
@@ -73,7 +75,6 @@ pub async fn can_read_shelf(
 pub async fn can_update_shelf(
     Extension(token): Extension<AuthToken>,
     Path(shelf_id): Path<String>,
-    State(state): State<AppState>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -81,7 +82,7 @@ pub async fn can_update_shelf(
         return Err(AuthError::Forbidden.into());
     }
 
-    let shelf = state.services.shelf.get_shelf(&shelf_id).await?;
+    let shelf = shelves::service::get_shelf(&shelf_id).await?;
 
     if !user_id_matches(&shelf.owner_id, &token) {
         return Err(ShelfError::ShelfNotFound.into());
@@ -93,7 +94,6 @@ pub async fn can_update_shelf(
 pub async fn can_delete_shelf(
     Extension(token): Extension<AuthToken>,
     Path(shelf_id): Path<String>,
-    State(state): State<AppState>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -101,7 +101,7 @@ pub async fn can_delete_shelf(
         return Err(AuthError::Forbidden.into());
     }
 
-    let shelf = state.services.shelf.get_shelf(&shelf_id).await?;
+    let shelf = shelves::service::get_shelf(&shelf_id).await?;
 
     if !user_id_matches(&shelf.owner_id, &token) {
         return Err(ShelfError::ShelfNotFound.into());
@@ -113,7 +113,6 @@ pub async fn can_delete_shelf(
 pub async fn can_search_shelves(
     Extension(token): Extension<AuthToken>,
     Query(params): Query<HashMap<String, String>>,
-    State(state): State<AppState>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -129,7 +128,7 @@ pub async fn can_search_shelves(
         return Err(AuthError::Forbidden.into());
     };
 
-    let user_id = match state.services.user.get_user_by_username(username).await {
+    let user_id = match users::service::get_user_by_username(username).await {
         Ok(u) => u.user_id,
         _ => return Err(AuthError::Forbidden.into()),
     };
@@ -144,7 +143,6 @@ pub async fn can_search_shelves(
 pub async fn can_add_book_to_shelf(
     Extension(token): Extension<AuthToken>,
     Path(shelf_id): Path<String>,
-    State(state): State<AppState>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -152,7 +150,7 @@ pub async fn can_add_book_to_shelf(
         return Err(AuthError::Forbidden.into());
     }
 
-    let shelf = state.services.shelf.get_shelf(&shelf_id).await?;
+    let shelf = shelves::service::get_shelf(&shelf_id).await?;
 
     if !user_id_matches(&shelf.owner_id, &token) {
         return Err(ShelfError::ShelfNotFound.into());
@@ -168,7 +166,7 @@ pub async fn can_add_book_to_shelf(
         Err(_) => return Err(ShelfError::InvalidShelfRequest.into()),
     };
 
-    let book = state.services.book.get_book(&payload.book_id).await?;
+    let book = books::service::get_book(&payload.book_id).await?;
 
     if !user_id_matches(&book.owner_id, &token) {
         return Err(BookError::BookNotFound.into());
@@ -184,7 +182,6 @@ pub async fn can_add_book_to_shelf(
 pub async fn can_delete_book_from_shelf(
     Extension(token): Extension<AuthToken>,
     Path((shelf_id, book_id)): Path<(String, String)>,
-    State(state): State<AppState>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -192,16 +189,13 @@ pub async fn can_delete_book_from_shelf(
         return Err(AuthError::Forbidden.into());
     }
 
-    let shelf = state.services.shelf.get_shelf(&shelf_id).await?;
+    let shelf = shelves::service::get_shelf(&shelf_id).await?;
 
     if !user_id_matches(&shelf.owner_id, &token) {
         return Err(ShelfError::ShelfNotFound.into());
     }
 
-    let book = state
-        .services
-        .book
-        .get_book(&book_id)
+    let book = books::service::get_book(&book_id)
         .await
         .map_err(|_| ShelfBookError::ShelfBookNotFound)?;
 

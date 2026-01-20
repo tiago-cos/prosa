@@ -1,8 +1,6 @@
-use crate::app::core::locking::service::LockService;
-use crate::app::shelves::service::ShelfService;
+use crate::app::server::LOCKS;
+use crate::app::shelves::service;
 use crate::app::sync::models::{ChangeLogAction, ChangeLogEntityType};
-use crate::app::sync::service::SyncService;
-use crate::app::users::service::UserService;
 use crate::app::{
     authentication::models::AuthToken,
     error::ProsaError,
@@ -11,217 +9,187 @@ use crate::app::{
         UpdateShelfRequest,
     },
 };
+use crate::app::{sync, users};
+use axum::Extension;
+use axum::extract::{Path, Query};
 use axum::{Json, http::StatusCode};
-use std::{collections::HashMap, sync::Arc};
+use std::collections::HashMap;
 
-pub struct ShelfController {
-    shelf_service: Arc<ShelfService>,
-    lock_service: Arc<LockService>,
-    sync_service: Arc<SyncService>,
-    user_service: Arc<UserService>,
+pub async fn add_shelf_handler(
+    Extension(token): Extension<AuthToken>,
+    Json(request): Json<CreateShelfRequest>,
+) -> Result<String, ProsaError> {
+    let owner_id = match request.owner_id.as_deref() {
+        Some(id) => id,
+        None => token.role.get_user(),
+    };
+
+    users::service::get_user(owner_id).await?;
+
+    let shelf = Shelf {
+        name: request.name,
+        owner_id: owner_id.to_string(),
+    };
+
+    let shelf_id = service::add_shelf(shelf).await?;
+
+    sync::service::log_change(
+        &shelf_id,
+        ChangeLogEntityType::ShelfMetadata,
+        ChangeLogAction::Create,
+        owner_id,
+        &token.session_id,
+    )
+    .await;
+
+    Ok(shelf_id)
 }
 
-impl ShelfController {
-    pub fn new(
-        shelf_service: Arc<ShelfService>,
-        lock_service: Arc<LockService>,
-        sync_service: Arc<SyncService>,
-        user_service: Arc<UserService>,
-    ) -> Self {
-        Self {
-            shelf_service,
-            lock_service,
-            sync_service,
-            user_service,
-        }
+pub async fn get_shelf_metadata_handler(
+    Path(shelf_id): Path<String>,
+) -> Result<Json<ShelfMetadata>, ProsaError> {
+    let lock = LOCKS.get_shelf_lock(&shelf_id).await;
+    let _guard = lock.read().await;
+
+    let metadata = service::get_shelf_metadata(&shelf_id).await?;
+
+    Ok(Json(metadata))
+}
+
+pub async fn update_shelf_handler(
+    Extension(token): Extension<AuthToken>,
+    Path(shelf_id): Path<String>,
+    Json(request): Json<UpdateShelfRequest>,
+) -> Result<StatusCode, ProsaError> {
+    let lock = LOCKS.get_shelf_lock(&shelf_id).await;
+    let _guard = lock.write().await;
+
+    let shelf = service::get_shelf(&shelf_id).await?;
+    service::update_shelf(&shelf_id, &request.name).await?;
+
+    sync::service::log_change(
+        &shelf_id,
+        ChangeLogEntityType::ShelfMetadata,
+        ChangeLogAction::Update,
+        &shelf.owner_id,
+        &token.session_id,
+    )
+    .await;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn delete_shelf_handler(
+    Extension(token): Extension<AuthToken>,
+    Path(shelf_id): Path<String>,
+) -> Result<StatusCode, ProsaError> {
+    let lock = LOCKS.get_shelf_lock(&shelf_id).await;
+    let _guard = lock.write().await;
+
+    let shelf = service::get_shelf(&shelf_id).await?;
+    service::delete_shelf(&shelf_id).await?;
+
+    sync::service::log_change(
+        &shelf_id,
+        ChangeLogEntityType::ShelfMetadata,
+        ChangeLogAction::Delete,
+        &shelf.owner_id,
+        &token.session_id,
+    )
+    .await;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
+pub async fn search_shelves_handler(
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Json<PaginatedShelves>, ProsaError> {
+    if let Some(username) = params.get("username") {
+        users::service::get_user_by_username(username).await?;
     }
 
-    pub async fn add_shelf(
-        &self,
-        token: AuthToken,
-        request: CreateShelfRequest,
-    ) -> Result<String, ProsaError> {
-        let owner_id = match request.owner_id.as_deref() {
-            Some(id) => id,
-            None => token.role.get_user(),
-        };
+    let page = params.get("page").map(|t| t.parse::<i64>());
+    let page = match page {
+        Some(Ok(p)) => Some(p),
+        None => None,
+        _ => return Err(ShelfError::InvalidPagination.into()),
+    };
 
-        self.user_service.get_user(owner_id).await?;
+    let size = params.get("size").map(|t| t.parse::<i64>());
+    let size = match size {
+        Some(Ok(s)) => Some(s),
+        None => None,
+        _ => return Err(ShelfError::InvalidPagination.into()),
+    };
 
-        let shelf = Shelf {
-            name: request.name,
-            owner_id: owner_id.to_string(),
-        };
+    let shelves = service::search_shelves(
+        params.get("username").map(ToString::to_string),
+        params.get("name").map(ToString::to_string),
+        page,
+        size,
+    )
+    .await?;
 
-        let shelf_id = self.shelf_service.add_shelf(shelf).await?;
+    Ok(Json(shelves))
+}
 
-        self.sync_service
-            .log_change(
-                &shelf_id,
-                ChangeLogEntityType::ShelfMetadata,
-                ChangeLogAction::Create,
-                owner_id,
-                &token.session_id,
-            )
-            .await;
+pub async fn add_book_to_shelf_handler(
+    Extension(token): Extension<AuthToken>,
+    Path(shelf_id): Path<String>,
+    Json(request): Json<AddBookToShelfRequest>,
+) -> Result<StatusCode, ProsaError> {
+    let book_lock = LOCKS.get_book_lock(&request.book_id).await;
+    let _book_guard = book_lock.read().await;
+    let shelf_lock = LOCKS.get_shelf_lock(&shelf_id).await;
+    let _shelf_guard = shelf_lock.write().await;
 
-        Ok(shelf_id)
-    }
+    let shelf = service::get_shelf(&shelf_id).await?;
 
-    pub async fn get_shelf_metadata(&self, shelf_id: &str) -> Result<Json<ShelfMetadata>, ProsaError> {
-        let lock = self.lock_service.get_shelf_lock(shelf_id).await;
-        let _guard = lock.read().await;
+    service::add_book_to_shelf(&shelf_id, &request.book_id).await?;
 
-        let metadata = self.shelf_service.get_shelf_metadata(shelf_id).await?;
+    sync::service::log_change(
+        &shelf_id,
+        ChangeLogEntityType::ShelfContent,
+        ChangeLogAction::Create,
+        &shelf.owner_id,
+        &token.session_id,
+    )
+    .await;
 
-        Ok(Json(metadata))
-    }
+    Ok(StatusCode::NO_CONTENT)
+}
 
-    pub async fn update_shelf(
-        &self,
-        token: AuthToken,
-        shelf_id: &str,
-        request: UpdateShelfRequest,
-    ) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_service.get_shelf_lock(shelf_id).await;
-        let _guard = lock.write().await;
+pub async fn list_books_in_shelf_handler(
+    Path(shelf_id): Path<String>,
+) -> Result<Json<Vec<String>>, ProsaError> {
+    let lock = LOCKS.get_shelf_lock(&shelf_id).await;
+    let _guard = lock.read().await;
 
-        let shelf = self.shelf_service.get_shelf(shelf_id).await?;
-        self.shelf_service.update_shelf(shelf_id, &request.name).await?;
+    let books = service::list_shelf_books(&shelf_id).await?;
+    Ok(Json(books))
+}
 
-        self.sync_service
-            .log_change(
-                shelf_id,
-                ChangeLogEntityType::ShelfMetadata,
-                ChangeLogAction::Update,
-                &shelf.owner_id,
-                &token.session_id,
-            )
-            .await;
+pub async fn remove_book_from_shelf_handler(
+    Extension(token): Extension<AuthToken>,
+    Path((shelf_id, book_id)): Path<(String, String)>,
+) -> Result<StatusCode, ProsaError> {
+    let book_lock = LOCKS.get_book_lock(&book_id).await;
+    let _book_guard = book_lock.read().await;
+    let shelf_lock = LOCKS.get_shelf_lock(&shelf_id).await;
+    let _shelf_guard = shelf_lock.write().await;
 
-        Ok(StatusCode::NO_CONTENT)
-    }
+    let shelf = service::get_shelf(&shelf_id).await?;
 
-    pub async fn delete_shelf(&self, token: AuthToken, shelf_id: &str) -> Result<StatusCode, ProsaError> {
-        let lock = self.lock_service.get_shelf_lock(shelf_id).await;
-        let _guard = lock.write().await;
+    service::delete_book_from_shelf(&shelf_id, &book_id).await?;
 
-        let shelf = self.shelf_service.get_shelf(shelf_id).await?;
-        self.shelf_service.delete_shelf(shelf_id).await?;
+    sync::service::log_change(
+        &shelf_id,
+        ChangeLogEntityType::ShelfContent,
+        ChangeLogAction::Delete,
+        &shelf.owner_id,
+        &token.session_id,
+    )
+    .await;
 
-        self.sync_service
-            .log_change(
-                shelf_id,
-                ChangeLogEntityType::ShelfMetadata,
-                ChangeLogAction::Delete,
-                &shelf.owner_id,
-                &token.session_id,
-            )
-            .await;
-
-        Ok(StatusCode::NO_CONTENT)
-    }
-
-    pub async fn search_shelves(
-        &self,
-        query_params: HashMap<String, String>,
-    ) -> Result<Json<PaginatedShelves>, ProsaError> {
-        if let Some(username) = query_params.get("username") {
-            self.user_service.get_user_by_username(username).await?;
-        }
-
-        let page = query_params.get("page").map(|t| t.parse::<i64>());
-        let page = match page {
-            Some(Ok(p)) => Some(p),
-            None => None,
-            _ => return Err(ShelfError::InvalidPagination.into()),
-        };
-
-        let size = query_params.get("size").map(|t| t.parse::<i64>());
-        let size = match size {
-            Some(Ok(s)) => Some(s),
-            None => None,
-            _ => return Err(ShelfError::InvalidPagination.into()),
-        };
-
-        let shelves = self
-            .shelf_service
-            .search_shelves(
-                query_params.get("username").map(ToString::to_string),
-                query_params.get("name").map(ToString::to_string),
-                page,
-                size,
-            )
-            .await?;
-
-        Ok(Json(shelves))
-    }
-
-    pub async fn add_book_to_shelf(
-        &self,
-        token: AuthToken,
-        shelf_id: &str,
-        request: AddBookToShelfRequest,
-    ) -> Result<StatusCode, ProsaError> {
-        let book_lock = self.lock_service.get_book_lock(&request.book_id).await;
-        let _book_guard = book_lock.read().await;
-        let shelf_lock = self.lock_service.get_shelf_lock(shelf_id).await;
-        let _shelf_guard = shelf_lock.write().await;
-
-        let shelf = self.shelf_service.get_shelf(shelf_id).await?;
-
-        self.shelf_service
-            .add_book_to_shelf(shelf_id, &request.book_id)
-            .await?;
-
-        self.sync_service
-            .log_change(
-                shelf_id,
-                ChangeLogEntityType::ShelfContent,
-                ChangeLogAction::Create,
-                &shelf.owner_id,
-                &token.session_id,
-            )
-            .await;
-
-        Ok(StatusCode::NO_CONTENT)
-    }
-
-    pub async fn list_books_in_shelf(&self, shelf_id: &str) -> Result<Json<Vec<String>>, ProsaError> {
-        let lock = self.lock_service.get_shelf_lock(shelf_id).await;
-        let _guard = lock.read().await;
-
-        let books = self.shelf_service.list_shelf_books(shelf_id).await?;
-        Ok(Json(books))
-    }
-
-    pub async fn remove_book_from_shelf(
-        &self,
-        token: AuthToken,
-        shelf_id: &str,
-        book_id: &str,
-    ) -> Result<StatusCode, ProsaError> {
-        let book_lock = self.lock_service.get_book_lock(book_id).await;
-        let _book_guard = book_lock.read().await;
-        let shelf_lock = self.lock_service.get_shelf_lock(shelf_id).await;
-        let _shelf_guard = shelf_lock.write().await;
-
-        let shelf = self.shelf_service.get_shelf(shelf_id).await?;
-
-        self.shelf_service
-            .delete_book_from_shelf(shelf_id, book_id)
-            .await?;
-
-        self.sync_service
-            .log_change(
-                shelf_id,
-                ChangeLogEntityType::ShelfContent,
-                ChangeLogAction::Delete,
-                &shelf.owner_id,
-                &token.session_id,
-            )
-            .await;
-
-        Ok(StatusCode::NO_CONTENT)
-    }
+    Ok(StatusCode::NO_CONTENT)
 }

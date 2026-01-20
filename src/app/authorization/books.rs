@@ -1,13 +1,16 @@
 use crate::app::{
-    AppState,
     authentication::models::{AuthError, AuthRole, AuthToken, CREATE, DELETE, READ, UPDATE},
-    books::models::{BookError, UploadBookRequest},
+    books::{
+        self,
+        models::{BookError, UploadBookRequest},
+    },
     error::ProsaError,
+    users,
 };
 use axum::{
     Extension,
     body::{Body, to_bytes},
-    extract::{FromRequest, Path, Query, Request, State},
+    extract::{FromRequest, Path, Query, Request},
     middleware::Next,
     response::IntoResponse,
 };
@@ -54,7 +57,6 @@ pub async fn can_create_book(
 pub async fn can_read_book(
     Extension(token): Extension<AuthToken>,
     Path(book_id): Path<String>,
-    State(state): State<AppState>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -62,7 +64,7 @@ pub async fn can_read_book(
         return Err(AuthError::Forbidden.into());
     }
 
-    let book = state.services.book.get_book(&book_id).await?;
+    let book = books::service::get_book(&book_id).await?;
 
     if !user_id_matches(&book.owner_id, &token) {
         return Err(BookError::BookNotFound.into());
@@ -74,7 +76,6 @@ pub async fn can_read_book(
 pub async fn can_search_books(
     Extension(token): Extension<AuthToken>,
     Query(params): Query<HashMap<String, String>>,
-    State(state): State<AppState>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -90,7 +91,7 @@ pub async fn can_search_books(
         return Err(AuthError::Forbidden.into());
     };
 
-    let user_id = match state.services.user.get_user_by_username(username).await {
+    let user_id = match users::service::get_user_by_username(username).await {
         Ok(u) => u.user_id,
         _ => return Err(AuthError::Forbidden.into()),
     };
@@ -105,7 +106,6 @@ pub async fn can_search_books(
 pub async fn can_delete_book(
     Extension(token): Extension<AuthToken>,
     Path(book_id): Path<String>,
-    State(state): State<AppState>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -113,7 +113,7 @@ pub async fn can_delete_book(
         return Err(AuthError::Forbidden.into());
     }
 
-    let book = state.services.book.get_book(&book_id).await?;
+    let book = books::service::get_book(&book_id).await?;
 
     if !user_id_matches(&book.owner_id, &token) {
         return Err(BookError::BookNotFound.into());
@@ -125,7 +125,6 @@ pub async fn can_delete_book(
 pub async fn can_update_book(
     Extension(token): Extension<AuthToken>,
     Path(book_id): Path<String>,
-    State(state): State<AppState>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -133,7 +132,7 @@ pub async fn can_update_book(
         return Err(AuthError::Forbidden.into());
     }
 
-    let book = state.services.book.get_book(&book_id).await?;
+    let book = books::service::get_book(&book_id).await?;
 
     if !user_id_matches(&book.owner_id, &token) {
         return Err(BookError::BookNotFound.into());

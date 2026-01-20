@@ -1,14 +1,13 @@
 use crate::app::{
-    AppState,
     authentication::models::{AuthError, AuthRole, AuthToken, READ, UPDATE},
-    books::models::BookError,
+    books::{self, models::BookError},
     error::ProsaError,
     metadata::models::{MetadataError, MetadataFetchRequest},
 };
 use axum::{
     Extension, Json,
     body::{Body, to_bytes},
-    extract::{FromRequest, Query, Request, State},
+    extract::{FromRequest, Query, Request},
     middleware::Next,
     response::IntoResponse,
 };
@@ -45,7 +44,6 @@ pub async fn can_list_metadata_requests(
 
 pub async fn can_add_metadata_request(
     Extension(token): Extension<AuthToken>,
-    State(state): State<AppState>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
@@ -63,7 +61,7 @@ pub async fn can_add_metadata_request(
         Err(_) => return Err(MetadataError::InvalidMetadataRequest.into()),
     };
 
-    let book = state.services.book.get_book(&payload.book_id).await?;
+    let book = books::service::get_book(&payload.book_id).await?;
 
     if !user_id_matches(&book.owner_id, &token) {
         return Err(BookError::BookNotFound.into());
