@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { SERVER_URL } from './common';
+import { SERVER_URL } from './common.js';
 
 export const INVALID_SYNC_TOKEN = 'The provided sync token is invalid.';
 

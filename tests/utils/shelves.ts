@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { SERVER_URL } from './common';
+import { SERVER_URL } from './common.js';
 
 export const INVALID_SHELF_NAME = 'The provided shelf name is invalid.';
 export const SHELF_NAME_CONFLICT = 'There is already a shelf with this name in your library.';

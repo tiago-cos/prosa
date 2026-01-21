@@ -1,9 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { BOOK_NOT_FOUND, uploadBook } from '../utils/books';
-import { COVERS_DIR, FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from '../utils/common';
-import { addCover, COVER_CONFLICT, COVER_NOT_FOUND, deleteCover, getCover, INVALID_COVER, updateCover } from '../utils/covers';
-import { createApiKey, registerUser } from '../utils/users';
+import { BOOK_NOT_FOUND, uploadBook } from '../utils/books.js';
+import { COVERS_DIR, FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from '../utils/common.js';
+import { addCover, COVER_CONFLICT, COVER_NOT_FOUND, deleteCover, getCover, INVALID_COVER, updateCover } from '../utils/covers.js';
+import { createApiKey, registerUser } from '../utils/users.js';
 
 describe('Get cover JWT', () => {
   test('Simple', async () => {

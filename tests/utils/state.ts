@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { SERVER_URL } from './common';
+import { SERVER_URL } from './common.js';
 
 export const INVALID_RATING = 'The provided rating is invalid.';
 export const INVALID_LOCATION = 'The provided location is invalid.';

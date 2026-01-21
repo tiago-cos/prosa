@@ -1,7 +1,7 @@
-import { BOOK_NOT_FOUND, uploadBook } from '../utils/books';
-import { FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from '../utils/common';
-import { ALICE_STATE, EMPTY_STATE, getState, INVALID_LOCATION, INVALID_RATING, INVALID_READING_STATUS, INVALID_STATE, patchState, updateState } from '../utils/state';
-import { createApiKey, registerUser } from '../utils/users';
+import { BOOK_NOT_FOUND, uploadBook } from '../utils/books.js';
+import { FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from '../utils/common.js';
+import { ALICE_STATE, EMPTY_STATE, getState, INVALID_LOCATION, INVALID_RATING, INVALID_READING_STATUS, INVALID_STATE, patchState, updateState } from '../utils/state.js';
+import { createApiKey, registerUser } from '../utils/users.js';
 
 describe('Get state JWT', () => {
   test('Simple', async () => {

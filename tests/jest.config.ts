@@ -1,11 +1,20 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
+import type { Config } from 'jest';
+import dotenv from 'dotenv';
 
-require('dotenv').config({ path: 'config/.env.local' });
-require('dotenv').config({ path: 'config/.env' });
+dotenv.config({ path: 'config/.env.local' });
+dotenv.config({ path: 'config/.env' });
 
-module.exports = {
+const config: Config = {
   preset: 'ts-jest',
+  resolver: 'ts-jest-resolver',
   testEnvironment: 'node',
   testMatch: ['**/*.test.ts'],
-  globalSetup: './jest.setup.ts'
+  globalSetup: './jest.setup.ts',
+  extensionsToTreatAsEsm: ['.ts'],
+  transform: {
+    '^.+\\.ts$': ['ts-jest', { useESM: true }]
+  }
 };
+
+export default config;

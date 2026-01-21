@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { randomString, SERVER_URL } from './common';
+import { randomString, SERVER_URL } from './common.js';
 
 export const INVALID_CREDENTIALS = 'Invalid credentials provided.';
 export const INVALID_ADMIN_KEY = 'The provided admin key is invalid.';

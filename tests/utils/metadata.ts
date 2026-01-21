@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { SERVER_URL } from './common';
+import { SERVER_URL } from './common.js';
 
 export const METADATA_NOT_FOUND = 'The requested metadata does not exist or is not accessible.';
 export const METADATA_CONFLICT = 'This book already has metadata.';

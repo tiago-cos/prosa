@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { SERVER_URL } from './common';
+import { SERVER_URL } from './common.js';
 
 export const INVALID_ANNOTATION = 'The provided annotation is invalid.';
 export const ANNOTATION_NOT_FOUND = 'The requested annotation does not exist or is not accessible.';

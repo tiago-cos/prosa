@@ -1,8 +1,8 @@
 import request from 'supertest';
 import path from 'path';
 import fs from 'fs';
-import { BOOK_DIR } from './common';
-import { SERVER_URL } from './common';
+import { BOOK_DIR } from './common.js';
+import { SERVER_URL } from './common.js';
 
 export const BOOK_CONFLICT = 'This book is already in your library.';
 export const BOOK_NOT_FOUND = 'The requested book does not exist or is not accessible.';

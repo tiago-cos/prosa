@@ -1,7 +1,7 @@
-import { addAnnotation, ALICE_NOTE, ANNOTATION_CONFLICT, ANNOTATION_NOT_FOUND, deleteAnnotation, getAnnotation, INVALID_ANNOTATION, listAnnotations, patchAnnotation } from '../utils/annotations';
-import { BOOK_NOT_FOUND, uploadBook } from '../utils/books';
-import { FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from '../utils/common';
-import { createApiKey, registerUser } from '../utils/users';
+import { addAnnotation, ALICE_NOTE, ANNOTATION_CONFLICT, ANNOTATION_NOT_FOUND, deleteAnnotation, getAnnotation, INVALID_ANNOTATION, listAnnotations, patchAnnotation } from '../utils/annotations.js';
+import { BOOK_NOT_FOUND, uploadBook } from '../utils/books.js';
+import { FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from '../utils/common.js';
+import { createApiKey, registerUser } from '../utils/users.js';
 
 describe('Add annotation JWT', () => {
   test('Simple', async () => {

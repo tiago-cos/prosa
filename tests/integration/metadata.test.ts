@@ -1,7 +1,7 @@
-import { BOOK_NOT_FOUND, uploadBook } from '../utils/books';
-import { FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from '../utils/common';
-import { addMetadata, addMetadataRequest, ALICE_METADATA, deleteMetadata, EXAMPLE_METADATA, getMetadata, INVALID_METADATA, listMetadataRequests, METADATA_CONFLICT, METADATA_NOT_FOUND, patchMetadata, updateMetadata } from '../utils/metadata';
-import { createApiKey, INVALID_PROVIDERS, patchPreferences, registerUser } from '../utils/users';
+import { BOOK_NOT_FOUND, uploadBook } from '../utils/books.js';
+import { FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from '../utils/common.js';
+import { addMetadata, addMetadataRequest, ALICE_METADATA, deleteMetadata, EXAMPLE_METADATA, getMetadata, INVALID_METADATA, listMetadataRequests, METADATA_CONFLICT, METADATA_NOT_FOUND, patchMetadata, updateMetadata } from '../utils/metadata.js';
+import { createApiKey, INVALID_PROVIDERS, patchPreferences, registerUser } from '../utils/users.js';
 
 describe('Get metadata JWT', () => {
   test('Simple', async () => {

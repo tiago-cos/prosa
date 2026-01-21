@@ -1,11 +1,11 @@
 import fs from 'fs';
 import path from 'path';
-import { addAnnotation, ALICE_NOTE, getAnnotation } from '../utils/annotations';
-import { BOOK_CONFLICT, BOOK_NOT_FOUND, deleteBook, downloadBook, getBookFileMetadata, INVALID_BOOK, INVALID_PAGINATION, searchBooks, uploadBook } from '../utils/books';
-import { BOOK_DIR, FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from '../utils/common';
-import { getCover } from '../utils/covers';
-import { getMetadata } from '../utils/metadata';
-import { createApiKey, registerUser, USER_NOT_FOUND } from '../utils/users';
+import { addAnnotation, ALICE_NOTE, getAnnotation } from '../utils/annotations.js';
+import { BOOK_CONFLICT, BOOK_NOT_FOUND, deleteBook, downloadBook, getBookFileMetadata, INVALID_BOOK, INVALID_PAGINATION, searchBooks, uploadBook } from '../utils/books.js';
+import { BOOK_DIR, FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from '../utils/common.js';
+import { getCover } from '../utils/covers.js';
+import { getMetadata } from '../utils/metadata.js';
+import { createApiKey, registerUser, USER_NOT_FOUND } from '../utils/users.js';
 
 describe('Upload book JWT', () => {
   test('Simple', async () => {

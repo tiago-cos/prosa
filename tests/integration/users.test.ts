@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { FORBIDDEN, randomString, SERVER_URL, UNAUTHORIZED } from '../utils/common';
+import { FORBIDDEN, randomString, SERVER_URL, UNAUTHORIZED } from '../utils/common.js';
 import {
   API_KEY_NOT_FOUND,
   createApiKey,
@@ -30,7 +30,7 @@ import {
   USER_NOT_FOUND,
   USERNAME_IN_USE,
   USERNAME_TOO_BIG
-} from '../utils/users';
+} from '../utils/users.js';
 
 describe('Register', () => {
   test('Regular user', async () => {

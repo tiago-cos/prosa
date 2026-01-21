@@ -1,7 +1,7 @@
 import request from 'supertest';
 import path from 'path';
-import { COVERS_DIR } from './common';
-import { SERVER_URL } from './common';
+import { COVERS_DIR } from './common.js';
+import { SERVER_URL } from './common.js';
 import fs from 'fs';
 
 export const COVER_NOT_FOUND = 'The requested cover does not exist or is not accessible.';

@@ -1,5 +1,5 @@
-import { BOOK_NOT_FOUND, INVALID_PAGINATION, uploadBook } from '../utils/books';
-import { FORBIDDEN, INVALID_API_KEY, randomString, UNAUTHORIZED, wait } from '../utils/common';
+import { BOOK_NOT_FOUND, INVALID_PAGINATION, uploadBook } from '../utils/books.js';
+import { FORBIDDEN, INVALID_API_KEY, randomString, UNAUTHORIZED, wait } from '../utils/common.js';
 import {
   addBookToShelf,
   createShelf,
@@ -14,8 +14,8 @@ import {
   SHELF_NAME_CONFLICT,
   SHELF_NOT_FOUND,
   updateShelf
-} from '../utils/shelves';
-import { createApiKey, registerUser, USER_NOT_FOUND } from '../utils/users';
+} from '../utils/shelves.js';
+import { createApiKey, registerUser, USER_NOT_FOUND } from '../utils/users.js';
 
 describe('Create shelf JWT', () => {
   test('Simple', async () => {

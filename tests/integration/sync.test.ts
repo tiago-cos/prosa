@@ -1,12 +1,12 @@
-import { addAnnotation, ALICE_NOTE, deleteAnnotation, patchAnnotation } from '../utils/annotations';
-import { deleteBook, uploadBook } from '../utils/books';
-import { FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from '../utils/common';
-import { deleteCover, updateCover } from '../utils/covers';
-import { deleteMetadata, EXAMPLE_METADATA, patchMetadata, updateMetadata } from '../utils/metadata';
-import { addBookToShelf, createShelf, deleteBookFromShelf, deleteShelf } from '../utils/shelves';
-import { ALICE_STATE, patchState, updateState } from '../utils/state';
-import { INVALID_SYNC_TOKEN, sync } from '../utils/sync';
-import { createApiKey, loginUser, registerUser, USER_NOT_FOUND } from '../utils/users';
+import { addAnnotation, ALICE_NOTE, deleteAnnotation, patchAnnotation } from '../utils/annotations.js';
+import { deleteBook, uploadBook } from '../utils/books.js';
+import { FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from '../utils/common.js';
+import { deleteCover, updateCover } from '../utils/covers.js';
+import { deleteMetadata, EXAMPLE_METADATA, patchMetadata, updateMetadata } from '../utils/metadata.js';
+import { addBookToShelf, createShelf, deleteBookFromShelf, deleteShelf } from '../utils/shelves.js';
+import { ALICE_STATE, patchState, updateState } from '../utils/state.js';
+import { INVALID_SYNC_TOKEN, sync } from '../utils/sync.js';
+import { createApiKey, loginUser, registerUser, USER_NOT_FOUND } from '../utils/users.js';
 
 describe('Sync JWT', () => {
   test('Same session', async () => {
