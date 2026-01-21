@@ -2,7 +2,7 @@ use super::{annotations, books, covers, metadata, state, sync, users};
 use crate::CONFIG;
 use crate::app::core::locking::service::LockService;
 use crate::app::core::metadata_fetcher::MetadataFetcherService;
-use crate::app::{shelves, tracing};
+use crate::app::{authentication, shelves, tracing};
 use axum::Router;
 use axum::http::StatusCode;
 use axum::middleware::from_fn;
@@ -52,6 +52,7 @@ pub async fn run() {
         .merge(books::routes::get_routes())
         .merge(annotations::routes::get_routes())
         .merge(shelves::routes::get_routes())
+        .merge(authentication::routes::get_routes())
         .layer(from_fn(tracing::log_layer));
 
     let listener = TcpListener::bind(&host).await.unwrap();

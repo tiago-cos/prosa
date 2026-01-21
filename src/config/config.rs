@@ -26,7 +26,8 @@ pub struct Auth {
     pub jwt_token_duration: u64,
     pub refresh_token_duration: u64,
     pub allow_user_registration: bool,
-    pub jwt_key_path: String,
+    pub public_key_path: String,
+    pub private_key_path: String,
 }
 
 #[derive(Deserialize, Clone)]
@@ -71,7 +72,8 @@ impl Default for Auth {
             jwt_token_duration: 900,
             refresh_token_duration: 604800,
             allow_user_registration: true,
-            jwt_key_path: "library/jwt_secret_key.bin".to_string(),
+            public_key_path: "library/public_key.bin".to_string(),
+            private_key_path: "library/private_key.bin".to_string(),
         }
     }
 }

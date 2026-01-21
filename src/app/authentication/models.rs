@@ -152,6 +152,7 @@ pub struct JWTClaims {
     pub capabilities: Vec<String>,
     pub exp: u64,
     pub session_id: String,
+    pub iss: String,
 }
 
 #[derive(Clone)]

@@ -19,7 +19,14 @@ use argon2::{
 };
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::{DateTime, Utc};
-use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation};
+use jsonwebtoken::{
+    Algorithm, DecodingKey, EncodingKey, Header, Validation,
+    jwk::{Jwk, JwkSet},
+};
+use rsa::{
+    RsaPrivateKey,
+    pkcs1::{EncodeRsaPrivateKey, EncodeRsaPublicKey},
+};
 use sha2::{Digest, Sha256};
 use std::{
     fs,
@@ -29,7 +36,8 @@ use std::{
 };
 use uuid::Uuid;
 
-static JWT_SECRET: LazyLock<Vec<u8>> = LazyLock::new(|| generate_jwt_secret(&CONFIG.auth.jwt_key_path));
+static ENCODING_KEY: LazyLock<EncodingKey> = LazyLock::new(|| load_or_generate_rsa_keys().0);
+static DECODING_KEY: LazyLock<DecodingKey> = LazyLock::new(|| load_or_generate_rsa_keys().1);
 
 #[rustfmt::skip]
 pub fn generate_jwt( user_id: &str, session_id: &str, is_admin: bool) -> String {
@@ -40,12 +48,20 @@ pub fn generate_jwt( user_id: &str, session_id: &str, is_admin: bool) -> String 
 
     let capabilities = CAPABILITIES.iter().map(|&s| s.to_string()).collect();
     let role = if is_admin { AuthRole::Admin(user_id.to_string()) } else { AuthRole::User(user_id.to_string()) };
-    let claims = JWTClaims { role, capabilities, exp: now + CONFIG.auth.jwt_token_duration, session_id: session_id.to_string() };
+    let claims = JWTClaims { 
+        role, 
+        capabilities, exp: now + CONFIG.auth.jwt_token_duration, 
+        session_id: session_id.to_string(), 
+        iss: "prosa".to_string(), 
+    };
+
+    let mut header = Header::new(Algorithm::RS256);
+    header.kid = Some("prosa-key-1".to_string());
 
     let token = jsonwebtoken::encode(
-        &Header::default(),
+        &header,
         &claims,
-        &EncodingKey::from_secret(&JWT_SECRET),
+        &ENCODING_KEY,
     )
     .expect("Failed to encode token");
 
@@ -108,9 +124,8 @@ pub fn verify_jwt(token: &str) -> Result<AuthToken, AuthTokenError> {
         .decode(token)
         .or(Err(AuthTokenError::InvalidToken))?;
     let token = String::from_utf8(token).or(Err(AuthTokenError::InvalidToken))?;
-    let key = DecodingKey::from_secret(&JWT_SECRET);
-    let validation = Validation::default();
-    let token = jsonwebtoken::decode::<JWTClaims>(&token, &key, &validation)?;
+    let validation = Validation::new(Algorithm::RS256);
+    let token = jsonwebtoken::decode::<JWTClaims>(&token, &DECODING_KEY, &validation)?;
 
     Ok(AuthToken {
         role: token.claims.role,
@@ -232,13 +247,44 @@ pub fn generate_new_session() -> String {
     Uuid::new_v4().to_string()
 }
 
-fn generate_jwt_secret(secret_key_path: &str) -> Vec<u8> {
-    if Path::new(secret_key_path).exists() {
-        return fs::read(secret_key_path).expect("Failed to read JWT secret file");
+pub fn generate_jwks() -> JwkSet {
+    let mut jwk = Jwk::from_encoding_key(&ENCODING_KEY, Algorithm::RS256)
+        .expect("Failed to convert decoding key to JWK");
+    jwk.common.key_id = Some("prosa-key-1".to_string());
+
+    JwkSet { keys: vec![jwk] }
+}
+
+fn load_or_generate_rsa_keys() -> (EncodingKey, DecodingKey) {
+    if Path::new(&CONFIG.auth.private_key_path).exists() && Path::new(&CONFIG.auth.public_key_path).exists() {
+        let private = fs::read(&CONFIG.auth.private_key_path).expect("Failed to read JWT private key");
+        let public = fs::read(&CONFIG.auth.public_key_path).expect("Failed to read JWT public key");
+
+        return (
+            EncodingKey::from_rsa_der(&private),
+            DecodingKey::from_rsa_der(&public),
+        );
     }
 
-    let mut key = [0u8; 32];
-    OsRng.fill_bytes(&mut key);
-    fs::write(secret_key_path, key).expect("Failed to write JWT secret file");
-    key.to_vec()
+    let mut rng = OsRng;
+    let private_key = RsaPrivateKey::new(&mut rng, 2048).expect("Failed to generate RSA key");
+
+    let private_der = private_key
+        .to_pkcs1_der()
+        .expect("Failed to encode private key")
+        .to_bytes();
+
+    let public_der = private_key
+        .to_public_key()
+        .to_pkcs1_der()
+        .expect("Failed to encode public key")
+        .into_vec();
+
+    fs::write(&CONFIG.auth.private_key_path, &private_der).expect("Failed to write JWT private key");
+    fs::write(&CONFIG.auth.public_key_path, &public_der).expect("Failed to write JWT public key");
+
+    let encoding_key = EncodingKey::from_rsa_der(&private_der);
+    let decoding_key = DecodingKey::from_rsa_der(&public_der);
+
+    (encoding_key, decoding_key)
 }

@@ -17,11 +17,12 @@ config = "0.15.19"
 epub = "2.1.5"
 goodreads-metadata-scraper = "0.2.4"
 image = "0.25.9"
-jsonwebtoken = { version = "10.2.0", default-features = false, features = ["aws_lc_rs"] }
+jsonwebtoken = { version = "10.2.0", features = ["aws_lc_rs"] }
 log = "0.4.29"
 merge = "0.2.0"
 quick_cache = "0.6.18"
 regex = "1.12.2"
+rsa = "0.9.10"
 serde = "1.0.228"
 serde_json = "1.0.149"
 serde_with = "3.16.1"

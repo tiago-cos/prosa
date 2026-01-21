@@ -7,7 +7,8 @@ admin_key = "admin_key"
 jwt_token_duration = 900
 refresh_token_duration = 604800
 allow_user_registration = true
-jwt_key_path = "library/jwt_secret_key.bin"
+public_key_path = "library/public_key.bin"
+private_key_path = "library/private_key.bin"
 
 [book_storage]
 epub_path = "library/epubs"
