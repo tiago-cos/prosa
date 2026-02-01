@@ -1,8 +1,8 @@
 use super::{annotations, books, covers, metadata, state, sync, users};
 use crate::CONFIG;
-use crate::app::core::healtcheck;
 use crate::app::core::locking::service::LockService;
 use crate::app::core::metadata_fetcher::MetadataFetcherService;
+use crate::app::core::utils;
 use crate::app::{authentication, shelves, tracing};
 use axum::Router;
 use axum::middleware::from_fn;
@@ -43,7 +43,8 @@ pub async fn run() {
     info!("Server started on http://{host}");
 
     let app = Router::new()
-        .route("/health", get(healtcheck::health_check))
+        .route("/health", get(utils::health_check))
+        .route("/config", get(utils::get_public_config))
         .merge(users::routes::get_routes())
         .merge(metadata::routes::get_routes())
         .merge(covers::routes::get_routes())
