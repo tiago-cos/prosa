@@ -12,6 +12,10 @@ export async function healthcheck() {
   return request(SERVER_URL).get(`/health`).send();
 }
 
+export async function getConfig() {
+  return request(SERVER_URL).get(`/config`).send();
+}
+
 export function getCargoMetadata() {
   const cargoPath = join(__dirname, '../../Cargo.toml');
   const fileContents = readFileSync(cargoPath, 'utf8');
