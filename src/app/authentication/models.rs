@@ -92,6 +92,7 @@ impl From<JwtError> for AuthTokenError {
             JwtErrorKind::ExpiredSignature => AuthTokenError::ExpiredToken,
             JwtErrorKind::InvalidToken => AuthTokenError::InvalidToken,
             JwtErrorKind::InvalidSignature => AuthTokenError::InvalidSignature,
+            JwtErrorKind::InvalidAlgorithm => AuthTokenError::InvalidToken,
             _ => AuthTokenError::InternalError,
         }
     }

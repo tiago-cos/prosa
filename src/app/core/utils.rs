@@ -45,3 +45,5 @@ pub async fn get_public_config() -> impl IntoResponse {
 //TODO change kobont and dockerfile healthcheck to reflect new endpoint
 
 //TODO change controller and repository to "handlers" and "data"
+
+//TODO add invalid book id and book id conflict errors in upload book to docs

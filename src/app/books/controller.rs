@@ -56,6 +56,12 @@ pub async fn upload_book_handler(
     Extension(token): Extension<AuthToken>,
     TypedMultipart(data): TypedMultipart<UploadBookRequest>,
 ) -> Result<String, ProsaError> {
+    if let Some(id) = &data.book_id
+        && service::book_exists(id).await
+    {
+        return Err(BookError::BookIdConflict.into());
+    }
+
     let owner_id = match data.owner_id.as_deref() {
         Some(id) => id,
         None => token.role.get_user(),
@@ -78,7 +84,7 @@ pub async fn upload_book_handler(
         state_id,
     };
 
-    let book_id = service::add_book(&book).await?;
+    let book_id = service::add_book(&book, data.book_id).await?;
 
     sync::service::log_change(
         &book_id,

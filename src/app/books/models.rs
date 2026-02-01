@@ -21,6 +21,12 @@ pub enum BookError {
     #[strum(message = "The requested pagination is invalid.")]
     #[strum(props(StatusCode = "400"))]
     InvalidPagination,
+    #[strum(message = "The provided book id is invalid.")]
+    #[strum(props(StatusCode = "400"))]
+    InvalidBookId,
+    #[strum(message = "The provided book id is already in use.")]
+    #[strum(props(StatusCode = "409"))]
+    BookIdConflict,
     #[strum(message = "Internal error")]
     #[strum(props(StatusCode = "500"))]
     InternalError,
@@ -57,6 +63,7 @@ pub struct BookEntity {
 #[derive(TryFromMultipart)]
 pub struct UploadBookRequest {
     pub owner_id: Option<String>,
+    pub book_id: Option<String>,
     #[form_data(limit = "50MiB")]
     pub epub: Bytes,
 }

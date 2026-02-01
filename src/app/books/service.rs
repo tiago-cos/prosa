@@ -1,5 +1,6 @@
 use super::models::{BookEntity, BookError, PaginatedBookResponse};
 use crate::app::{books::repository, error::ProsaError};
+use std::str::FromStr;
 use uuid::Uuid;
 
 pub async fn get_book(book_id: &str) -> Result<BookEntity, ProsaError> {
@@ -7,8 +8,14 @@ pub async fn get_book(book_id: &str) -> Result<BookEntity, ProsaError> {
     Ok(book)
 }
 
-pub async fn add_book(book: &BookEntity) -> Result<String, ProsaError> {
-    let book_id = Uuid::new_v4().to_string();
+pub async fn add_book(book: &BookEntity, book_id: Option<String>) -> Result<String, ProsaError> {
+    let book_id = book_id
+        .map(|id| Uuid::from_str(&id))
+        .transpose()
+        .map_err(|_| BookError::InvalidBookId)?
+        .unwrap_or_else(Uuid::new_v4)
+        .to_string();
+
     repository::add_book(&book_id, book).await?;
     Ok(book_id)
 }
@@ -53,4 +60,9 @@ pub async fn epub_is_in_use(epub_id: &str) -> bool {
 
 pub async fn epub_is_in_use_by_user(epub_id: &str, user_id: &str) -> bool {
     repository::epub_belongs_to_user(epub_id, user_id).await
+}
+
+pub async fn book_exists(book_id: &str) -> bool {
+    let book = repository::get_book(book_id).await;
+    book.is_ok()
 }
