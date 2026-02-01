@@ -1,11 +1,12 @@
 import fs from 'fs';
 import path from 'path';
 import { addAnnotation, ALICE_NOTE, getAnnotation } from '../utils/annotations.js';
-import { BOOK_CONFLICT, BOOK_NOT_FOUND, deleteBook, downloadBook, getBookFileMetadata, INVALID_BOOK, INVALID_PAGINATION, searchBooks, uploadBook } from '../utils/books.js';
+import { BOOK_CONFLICT, BOOK_ID_CONFLICT, BOOK_NOT_FOUND, deleteBook, downloadBook, getBookFileMetadata, INVALID_BOOK, INVALID_BOOK_ID, INVALID_PAGINATION, searchBooks, uploadBook } from '../utils/books.js';
 import { BOOK_DIR, FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from '../utils/common.js';
 import { getCover } from '../utils/covers.js';
 import { getMetadata } from '../utils/metadata.js';
 import { createApiKey, registerUser, USER_NOT_FOUND } from '../utils/users.js';
+import { randomUUID } from 'crypto';
 
 describe('Upload book JWT', () => {
   test('Simple', async () => {
@@ -24,6 +25,52 @@ describe('Upload book JWT', () => {
     let downloadedSize = downloadResponse.body.length;
 
     expect(downloadedSize).toBeGreaterThan(originalSize);
+  });
+
+  test('Provided book id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const bookId = randomUUID();
+    const uploadResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { jwt: registerResponse.body.jwt_token }, bookId);
+    expect(uploadResponse.status).toBe(200);
+    expect(uploadResponse.text).toBe(bookId);
+
+    const downloadResponse = await downloadBook(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    expect(downloadResponse.status).toBe(200);
+
+    let epub = path.join(BOOK_DIR, 'The_Great_Gatsby.epub');
+    let originalSize = fs.statSync(epub).size;
+    let downloadedSize = downloadResponse.body.length;
+
+    expect(downloadedSize).toBeGreaterThan(originalSize);
+  });
+
+  test('Invalid book id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const bookId = 'invalid';
+    const uploadResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { jwt: registerResponse.body.jwt_token }, bookId);
+    expect(uploadResponse.status).toBe(400);
+    expect(uploadResponse.text).toBe(INVALID_BOOK_ID);
+  });
+
+  test('Repeated book id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const bookId = randomUUID();
+    let uploadResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { jwt: registerResponse.body.jwt_token }, bookId);
+    expect(uploadResponse.status).toBe(200);
+    expect(uploadResponse.text).toBe(bookId);
+
+    uploadResponse = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { jwt: registerResponse.body.jwt_token }, bookId);
+    expect(uploadResponse.status).toBe(409);
+    expect(uploadResponse.text).toBe(BOOK_ID_CONFLICT);
   });
 
   test('Implicit owner', async () => {
@@ -165,6 +212,60 @@ describe('Upload book api key', () => {
     expect(downloadedSize).toBeGreaterThan(originalSize);
   });
 
+  test('Provided book id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read'], undefined, { jwt: registerResponse.body.jwt_token });
+    expect(createApiKeyResponse.status).toBe(200);
+
+    const bookId = randomUUID();
+    const uploadResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { apiKey: createApiKeyResponse.body.key }, bookId);
+    expect(uploadResponse.status).toBe(200);
+    expect(uploadResponse.text).toBe(bookId);
+
+    const downloadResponse = await downloadBook(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
+    expect(downloadResponse.status).toBe(200);
+
+    let epub = path.join(BOOK_DIR, 'The_Great_Gatsby.epub');
+    let originalSize = fs.statSync(epub).size;
+    let downloadedSize = downloadResponse.body.length;
+
+    expect(downloadedSize).toBeGreaterThan(originalSize);
+  });
+
+  test('Invalid book id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read'], undefined, { jwt: registerResponse.body.jwt_token });
+    expect(createApiKeyResponse.status).toBe(200);
+
+    const bookId = 'invalid';
+    const uploadResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { apiKey: createApiKeyResponse.body.key }, bookId);
+    expect(uploadResponse.status).toBe(400);
+    expect(uploadResponse.text).toBe(INVALID_BOOK_ID);
+  });
+
+  test('Repeated book id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Create', 'Read'], undefined, { jwt: registerResponse.body.jwt_token });
+    expect(createApiKeyResponse.status).toBe(200);
+
+    const bookId = randomUUID();
+    let uploadResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { apiKey: createApiKeyResponse.body.key }, bookId);
+    expect(uploadResponse.status).toBe(200);
+    expect(uploadResponse.text).toBe(bookId);
+
+    uploadResponse = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', { apiKey: createApiKeyResponse.body.key }, bookId);
+    expect(uploadResponse.status).toBe(409);
+    expect(uploadResponse.text).toBe(BOOK_ID_CONFLICT);
+  });
   test('Implicit owner', async () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);

@@ -8,6 +8,8 @@ export const BOOK_CONFLICT = 'This book is already in your library.';
 export const BOOK_NOT_FOUND = 'The requested book does not exist or is not accessible.';
 export const INVALID_BOOK = 'The provided EPUB data is invalid.';
 export const INVALID_PAGINATION = 'The requested pagination is invalid.';
+export const INVALID_BOOK_ID = 'The provided book id is invalid.';
+export const BOOK_ID_CONFLICT = 'The provided book id is already in use.';
 
 const bookCache: Record<string, Buffer> = {};
 
@@ -20,7 +22,7 @@ function preloadFiles() {
 
 preloadFiles();
 
-export async function uploadBook(owner_id?: string, epub_name?: string, auth?: { jwt?: string; apiKey?: string }) {
+export async function uploadBook(owner_id?: string, epub_name?: string, auth?: { jwt?: string; apiKey?: string }, book_id?: string) {
   if (epub_name === undefined) throw new Error('EPUB name is required.');
 
   const epubBuffer = bookCache[epub_name!];
@@ -29,6 +31,7 @@ export async function uploadBook(owner_id?: string, epub_name?: string, auth?: {
   let req = request(SERVER_URL).post(`/books`);
 
   if (owner_id !== undefined) req = req.field('owner_id', owner_id);
+  if (book_id !== undefined) req = req.field('book_id', book_id);
 
   if (auth?.jwt) req = req.auth(auth.jwt, { type: 'bearer' });
   if (auth?.apiKey) req = req.set('api-key', auth.apiKey);
