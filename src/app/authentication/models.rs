@@ -28,11 +28,11 @@ pub enum AuthError {
     RegistrationDisabled,
 
     #[strum(message = "The provided admin key is invalid.")]
-    #[strum(props(StatusCode = "400"))]
+    #[strum(props(StatusCode = "403"))]
     InvalidAdminKey,
 
     #[strum(message = "No admin key was provided.")]
-    #[strum(props(StatusCode = "400"))]
+    #[strum(props(StatusCode = "403"))]
     MissingAdminKey,
 }
 

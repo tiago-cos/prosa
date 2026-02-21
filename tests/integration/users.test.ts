@@ -79,15 +79,15 @@ describe('Register', () => {
     const adminKey = 'invalid_admin_key';
 
     const { response: registerResponse } = await registerUser(undefined, undefined, true, adminKey);
-    expect(registerResponse.status).toBe(400);
+    expect(registerResponse.status).toBe(403);
     expect(registerResponse.text).toBe(INVALID_ADMIN_KEY);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, false, adminKey);
-    expect(registerResponse2.status).toBe(400);
+    expect(registerResponse2.status).toBe(403);
     expect(registerResponse2.text).toBe(INVALID_ADMIN_KEY);
 
     const { response: registerResponse3 } = await registerUser(undefined, undefined, true);
-    expect(registerResponse3.status).toBe(400);
+    expect(registerResponse3.status).toBe(403);
     expect(registerResponse3.text).toBe(MISSING_ADMIN_KEY);
   });
 
