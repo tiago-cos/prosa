@@ -12,25 +12,25 @@ async-trait = "0.1.89"
 axum = { version = "0.8.8", features = ["multipart"] }
 axum_typed_multipart = "0.16.5"
 base64 = "0.22.1"
-chrono = { version = "0.4.43", features = ["serde"] }
-config = "0.15.19"
+chrono = { version = "0.4.44", features = ["serde"] }
+config = "0.15.22"
 epub = "2.1.5"
 goodreads-metadata-scraper = "0.2.4"
-image = "0.25.9"
-jsonwebtoken = { version = "10.2.0", features = ["aws_lc_rs"] }
+image = "0.25.10"
+jsonwebtoken = { version = "10.3.0", features = ["aws_lc_rs"] }
 log = "0.4.29"
 merge = "0.2.0"
-quick_cache = "0.6.18"
-regex = "1.12.2"
+quick_cache = "0.6.21"
+regex = "1.12.3"
 rsa = "0.9.10"
 serde = "1.0.228"
 serde_json = "1.0.149"
-serde_with = "3.16.1"
+serde_with = "3.18.0"
 sha2 = "0.10.9"
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "sqlite", "chrono"] }
-strum = "0.27.2"
-strum_macros = "0.27.2"
-tokio = { version = "1.49.0", features = ["full"] }
+strum = "0.28.0"
+strum_macros = "0.28.0"
+tokio = { version = "1.50.0", features = ["full"] }
 tracing-subscriber = { version = "=0.3.19", features = ["env-filter", "chrono"] }
-ureq = "3.1.4"
-uuid = { version = "1.19.0", features = ["v4"] }
+ureq = "3.3.0"
+uuid = { version = "1.22.0", features = ["v4"] }
