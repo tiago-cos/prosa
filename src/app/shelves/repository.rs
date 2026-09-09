@@ -93,20 +93,19 @@ pub async fn get_paginated_shelves(
     name: Option<String>,
 ) -> PaginatedShelves {
     let offset = (page - 1) * page_size;
-    let mut bind_params: Vec<String> = Vec::new();
 
-    let mut shelf_query = String::from(
+    let mut shelf_query = sqlx::QueryBuilder::<sqlx::Sqlite>::new(
         r"
-        SELECT DISTINCT shelf_id
+        SELECT DISTINCT s.shelf_id
         FROM shelf s
         INNER JOIN users u ON s.owner_id = u.user_id
         WHERE 1=1
         ",
     );
 
-    let mut count_query = String::from(
+    let mut count_query = sqlx::QueryBuilder::<sqlx::Sqlite>::new(
         r"
-        SELECT COUNT(DISTINCT shelf_id)
+        SELECT COUNT(DISTINCT s.shelf_id)
         FROM shelf s
         INNER JOIN users u ON s.owner_id = u.user_id
         WHERE 1=1
@@ -114,45 +113,37 @@ pub async fn get_paginated_shelves(
     );
 
     if let Some(username) = username {
-        let part = format!(" AND u.username = ${}", bind_params.len() + 1);
-        shelf_query.push_str(&part);
-        count_query.push_str(&part);
-        bind_params.push(username);
+        shelf_query.push(" AND u.username = ").push_bind(&username);
+
+        count_query.push(" AND u.username = ").push_bind(username);
     }
 
     if let Some(name) = name {
-        let part = format!(
-            " AND s.name LIKE '%' || ${} || '%' COLLATE NOCASE",
-            bind_params.len() + 1
-        );
-        shelf_query.push_str(&part);
-        count_query.push_str(&part);
-        bind_params.push(name);
+        shelf_query
+            .push(" AND s.name LIKE '%' || ")
+            .push_bind(&name)
+            .push(" || '%' COLLATE NOCASE");
+
+        count_query
+            .push(" AND s.name LIKE '%' || ")
+            .push_bind(name)
+            .push(" || '%' COLLATE NOCASE");
     }
 
-    let part = format!(
-        " ORDER BY s.shelf_id LIMIT ${} OFFSET ${}",
-        bind_params.len() + 1,
-        bind_params.len() + 2
-    );
-    shelf_query.push_str(&part);
+    shelf_query
+        .push(" ORDER BY s.shelf_id LIMIT ")
+        .push_bind(page_size)
+        .push(" OFFSET ")
+        .push_bind(offset);
 
-    let mut shelf_ids = sqlx::query_scalar(&shelf_query);
-    let mut total_elements = sqlx::query_scalar(&count_query);
-
-    for param in bind_params {
-        shelf_ids = shelf_ids.bind(param.clone());
-        total_elements = total_elements.bind(param);
-    }
-
-    shelf_ids = shelf_ids.bind(page_size).bind(offset);
-
-    let shelf_ids = shelf_ids
+    let shelf_ids = shelf_query
+        .build_query_scalar::<String>()
         .fetch_all(DB_POOL.get().expect("Failed to get database pool"))
         .await
         .expect("Failed to search for shelves");
 
-    let total_elements = total_elements
+    let total_elements = count_query
+        .build_query_scalar::<i64>()
         .fetch_one(DB_POOL.get().expect("Failed to get database pool"))
         .await
         .expect("Failed to count shelves");

@@ -20,6 +20,7 @@ pub fn init_logging() {
         .with_file(false)
         .with_line_number(false)
         .with_timer(ChronoUtc::rfc_3339())
+        .with_ansi_sanitization(false)
         .compact();
 
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));

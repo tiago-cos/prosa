@@ -10,13 +10,7 @@ use crate::{
         users,
     },
 };
-use argon2::{
-    Argon2, PasswordHash, PasswordHasher, PasswordVerifier,
-    password_hash::{
-        SaltString,
-        rand_core::{OsRng, RngCore},
-    },
-};
+use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use base64::{Engine, prelude::BASE64_STANDARD};
 use chrono::{DateTime, Utc};
 use jsonwebtoken::{
@@ -26,6 +20,7 @@ use jsonwebtoken::{
 use rsa::{
     RsaPrivateKey,
     pkcs1::{EncodeRsaPrivateKey, EncodeRsaPublicKey},
+    rand_core::{OsRng, RngCore},
 };
 use sha2::{Digest, Sha256};
 use std::{
@@ -202,9 +197,8 @@ pub async fn revoke_api_key(user_id: &str, key_id: &str) -> Result<(), ProsaErro
 }
 
 pub fn hash_secret(secret: &str) -> String {
-    let salt = SaltString::generate(&mut OsRng);
     Argon2::default()
-        .hash_password(secret.as_bytes(), &salt)
+        .hash_password(secret.as_bytes())
         .expect("Failed to hash password")
         .to_string()
 }

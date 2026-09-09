@@ -49,13 +49,12 @@ impl MetadataProvider for EpubExtractor {
             _ => None,
         };
 
-        let contributors = match epub.mdata("creator") {
-            Some(c) => Some(vec![Contributor {
+        let contributors = epub.mdata("creator").map(|c| {
+            vec![Contributor {
                 name: c.value.clone(),
                 role: "Author".to_string(),
-            }]),
-            None => None,
-        };
+            }]
+        });
 
         let genres: Vec<String> = epub
             .metadata

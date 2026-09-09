@@ -132,48 +132,72 @@ pub async fn get_paginated_books(
 ) -> PaginatedBookResponse {
     let offset = (page - 1) * page_size;
 
-    let mut bind_params: Vec<String> = Vec::new();
-    let mut base_query = r"
+    let mut book_query = sqlx::QueryBuilder::<sqlx::Sqlite>::new(
+        r"
+        SELECT DISTINCT b.book_id
         FROM books b
         INNER JOIN users u ON b.owner_id = u.user_id
         LEFT JOIN metadata m ON b.metadata_id = m.metadata_id
         LEFT JOIN contributors c ON b.metadata_id = c.metadata_id
         WHERE 1=1
-    "
-    .to_string();
+        ",
+    );
 
-    if let Some(name) = username {
-        base_query.push_str(" AND u.username = ?");
-        bind_params.push(name);
+    let mut count_query = sqlx::QueryBuilder::<sqlx::Sqlite>::new(
+        r"
+        SELECT COUNT(DISTINCT b.book_id)
+        FROM books b
+        INNER JOIN users u ON b.owner_id = u.user_id
+        LEFT JOIN metadata m ON b.metadata_id = m.metadata_id
+        LEFT JOIN contributors c ON b.metadata_id = c.metadata_id
+        WHERE 1=1
+        ",
+    );
+
+    if let Some(username) = username {
+        book_query.push(" AND u.username = ").push_bind(&username);
+
+        count_query.push(" AND u.username = ").push_bind(username);
     }
+
     if let Some(title) = title {
-        base_query.push_str(" AND m.title LIKE '%' || ? || '%' COLLATE NOCASE");
-        bind_params.push(title);
+        book_query
+            .push(" AND m.title LIKE '%' || ")
+            .push_bind(&title)
+            .push(" || '%' COLLATE NOCASE");
+
+        count_query
+            .push(" AND m.title LIKE '%' || ")
+            .push_bind(title)
+            .push(" || '%' COLLATE NOCASE");
     }
+
     if let Some(author) = author {
-        base_query.push_str(" AND c.name LIKE '%' || ? || '%' COLLATE NOCASE");
-        bind_params.push(author);
+        book_query
+            .push(" AND c.name LIKE '%' || ")
+            .push_bind(&author)
+            .push(" || '%' COLLATE NOCASE");
+
+        count_query
+            .push(" AND c.name LIKE '%' || ")
+            .push_bind(author)
+            .push(" || '%' COLLATE NOCASE");
     }
 
-    let book_query = format!("SELECT DISTINCT b.book_id {base_query} ORDER BY b.book_id LIMIT ? OFFSET ?");
-    let count_query = format!("SELECT COUNT(DISTINCT b.book_id) {base_query}");
+    book_query
+        .push(" ORDER BY b.book_id LIMIT ")
+        .push_bind(page_size)
+        .push(" OFFSET ")
+        .push_bind(offset);
 
-    let mut book_stmt = sqlx::query_scalar::<_, String>(&book_query);
-    let mut count_stmt = sqlx::query_scalar::<_, i64>(&count_query);
-
-    for param in &bind_params {
-        book_stmt = book_stmt.bind(param);
-        count_stmt = count_stmt.bind(param);
-    }
-
-    book_stmt = book_stmt.bind(page_size).bind(offset);
-
-    let book_ids = book_stmt
+    let book_ids = book_query
+        .build_query_scalar::<String>()
         .fetch_all(DB_POOL.get().expect("Failed to get database pool"))
         .await
         .expect("Failed to search for books");
 
-    let total_elements = count_stmt
+    let total_elements = count_query
+        .build_query_scalar::<i64>()
         .fetch_one(DB_POOL.get().expect("Failed to get database pool"))
         .await
         .expect("Failed to count books");

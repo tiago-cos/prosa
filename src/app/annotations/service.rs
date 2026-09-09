@@ -47,14 +47,14 @@ fn validate_annotation(annotation: &NewAnnotationRequest, epub_id: &str) -> bool
     }
 
     let source_cache_key = format!("sources:{epub_id}");
-    let tag_cache_key = format!("tags:{}:{}", epub_id, &annotation.source);
+    let tag_cache_key = format!("tags:{}:{}", epub_id, annotation.source);
     let start_tag_length_cache_key = format!(
         "tag_lengths:{}:{}:{}",
-        epub_id, &annotation.source, annotation.start_tag
+        epub_id, annotation.source, annotation.start_tag
     );
     let end_tag_length_cache_key = format!(
         "tag_lengths:{}:{}:{}",
-        epub_id, &annotation.source, annotation.end_tag
+        epub_id, annotation.source, annotation.end_tag
     );
 
     if let (Some(sources), Some(tags), Some(start_length), Some(end_length)) = (

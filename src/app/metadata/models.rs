@@ -87,7 +87,7 @@ pub struct Metadata {
 }
 
 impl Metadata {
-    pub fn is_empty(&self) -> bool {
+    pub const fn is_empty(&self) -> bool {
         self.title.is_none()
             && self.subtitle.is_none()
             && self.description.is_none()

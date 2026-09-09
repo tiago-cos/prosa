@@ -17,7 +17,7 @@ use serde::Serialize;
 use std::{collections::VecDeque, sync::Arc};
 use tokio::sync::{Mutex, Notify, RwLock};
 
-#[derive(Clone, Serialize, PartialEq)]
+#[derive(Clone, Serialize, PartialEq, Eq)]
 pub struct MetadataFetcherRequest {
     user_id: String,
     book_id: String,
@@ -63,8 +63,7 @@ impl MetadataFetcherService {
         }
         drop(q);
 
-        let mut q = self.queue.write().await;
-        q.push_back(req);
+        self.queue.write().await.push_back(req);
         self.notify.notify_one();
 
         Ok(())
