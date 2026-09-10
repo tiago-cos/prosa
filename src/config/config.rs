@@ -47,6 +47,8 @@ pub struct Kepubify {
 #[serde(default)]
 pub struct Database {
     pub file_path: String,
+    pub max_connections: u32,
+    pub busy_timeout_seconds: u64,
     pub backup_before_migration: bool,
 }
 
@@ -101,6 +103,8 @@ impl Default for Database {
     fn default() -> Self {
         Self {
             file_path: "library/database.db".to_string(),
+            max_connections: 16,
+            busy_timeout_seconds: 10,
             backup_before_migration: true,
         }
     }
