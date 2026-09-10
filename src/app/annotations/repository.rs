@@ -9,17 +9,14 @@ pub async fn add_annotation<'e>(
 ) -> Result<(), AnnotationError> {
     sqlx::query(
         r"
-        INSERT INTO annotations (annotation_id, book_id, source, start_tag, end_tag, start_char, end_char, note)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        INSERT INTO annotations (annotation_id, book_id, start_location, end_location, note)
+        VALUES ($1, $2, $3, $4, $5)
         ",
     )
     .bind(annotation_id)
     .bind(book_id)
-    .bind(&annotation.source)
-    .bind(&annotation.start_tag)
-    .bind(&annotation.end_tag)
-    .bind(annotation.start_char)
-    .bind(annotation.end_char)
+    .bind(&annotation.start_location)
+    .bind(&annotation.end_location)
     .bind(&annotation.note)
     .execute(db)
     .await?;
@@ -33,7 +30,7 @@ pub async fn get_annotation<'e>(
 ) -> Result<Annotation, AnnotationError> {
     let annotation = sqlx::query_as::<_, Annotation>(
         r"
-        SELECT annotation_id, source, start_tag, end_tag, start_char, end_char, note
+        SELECT annotation_id, start_location, end_location, note
         FROM annotations
         WHERE annotation_id = $1
         ",

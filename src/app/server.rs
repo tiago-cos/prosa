@@ -10,21 +10,15 @@ use axum::routing::get;
 use log::info;
 use quick_cache::sync::Cache as QuickCache;
 use std::sync::LazyLock;
-use std::{collections::HashSet, sync::Arc};
+use std::sync::Arc;
 use tokio::net::TcpListener;
 
 pub struct Cache {
     pub image_cache: QuickCache<String, Arc<Vec<u8>>>,
-    pub source_cache: QuickCache<String, Arc<HashSet<String>>>,
-    pub tag_cache: QuickCache<String, Arc<HashSet<String>>>,
-    pub tag_length_cache: QuickCache<String, u32>,
 }
 
 pub static CACHE: LazyLock<Cache> = LazyLock::new(|| Cache {
     image_cache: QuickCache::new(50),
-    source_cache: QuickCache::new(100000),
-    tag_cache: QuickCache::new(100000),
-    tag_length_cache: QuickCache::new(100000),
 });
 
 pub static METADATA_FETCHER: LazyLock<Arc<MetadataFetcherService>> = LazyLock::new(|| {

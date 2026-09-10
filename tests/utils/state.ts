@@ -9,10 +9,7 @@ export const INVALID_STATE = 'The provided state is invalid.';
 export const EMPTY_STATE = { statistics: { reading_status: 'Unread' } };
 
 export const ALICE_STATE = {
-  location: {
-    tag: 'kobo.4.2',
-    source: 'OEBPS/229714655232534212_11-h-4.htm.xhtml'
-  },
+  location: 'OEBPS/229714655232534212_11-h-4.htm.xhtml#0/1/t0:12',
   statistics: {
     rating: 4.5,
     reading_status: 'Reading'

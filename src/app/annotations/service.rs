@@ -1,18 +1,15 @@
 use super::models::{Annotation, AnnotationError, NewAnnotationRequest};
+use crate::app::epubs;
 use crate::database::pool;
-use crate::{
-    CONFIG,
-    app::{annotations::repository, books, error::ProsaError, server::CACHE},
-};
-use epub::doc::EpubDoc;
-use regex::Regex;
-use std::{collections::HashSet, sync::Arc};
+use crate::app::{annotations::repository, books, error::ProsaError};
+use kepub_rs::validate_epub_location;
+use std::fs::File;
 use uuid::Uuid;
 
 pub async fn add_annotation(book_id: &str, annotation: NewAnnotationRequest) -> Result<String, ProsaError> {
     let epub_id = books::repository::get_book(pool(), book_id).await?.epub_id;
 
-    if !validate_annotation(&annotation, &epub_id) {
+    if !validate_annotation(&annotation, &epub_id).await {
         return Err(AnnotationError::InvalidAnnotation.into());
     }
 
@@ -42,129 +39,17 @@ pub async fn patch_annotation(annotation_id: &str, note: Option<String>) -> Resu
     Ok(())
 }
 
-fn validate_annotation(annotation: &NewAnnotationRequest, epub_id: &str) -> bool {
-    if !validate_tags(&annotation.start_tag, &annotation.end_tag) {
-        return false;
-    }
+async fn validate_annotation(annotation: &NewAnnotationRequest, epub_id: &str) -> bool {
+    let epub_file = epubs::service::epub_path(epub_id);
+    let start = annotation.start_location.clone();
+    let end = annotation.end_location.clone();
 
-    let source_cache_key = format!("sources:{epub_id}");
-    let tag_cache_key = format!("tags:{}:{}", epub_id, annotation.source);
-    let start_tag_length_cache_key = format!(
-        "tag_lengths:{}:{}:{}",
-        epub_id, annotation.source, annotation.start_tag
-    );
-    let end_tag_length_cache_key = format!(
-        "tag_lengths:{}:{}:{}",
-        epub_id, annotation.source, annotation.end_tag
-    );
-
-    if let (Some(sources), Some(tags), Some(start_length), Some(end_length)) = (
-        CACHE.source_cache.get(&source_cache_key),
-        CACHE.tag_cache.get(&tag_cache_key),
-        CACHE.tag_length_cache.get(&start_tag_length_cache_key),
-        CACHE.tag_length_cache.get(&end_tag_length_cache_key),
-    ) {
-        return sources.contains(&annotation.source)
-            && tags.contains(&annotation.start_tag)
-            && tags.contains(&annotation.end_tag)
-            && annotation.start_char < start_length
-            && annotation.end_char < end_length;
-    }
-
-    let epub_file = format!("{}/{epub_id}.kepub.epub", CONFIG.book_storage.epub_path);
-    let Ok(mut doc) = EpubDoc::new(epub_file) else {
-        return false;
-    };
-
-    let sources = CACHE.source_cache.get(&source_cache_key).unwrap_or_else(|| {
-        let sources: HashSet<String> = doc
-            .resources
-            .iter()
-            .filter_map(|r| r.1.path.to_str().map(ToString::to_string))
-            .collect();
-        let sources = Arc::new(sources);
-        CACHE
-            .source_cache
-            .insert(source_cache_key.clone(), sources.clone());
-        sources
-    });
-
-    if !sources.contains(&annotation.source) {
-        return false;
-    }
-
-    let Some(text) = doc.get_resource_str_by_path(&annotation.source) else {
-        return false;
-    };
-
-    let tags = CACHE.tag_cache.get(&tag_cache_key).unwrap_or_else(|| {
-        let tags = extract_tags(&text);
-        let tags = Arc::new(tags);
-        CACHE.tag_cache.insert(tag_cache_key.clone(), tags.clone());
-        tags
-    });
-
-    if !tags.contains(&annotation.start_tag) || !tags.contains(&annotation.end_tag) {
-        return false;
-    }
-
-    let start_length = CACHE
-        .tag_length_cache
-        .get(&start_tag_length_cache_key)
-        .unwrap_or_else(|| {
-            let length = get_tag_length(&annotation.start_tag, &text).unwrap_or_default();
-            CACHE
-                .tag_length_cache
-                .insert(start_tag_length_cache_key.clone(), length);
-
-            length
-        });
-
-    let end_length = CACHE
-        .tag_length_cache
-        .get(&end_tag_length_cache_key)
-        .unwrap_or_else(|| {
-            let length = get_tag_length(&annotation.end_tag, &text).unwrap_or_default();
-            CACHE
-                .tag_length_cache
-                .insert(end_tag_length_cache_key.clone(), length);
-
-            length
-        });
-
-    annotation.start_char < start_length && annotation.end_char < end_length
-}
-
-fn get_tag_length(tag_id: &str, text: &str) -> Option<u32> {
-    let tag = format!("<span class=\"koboSpan\" id=\"{tag_id}\">");
-    let start_pos = text.find(&tag)?;
-    let content_start = start_pos + tag.len();
-    let content_end = text[content_start..].find("</span>")? + content_start;
-    Some(text[content_start..content_end].chars().count() as u32)
-}
-
-fn validate_tags(start: &str, end: &str) -> bool {
-    let parse = |tag: &str| -> Option<(u32, u32)> {
-        let raw = tag.strip_prefix("kobo.")?;
-        let mut it = raw.split('.');
-        let hi = it.next()?.parse().ok()?;
-        let lo = it.next()?.parse().ok()?;
-        if it.next().is_some() {
-            return None;
-        }
-        Some((hi, lo))
-    };
-
-    parse(start).zip(parse(end)).is_some_and(|(s, e)| s <= e)
-}
-
-fn extract_tags(text: &str) -> HashSet<String> {
-    let tag_pattern = r#"<span class="koboSpan" id="([^"]+)""#;
-    let re = Regex::new(tag_pattern).unwrap();
-
-    re.captures_iter(text)
-        .filter_map(|cap| cap.get(1))
-        .map(|m| m.as_str().to_string())
-        .filter(|tag| tag.starts_with("kobo."))
-        .collect()
+    //TODO add annotation relative order verification in kepub-rs crate.
+    tokio::task::spawn_blocking(move || {
+        [start, end].iter().all(|location| {
+            File::open(&epub_file).is_ok_and(|file| validate_epub_location(file, location).is_ok())
+        })
+    })
+    .await
+    .expect("Annotation validation task failed")
 }

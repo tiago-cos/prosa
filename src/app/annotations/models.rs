@@ -48,21 +48,15 @@ impl From<&SqliteError> for AnnotationError {
 #[derive(FromRow, Serialize)]
 pub struct Annotation {
     pub annotation_id: String,
-    pub source: String,
-    pub start_tag: String,
-    pub end_tag: String,
-    pub start_char: u32,
-    pub end_char: u32,
+    pub start_location: String,
+    pub end_location: String,
     pub note: Option<String>,
 }
 
 #[derive(Deserialize)]
 pub struct NewAnnotationRequest {
-    pub source: String,
-    pub start_tag: String,
-    pub end_tag: String,
-    pub start_char: u32,
-    pub end_char: u32,
+    pub start_location: String,
+    pub end_location: String,
     pub note: Option<String>,
 }
 

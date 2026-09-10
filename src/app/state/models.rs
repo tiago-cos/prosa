@@ -24,14 +24,6 @@ pub const VALID_READING_STATUS: [&str; 3] = ["Unread", "Reading", "Read"];
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Merge)]
 #[merge(strategy = merge::option::overwrite_none)]
-pub struct Location {
-    pub tag: Option<String>,
-    pub source: Option<String>,
-}
-
-#[skip_serializing_none]
-#[derive(Serialize, Deserialize, Merge)]
-#[merge(strategy = merge::option::overwrite_none)]
 pub struct Statistics {
     pub rating: Option<f32>,
     pub reading_status: Option<String>,
@@ -41,6 +33,7 @@ pub struct Statistics {
 #[derive(Serialize, Deserialize, Merge)]
 #[merge(strategy = merge::option::recurse)]
 pub struct State {
-    pub location: Option<Location>,
+    #[merge(strategy = merge::option::overwrite_none)]
+    pub location: Option<String>,
     pub statistics: Option<Statistics>,
 }

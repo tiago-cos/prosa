@@ -243,14 +243,13 @@ describe('Update state JWT', () => {
     expect(updateResponse.text).toBe(INVALID_RATING);
 
     invalid.statistics.rating = 4.5;
-    invalid.location.tag = 'invalid';
+    invalid.location = 'not-a-location';
 
     const updateResponse2 = await updateState(uploadResponse.text, invalid, { jwt: registerResponse.body.jwt_token });
     expect(updateResponse2.status).toBe(400);
     expect(updateResponse2.text).toBe(INVALID_LOCATION);
 
-    invalid.location.tag = 'kobo.1.1';
-    invalid.location.source = 'invalid';
+    invalid.location = 'invalid#0/1/t0:12';
 
     const updateResponse3 = await updateState(uploadResponse.text, invalid, { jwt: registerResponse.body.jwt_token });
     expect(updateResponse3.status).toBe(400);
@@ -264,7 +263,7 @@ describe('Update state JWT', () => {
     expect(updateResponse5.status).toBe(400);
     expect(updateResponse5.text).toBe(INVALID_READING_STATUS);
 
-    const updateResponse6 = await updateState(uploadResponse.text, { location: { tag: 'kobo.1.1' }, statistics: { reading_status: 'Read' } }, { jwt: registerResponse.body.jwt_token });
+    const updateResponse6 = await updateState(uploadResponse.text, { location: 'OEBPS/229714655232534212_11-h-4.htm.xhtml#99/99/t0:0', statistics: { reading_status: 'Read' } }, { jwt: registerResponse.body.jwt_token });
     expect(updateResponse6.status).toBe(400);
     expect(updateResponse6.text).toBe(INVALID_LOCATION);
 
@@ -392,14 +391,13 @@ describe('Update state api key', () => {
     expect(updateResponse.text).toBe(INVALID_RATING);
 
     invalid.statistics.rating = 4.5;
-    invalid.location.tag = 'invalid';
+    invalid.location = 'not-a-location';
 
     const updateResponse2 = await updateState(uploadResponse.text, invalid, { apiKey: createApiKeyResponse.body.key });
     expect(updateResponse2.status).toBe(400);
     expect(updateResponse2.text).toBe(INVALID_LOCATION);
 
-    invalid.location.tag = 'kobo.1.1';
-    invalid.location.source = 'invalid';
+    invalid.location = 'invalid#0/1/t0:12';
 
     const updateResponse3 = await updateState(uploadResponse.text, invalid, { apiKey: createApiKeyResponse.body.key });
     expect(updateResponse3.status).toBe(400);
@@ -413,7 +411,7 @@ describe('Update state api key', () => {
     expect(updateResponse5.status).toBe(400);
     expect(updateResponse5.text).toBe(INVALID_READING_STATUS);
 
-    const updateResponse6 = await updateState(uploadResponse.text, { location: { tag: 'kobo.1.1' }, statistics: { reading_status: 'Read' } }, { apiKey: createApiKeyResponse.body.key });
+    const updateResponse6 = await updateState(uploadResponse.text, { location: 'OEBPS/229714655232534212_11-h-4.htm.xhtml#99/99/t0:0', statistics: { reading_status: 'Read' } }, { apiKey: createApiKeyResponse.body.key });
     expect(updateResponse6.status).toBe(400);
     expect(updateResponse6.text).toBe(INVALID_LOCATION);
 
@@ -572,14 +570,13 @@ describe('Patch state JWT', () => {
     expect(patchResponse.text).toBe(INVALID_RATING);
 
     invalid.statistics.rating = 4.5;
-    invalid.location.tag = 'invalid';
+    invalid.location = 'not-a-location';
 
     const patchResponse2 = await patchState(uploadResponse.text, invalid, { jwt: registerResponse.body.jwt_token });
     expect(patchResponse2.status).toBe(400);
     expect(patchResponse2.text).toBe(INVALID_LOCATION);
 
-    invalid.location.tag = 'kobo.1.1';
-    invalid.location.source = 'invalid';
+    invalid.location = 'invalid#0/1/t0:12';
 
     const patchResponse3 = await patchState(uploadResponse.text, invalid, { jwt: registerResponse.body.jwt_token });
     expect(patchResponse3.status).toBe(400);
@@ -726,14 +723,13 @@ describe('Patch state api key', () => {
     expect(patchResponse.text).toBe(INVALID_RATING);
 
     invalid.statistics.rating = 4.5;
-    invalid.location.tag = 'invalid';
+    invalid.location = 'not-a-location';
 
     const patchResponse2 = await patchState(uploadResponse.text, invalid, { apiKey: createApiKeyResponse.body.key });
     expect(patchResponse2.status).toBe(400);
     expect(patchResponse2.text).toBe(INVALID_LOCATION);
 
-    invalid.location.tag = 'kobo.1.1';
-    invalid.location.source = 'invalid';
+    invalid.location = 'invalid#0/1/t0:12';
 
     const patchResponse3 = await patchState(uploadResponse.text, invalid, { apiKey: createApiKeyResponse.body.key });
     expect(patchResponse3.status).toBe(400);

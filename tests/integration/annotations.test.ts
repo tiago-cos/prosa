@@ -49,55 +49,43 @@ describe('Add annotation JWT', () => {
     const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadResponse.status).toBe(200);
 
-    const invalidSource = {
-      source: 'invalid',
-      start_tag: 'kobo.74.1',
-      end_tag: 'kobo.74.2',
-      start_char: 7,
-      end_char: 4,
+    const missingContentDocument = {
+      start_location: 'invalid#0/1/t0:7',
+      end_location: 'invalid#0/2/t0:42',
       note: 'I loved this part!'
     };
 
-    let addAnnotationResponse = await addAnnotation(uploadResponse.text, invalidSource, { jwt: registerResponse.body.jwt_token });
+    let addAnnotationResponse = await addAnnotation(uploadResponse.text, missingContentDocument, { jwt: registerResponse.body.jwt_token });
     expect(addAnnotationResponse.status).toBe(400);
     expect(addAnnotationResponse.text).toBe(INVALID_ANNOTATION);
 
-    let invalidTags = {
-      source: 'OEBPS/229714655232534212_11-h-10.htm.xhtml',
-      start_tag: 'kobo.999.999',
-      end_tag: 'kobo.999.999',
-      start_char: 7,
-      end_char: 4,
+    let unresolvableLocation = {
+      start_location: 'OEBPS/229714655232534212_11-h-10.htm.xhtml#99/99/t0:0',
+      end_location: 'OEBPS/229714655232534212_11-h-10.htm.xhtml#99/99/t0:0',
       note: 'I loved this part!'
     };
 
-    addAnnotationResponse = await addAnnotation(uploadResponse.text, invalidTags, { jwt: registerResponse.body.jwt_token });
+    addAnnotationResponse = await addAnnotation(uploadResponse.text, unresolvableLocation, { jwt: registerResponse.body.jwt_token });
     expect(addAnnotationResponse.status).toBe(400);
     expect(addAnnotationResponse.text).toBe(INVALID_ANNOTATION);
 
-    invalidTags = {
-      source: 'OEBPS/229714655232534212_11-h-10.htm.xhtml',
-      start_tag: 'kobo.74.2',
-      end_tag: 'kobo.74.1',
-      start_char: 7,
-      end_char: 4,
+    unresolvableLocation = {
+      start_location: 'not-a-location',
+      end_location: 'OEBPS/229714655232534212_11-h-10.htm.xhtml#0/2/t0:42',
       note: 'I loved this part!'
     };
 
-    addAnnotationResponse = await addAnnotation(uploadResponse.text, invalidTags, { jwt: registerResponse.body.jwt_token });
+    addAnnotationResponse = await addAnnotation(uploadResponse.text, unresolvableLocation, { jwt: registerResponse.body.jwt_token });
     expect(addAnnotationResponse.status).toBe(400);
     expect(addAnnotationResponse.text).toBe(INVALID_ANNOTATION);
 
-    const invalidCharPosition = {
-      source: 'OEBPS/229714655232534212_11-h-10.htm.xhtml',
-      start_tag: 'kobo.74.1',
-      end_tag: 'kobo.74.2',
-      start_char: 999,
-      end_char: 4,
+    const offsetPastEndOfText = {
+      start_location: 'OEBPS/229714655232534212_11-h-10.htm.xhtml#0/1/t0:999999',
+      end_location: 'OEBPS/229714655232534212_11-h-10.htm.xhtml#0/2/t0:42',
       note: 'I loved this part!'
     };
 
-    addAnnotationResponse = await addAnnotation(uploadResponse.text, invalidCharPosition, { jwt: registerResponse.body.jwt_token });
+    addAnnotationResponse = await addAnnotation(uploadResponse.text, offsetPastEndOfText, { jwt: registerResponse.body.jwt_token });
     expect(addAnnotationResponse.status).toBe(400);
     expect(addAnnotationResponse.text).toBe(INVALID_ANNOTATION);
   });
@@ -206,55 +194,43 @@ describe('Add annotation api key', () => {
     const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Update'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(createApiKeyResponse.status).toBe(200);
 
-    const invalidSource = {
-      source: 'invalid',
-      start_tag: 'kobo.74.1',
-      end_tag: 'kobo.74.2',
-      start_char: 7,
-      end_char: 4,
+    const missingContentDocument = {
+      start_location: 'invalid#0/1/t0:7',
+      end_location: 'invalid#0/2/t0:42',
       note: 'I loved this part!'
     };
 
-    let addAnnotationResponse = await addAnnotation(uploadResponse.text, invalidSource, { apiKey: createApiKeyResponse.body.key });
+    let addAnnotationResponse = await addAnnotation(uploadResponse.text, missingContentDocument, { apiKey: createApiKeyResponse.body.key });
     expect(addAnnotationResponse.status).toBe(400);
     expect(addAnnotationResponse.text).toBe(INVALID_ANNOTATION);
 
-    let invalidTags = {
-      source: 'OEBPS/229714655232534212_11-h-10.htm.xhtml',
-      start_tag: 'kobo.999.999',
-      end_tag: 'kobo.999.999',
-      start_char: 7,
-      end_char: 4,
+    let unresolvableLocation = {
+      start_location: 'OEBPS/229714655232534212_11-h-10.htm.xhtml#99/99/t0:0',
+      end_location: 'OEBPS/229714655232534212_11-h-10.htm.xhtml#99/99/t0:0',
       note: 'I loved this part!'
     };
 
-    addAnnotationResponse = await addAnnotation(uploadResponse.text, invalidTags, { apiKey: createApiKeyResponse.body.key });
+    addAnnotationResponse = await addAnnotation(uploadResponse.text, unresolvableLocation, { apiKey: createApiKeyResponse.body.key });
     expect(addAnnotationResponse.status).toBe(400);
     expect(addAnnotationResponse.text).toBe(INVALID_ANNOTATION);
 
-    invalidTags = {
-      source: 'OEBPS/229714655232534212_11-h-10.htm.xhtml',
-      start_tag: 'kobo.74.2',
-      end_tag: 'kobo.74.1',
-      start_char: 7,
-      end_char: 4,
+    unresolvableLocation = {
+      start_location: 'not-a-location',
+      end_location: 'OEBPS/229714655232534212_11-h-10.htm.xhtml#0/2/t0:42',
       note: 'I loved this part!'
     };
 
-    addAnnotationResponse = await addAnnotation(uploadResponse.text, invalidTags, { apiKey: createApiKeyResponse.body.key });
+    addAnnotationResponse = await addAnnotation(uploadResponse.text, unresolvableLocation, { apiKey: createApiKeyResponse.body.key });
     expect(addAnnotationResponse.status).toBe(400);
     expect(addAnnotationResponse.text).toBe(INVALID_ANNOTATION);
 
-    const invalidCharPosition = {
-      source: 'OEBPS/229714655232534212_11-h-10.htm.xhtml',
-      start_tag: 'kobo.74.1',
-      end_tag: 'kobo.74.2',
-      start_char: 999,
-      end_char: 4,
+    const offsetPastEndOfText = {
+      start_location: 'OEBPS/229714655232534212_11-h-10.htm.xhtml#0/1/t0:999999',
+      end_location: 'OEBPS/229714655232534212_11-h-10.htm.xhtml#0/2/t0:42',
       note: 'I loved this part!'
     };
 
-    addAnnotationResponse = await addAnnotation(uploadResponse.text, invalidCharPosition, { apiKey: createApiKeyResponse.body.key });
+    addAnnotationResponse = await addAnnotation(uploadResponse.text, offsetPastEndOfText, { apiKey: createApiKeyResponse.body.key });
     expect(addAnnotationResponse.status).toBe(400);
     expect(addAnnotationResponse.text).toBe(INVALID_ANNOTATION);
   });

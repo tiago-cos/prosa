@@ -21,10 +21,9 @@ describe('Upload book JWT', () => {
     expect(downloadResponse.status).toBe(200);
 
     let epub = path.join(BOOK_DIR, 'The_Great_Gatsby.epub');
-    let originalSize = fs.statSync(epub).size;
-    let downloadedSize = downloadResponse.body.length;
 
-    expect(downloadedSize).toBeGreaterThan(originalSize);
+    // Books are stored unprocessed, so a download is the uploaded file itself.
+    expect(downloadResponse.body.equals(fs.readFileSync(epub))).toBe(true);
   });
 
   test('Provided book id', async () => {
@@ -41,10 +40,9 @@ describe('Upload book JWT', () => {
     expect(downloadResponse.status).toBe(200);
 
     let epub = path.join(BOOK_DIR, 'The_Great_Gatsby.epub');
-    let originalSize = fs.statSync(epub).size;
-    let downloadedSize = downloadResponse.body.length;
 
-    expect(downloadedSize).toBeGreaterThan(originalSize);
+    // Books are stored unprocessed, so a download is the uploaded file itself.
+    expect(downloadResponse.body.equals(fs.readFileSync(epub))).toBe(true);
   });
 
   test('Invalid book id', async () => {
@@ -84,10 +82,9 @@ describe('Upload book JWT', () => {
     expect(downloadResponse.status).toBe(200);
 
     let epub = path.join(BOOK_DIR, 'The_Great_Gatsby.epub');
-    let originalSize = fs.statSync(epub).size;
-    let downloadedSize = downloadResponse.body.length;
 
-    expect(downloadedSize).toBeGreaterThan(originalSize);
+    // Books are stored unprocessed, so a download is the uploaded file itself.
+    expect(downloadResponse.body.equals(fs.readFileSync(epub))).toBe(true);
   });
 
   test('Repeated book', async () => {
@@ -206,10 +203,9 @@ describe('Upload book api key', () => {
     expect(downloadResponse.status).toBe(200);
 
     let epub = path.join(BOOK_DIR, 'The_Great_Gatsby.epub');
-    let originalSize = fs.statSync(epub).size;
-    let downloadedSize = downloadResponse.body.length;
 
-    expect(downloadedSize).toBeGreaterThan(originalSize);
+    // Books are stored unprocessed, so a download is the uploaded file itself.
+    expect(downloadResponse.body.equals(fs.readFileSync(epub))).toBe(true);
   });
 
   test('Provided book id', async () => {
@@ -229,10 +225,9 @@ describe('Upload book api key', () => {
     expect(downloadResponse.status).toBe(200);
 
     let epub = path.join(BOOK_DIR, 'The_Great_Gatsby.epub');
-    let originalSize = fs.statSync(epub).size;
-    let downloadedSize = downloadResponse.body.length;
 
-    expect(downloadedSize).toBeGreaterThan(originalSize);
+    // Books are stored unprocessed, so a download is the uploaded file itself.
+    expect(downloadResponse.body.equals(fs.readFileSync(epub))).toBe(true);
   });
 
   test('Invalid book id', async () => {
@@ -281,10 +276,9 @@ describe('Upload book api key', () => {
     expect(downloadResponse.status).toBe(200);
 
     let epub = path.join(BOOK_DIR, 'The_Great_Gatsby.epub');
-    let originalSize = fs.statSync(epub).size;
-    let downloadedSize = downloadResponse.body.length;
 
-    expect(downloadedSize).toBeGreaterThan(originalSize);
+    // Books are stored unprocessed, so a download is the uploaded file itself.
+    expect(downloadResponse.body.equals(fs.readFileSync(epub))).toBe(true);
   });
 
   test('Repeated book', async () => {
@@ -1395,7 +1389,7 @@ describe('Get book file metadata JWT', () => {
     const sizeResponse = await getBookFileMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
     expect(sizeResponse.status).toBe(200);
 
-    expect(sizeResponse.body.file_size).toBe(145298);
+    expect(sizeResponse.body.file_size).toBe(fs.statSync(path.join(BOOK_DIR, 'The_Great_Gatsby.epub')).size);
     expect(sizeResponse.body.owner_id).toBe(userId);
   });
 
@@ -1468,7 +1462,7 @@ describe('Get book file metadata api key', () => {
     const sizeResponse = await getBookFileMetadata(uploadResponse.text, { apiKey: createApiKeyResponse.body.key });
     expect(sizeResponse.status).toBe(200);
 
-    expect(sizeResponse.body.file_size).toBe(145298);
+    expect(sizeResponse.body.file_size).toBe(fs.statSync(path.join(BOOK_DIR, 'The_Great_Gatsby.epub')).size);
   });
 
   test('Non-existent book', async () => {

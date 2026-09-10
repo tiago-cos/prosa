@@ -1,14 +1,11 @@
-use super::models::{Location, State, StateError, Statistics, VALID_READING_STATUS};
+use super::models::{State, StateError, Statistics, VALID_READING_STATUS};
+use crate::app::epubs;
 use crate::database::pool;
-use crate::{
-    CONFIG,
-    app::{error::ProsaError, server::CACHE, state::repository},
-};
-use epub::doc::EpubDoc;
+use crate::app::{error::ProsaError, state::repository};
+use kepub_rs::validate_epub_location;
 use merge::Merge;
-use regex::Regex;
 use sqlx::SqliteConnection;
-use std::{collections::HashSet, sync::Arc};
+use std::fs::File;
 
 pub async fn initialize_state(conn: &mut SqliteConnection, book_id: &str) {
     let initial_state = State {
@@ -33,28 +30,15 @@ pub async fn patch_state(book_id: &str, epub_id: &str, mut state: State) -> Resu
     let original = repository::get_state(pool(), book_id).await;
     state.merge(original);
 
-    validate_state(&state, epub_id)?;
+    validate_state(&state, epub_id).await?;
     repository::update_state(pool(), book_id, state).await;
 
     Ok(())
 }
 
 pub async fn update_state(book_id: &str, epub_id: &str, state: State) -> Result<(), ProsaError> {
-    validate_state(&state, epub_id)?;
+    validate_state(&state, epub_id).await?;
     repository::update_state(pool(), book_id, state).await;
-
-    Ok(())
-}
-
-fn validate_state(state: &State, epub_id: &str) -> Result<(), ProsaError> {
-    match &state.statistics {
-        Some(s) => validate_statistics(s)?,
-        None => return Err(StateError::InvalidState.into()),
-    }
-
-    if let Some(l) = &state.location {
-        validate_location(l, epub_id)?;
-    }
 
     Ok(())
 }
@@ -77,67 +61,27 @@ fn validate_statistics(stats: &Statistics) -> Result<(), ProsaError> {
     Ok(())
 }
 
-fn validate_location(location: &Location, epub_id: &str) -> Result<(), ProsaError> {
-    let (Some(source), Some(tag)) = (&location.source, &location.tag) else {
-        return Err(StateError::InvalidLocation.into());
+async fn validate_state(state: &State, epub_id: &str) -> Result<(), ProsaError> {
+    match &state.statistics {
+        Some(s) => validate_statistics(s)?,
+        None => return Err(StateError::InvalidState.into()),
+    }
+
+    let Some(location) = state.location.clone() else {
+        return Ok(());
     };
 
-    let source_cache_key = format!("sources:{epub_id}");
-    let tag_cache_key = format!("tags:{epub_id}:{source}");
+    let epub_file = epubs::service::epub_path(epub_id);
 
-    if let (Some(sources), Some(tags)) = (
-        CACHE.source_cache.get(&source_cache_key),
-        CACHE.tag_cache.get(&tag_cache_key),
-    ) && sources.contains(source)
-        && tags.contains(tag)
-    {
-        return Ok(());
-    }
+    let valid = tokio::task::spawn_blocking(move || {
+        File::open(&epub_file).is_ok_and(|file| validate_epub_location(file, &location).is_ok())
+    })
+    .await
+    .expect("Location validation task failed");
 
-    let epub_file = format!("{}/{epub_id}.kepub.epub", CONFIG.book_storage.epub_path);
-    let mut doc = EpubDoc::new(epub_file).expect("Error opening epub");
-
-    let sources = CACHE.source_cache.get(&source_cache_key).unwrap_or_else(|| {
-        let sources: HashSet<String> = doc
-            .resources
-            .iter()
-            .filter_map(|r| r.1.path.to_str().map(ToString::to_string))
-            .collect();
-        let sources = Arc::new(sources);
-        CACHE
-            .source_cache
-            .insert(source_cache_key.clone(), sources.clone());
-        sources
-    });
-
-    if !sources.contains(source) {
-        return Err(StateError::InvalidLocation.into());
-    }
-
-    let tags = CACHE.tag_cache.get(&tag_cache_key).unwrap_or_else(|| {
-        let text = doc
-            .get_resource_str_by_path(source)
-            .expect("Failed to get book resource");
-
-        let tags = Arc::new(extract_tags(&text));
-        CACHE.tag_cache.insert(tag_cache_key.clone(), tags.clone());
-        tags
-    });
-
-    if !tags.contains(tag) {
+    if !valid {
         return Err(StateError::InvalidLocation.into());
     }
 
     Ok(())
-}
-
-fn extract_tags(text: &str) -> HashSet<String> {
-    let tag_pattern = r#"<span class="koboSpan" id="([^"]+)""#;
-    let re = Regex::new(tag_pattern).unwrap();
-
-    re.captures_iter(text)
-        .filter_map(|cap| cap.get(1))
-        .map(|m| m.as_str().to_string())
-        .filter(|tag| tag.starts_with("kobo."))
-        .collect()
 }

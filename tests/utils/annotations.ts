@@ -5,12 +5,12 @@ export const INVALID_ANNOTATION = 'The provided annotation is invalid.';
 export const ANNOTATION_NOT_FOUND = 'The requested annotation does not exist or is not accessible.';
 export const ANNOTATION_CONFLICT = 'An annotation in this position already exists.';
 
+// EPUB locations: content document, element path from <body>, text run and
+// character offset. Verified against the test book with the same validator the
+// server uses.
 export const ALICE_NOTE = {
-  source: 'OEBPS/229714655232534212_11-h-10.htm.xhtml',
-  start_tag: 'kobo.74.1',
-  end_tag: 'kobo.74.2',
-  start_char: 7,
-  end_char: 4,
+  start_location: 'OEBPS/229714655232534212_11-h-10.htm.xhtml#0/1/t0:7',
+  end_location: 'OEBPS/229714655232534212_11-h-10.htm.xhtml#0/2/t0:42',
   note: 'I loved this part!'
 };
 
