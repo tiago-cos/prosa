@@ -111,9 +111,33 @@ pub async fn apply(pool: &SqlitePool, filename: &str) -> Result<(), DatabaseErro
 
     info!("Applying {} pending migration(s): {pending:?}", pending.len());
     MIGRATOR.run(pool).await?;
+    verify_foreign_keys(pool).await?;
     info!("Database schema migrated to version {}", latest_version());
 
     Ok(())
+}
+
+async fn verify_foreign_keys(pool: &SqlitePool) -> Result<(), DatabaseError> {
+    let violations: Vec<(String, String)> = sqlx::query_as(
+        r"
+        SELECT DISTINCT `table`, `parent`
+        FROM pragma_foreign_key_check
+        ",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    if violations.is_empty() {
+        return Ok(());
+    }
+
+    let detail = violations
+        .iter()
+        .map(|(table, parent)| format!("{table} -> {parent}"))
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    Err(format!("foreign key violations after migrating: {detail}").into())
 }
 
 pub async fn revert_to(pool: &SqlitePool, target: i64, filename: &str) -> Result<(), DatabaseError> {

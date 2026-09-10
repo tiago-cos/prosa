@@ -38,10 +38,11 @@ pub async fn create_book(
         epub_id,
         metadata_id: None,
         cover_id: None,
-        state_id: state::service::initialize_state(&mut tx).await,
     };
 
     repository::add_book(&mut *tx, &book_id, &book).await?;
+
+    state::service::initialize_state(&mut tx, &book_id).await;
 
     sync::service::log_change_in(
         &mut tx,
@@ -77,8 +78,6 @@ pub async fn delete_book_cascade(book_id: &str, session_id: &str) -> Result<Orph
     if let Some(metadata_id) = &book.metadata_id {
         metadata::repository::delete_metadata(&mut *tx, metadata_id).await?;
     }
-
-    state::repository::delete_state(&mut *tx, &book.state_id).await;
 
     let mut epub_id = None;
     if repository::get_books_by_epub(&mut *tx, &book.epub_id)

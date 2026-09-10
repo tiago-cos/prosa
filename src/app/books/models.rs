@@ -57,7 +57,6 @@ pub struct BookEntity {
     pub epub_id: String,
     pub metadata_id: Option<String>,
     pub cover_id: Option<String>,
-    pub state_id: String,
 }
 
 #[derive(TryFromMultipart)]

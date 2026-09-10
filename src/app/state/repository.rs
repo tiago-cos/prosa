@@ -1,16 +1,16 @@
 use super::models::{Location, State, Statistics};
 use sqlx::SqliteExecutor;
 
-pub async fn get_state<'e>(db: impl SqliteExecutor<'e>, state_id: &str) -> State {
+pub async fn get_state<'e>(db: impl SqliteExecutor<'e>, book_id: &str) -> State {
     let (tag, source, rating, reading_status): (Option<String>, Option<String>, Option<f32>, String) =
         sqlx::query_as(
             r"
             SELECT tag, source, rating, reading_status
             FROM state
-            WHERE state_id = $1
+            WHERE book_id = $1
             ",
         )
-        .bind(state_id)
+        .bind(book_id)
         .fetch_one(db)
         .await
         .expect("Failed to get book state");
@@ -27,7 +27,7 @@ pub async fn get_state<'e>(db: impl SqliteExecutor<'e>, state_id: &str) -> State
     }
 }
 
-pub async fn add_state<'e>(db: impl SqliteExecutor<'e>, state_id: &str, state: State) {
+pub async fn add_state<'e>(db: impl SqliteExecutor<'e>, book_id: &str, state: State) {
     let (tag, source) = state.location.map_or((None, None), |l| (l.tag, l.source));
     let statistics = state.statistics.expect("Statistics should be present");
     let reading_status = statistics
@@ -36,11 +36,11 @@ pub async fn add_state<'e>(db: impl SqliteExecutor<'e>, state_id: &str, state: S
 
     sqlx::query(
         r"
-        INSERT INTO state (state_id, tag, source, rating, reading_status)
+        INSERT INTO state (book_id, tag, source, rating, reading_status)
         VALUES ($1, $2, $3, $4, $5)
         ",
     )
-    .bind(state_id)
+    .bind(book_id)
     .bind(tag)
     .bind(source)
     .bind(statistics.rating)
@@ -50,7 +50,7 @@ pub async fn add_state<'e>(db: impl SqliteExecutor<'e>, state_id: &str, state: S
     .expect("Failed to add book state");
 }
 
-pub async fn update_state<'e>(db: impl SqliteExecutor<'e>, state_id: &str, state: State) {
+pub async fn update_state<'e>(db: impl SqliteExecutor<'e>, book_id: &str, state: State) {
     let (tag, source) = state.location.map_or((None, None), |l| (l.tag, l.source));
     let statistics = state.statistics.expect("Statistics should be present");
     let reading_status = statistics
@@ -61,28 +61,15 @@ pub async fn update_state<'e>(db: impl SqliteExecutor<'e>, state_id: &str, state
         r"
         UPDATE state
         SET tag = $1, source = $2, rating = $3, reading_status = $4
-        WHERE state_id = $5
+        WHERE book_id = $5
         ",
     )
     .bind(tag)
     .bind(source)
     .bind(statistics.rating)
     .bind(reading_status)
-    .bind(state_id)
+    .bind(book_id)
     .execute(db)
     .await
     .expect("Failed to update book state");
-}
-
-pub async fn delete_state<'e>(db: impl SqliteExecutor<'e>, state_id: &str) {
-    sqlx::query(
-        r"
-        DELETE FROM state
-        WHERE state_id = $1
-        ",
-    )
-    .bind(state_id)
-    .execute(db)
-    .await
-    .expect("Failed to delete book state");
 }

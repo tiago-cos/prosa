@@ -4,7 +4,7 @@ use sqlx::{Acquire, Sqlite, SqliteExecutor};
 pub async fn get_book<'e>(db: impl SqliteExecutor<'e>, book_id: &str) -> Result<BookEntity, BookError> {
     let book = sqlx::query_as::<_, BookEntity>(
         r"
-        SELECT owner_id, epub_id, metadata_id, cover_id, state_id
+        SELECT owner_id, epub_id, metadata_id, cover_id
         FROM books
         WHERE book_id = ?
         ",
@@ -23,8 +23,8 @@ pub async fn add_book<'e>(
 ) -> Result<(), BookError> {
     sqlx::query(
         r"
-        INSERT INTO books (book_id, owner_id, epub_id, metadata_id, cover_id, state_id)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO books (book_id, owner_id, epub_id, metadata_id, cover_id)
+        VALUES (?, ?, ?, ?, ?)
         ",
     )
     .bind(book_id)
@@ -32,7 +32,6 @@ pub async fn add_book<'e>(
     .bind(&book.epub_id)
     .bind(&book.metadata_id)
     .bind(&book.cover_id)
-    .bind(&book.state_id)
     .execute(db)
     .await?;
 
@@ -65,7 +64,7 @@ pub async fn update_book<'e>(
     let result = sqlx::query(
         r"
         UPDATE books
-        SET owner_id = ?, epub_id = ?, metadata_id = ?, cover_id = ?, state_id = ?
+        SET owner_id = ?, epub_id = ?, metadata_id = ?, cover_id = ?
         WHERE book_id = ?
         ",
     )
@@ -73,7 +72,6 @@ pub async fn update_book<'e>(
     .bind(&book.epub_id)
     .bind(&book.metadata_id)
     .bind(&book.cover_id)
-    .bind(&book.state_id)
     .bind(book_id)
     .execute(db)
     .await?;
@@ -88,7 +86,7 @@ pub async fn update_book<'e>(
 pub async fn get_books_by_cover<'e>(db: impl SqliteExecutor<'e>, cover_id: &str) -> Vec<BookEntity> {
     sqlx::query_as::<_, BookEntity>(
         r"
-        SELECT owner_id, epub_id, metadata_id, cover_id, state_id
+        SELECT owner_id, epub_id, metadata_id, cover_id
         FROM books
         WHERE cover_id = ?
         ",
@@ -102,7 +100,7 @@ pub async fn get_books_by_cover<'e>(db: impl SqliteExecutor<'e>, cover_id: &str)
 pub async fn get_books_by_epub<'e>(db: impl SqliteExecutor<'e>, epub_id: &str) -> Vec<BookEntity> {
     sqlx::query_as::<_, BookEntity>(
         r"
-        SELECT owner_id, epub_id, metadata_id, cover_id, state_id
+        SELECT owner_id, epub_id, metadata_id, cover_id
         FROM books
         WHERE epub_id = ?
         ",
