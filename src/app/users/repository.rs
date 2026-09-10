@@ -1,9 +1,9 @@
 use super::models::{ApiKey, Preferences, PreferencesError, User, UserError};
 use crate::app::{authentication::models::ApiKeyError, users::models::UserProfile};
-use crate::database::pool;
-use sqlx::QueryBuilder;
+use sqlx::{Acquire, QueryBuilder, Sqlite, SqliteExecutor};
 
-pub async fn add_user(
+pub async fn add_user<'e>(
+    db: impl SqliteExecutor<'e>,
     username: &str,
     user_id: &str,
     password_hash: &str,
@@ -20,13 +20,13 @@ pub async fn add_user(
     .bind(password_hash)
     .bind(is_admin)
     .bind(true)
-    .execute(pool())
+    .execute(db)
     .await?;
 
     Ok(())
 }
 
-pub async fn get_user(user_id: &str) -> Result<User, UserError> {
+pub async fn get_user<'e>(db: impl SqliteExecutor<'e>, user_id: &str) -> Result<User, UserError> {
     let user = sqlx::query_as(
         r"
         SELECT user_id, username, password_hash, is_admin
@@ -35,13 +35,17 @@ pub async fn get_user(user_id: &str) -> Result<User, UserError> {
         ",
     )
     .bind(user_id)
-    .fetch_one(pool())
+    .fetch_one(db)
     .await?;
 
     Ok(user)
 }
 
-pub async fn update_user_profile(user_id: &str, profile: UserProfile) -> Result<(), UserError> {
+pub async fn update_user_profile<'e>(
+    db: impl SqliteExecutor<'e>,
+    user_id: &str,
+    profile: UserProfile,
+) -> Result<(), UserError> {
     let result = sqlx::query(
         r"
         UPDATE users
@@ -51,7 +55,7 @@ pub async fn update_user_profile(user_id: &str, profile: UserProfile) -> Result<
     )
     .bind(profile.username)
     .bind(user_id)
-    .execute(pool())
+    .execute(db)
     .await?;
 
     if result.rows_affected() == 0 {
@@ -61,7 +65,10 @@ pub async fn update_user_profile(user_id: &str, profile: UserProfile) -> Result<
     Ok(())
 }
 
-pub async fn get_user_by_username(username: &str) -> Result<User, UserError> {
+pub async fn get_user_by_username<'e>(
+    db: impl SqliteExecutor<'e>,
+    username: &str,
+) -> Result<User, UserError> {
     let user = sqlx::query_as(
         r"
         SELECT user_id, username, password_hash, is_admin
@@ -70,13 +77,19 @@ pub async fn get_user_by_username(username: &str) -> Result<User, UserError> {
         ",
     )
     .bind(username)
-    .fetch_one(pool())
+    .fetch_one(db)
     .await?;
 
     Ok(user)
 }
 
-pub async fn get_api_key_information(user_id: &str, key_id: &str) -> Result<ApiKey, ApiKeyError> {
+pub async fn get_api_key_information<'a>(
+    db: impl Acquire<'a, Database = Sqlite>,
+    user_id: &str,
+    key_id: &str,
+) -> Result<ApiKey, ApiKeyError> {
+    let mut conn = db.acquire().await?;
+
     let mut key: ApiKey = sqlx::query_as(
         r"
         SELECT 
@@ -90,7 +103,7 @@ pub async fn get_api_key_information(user_id: &str, key_id: &str) -> Result<ApiK
     )
     .bind(key_id)
     .bind(user_id)
-    .fetch_one(pool())
+    .fetch_one(&mut *conn)
     .await?;
 
     let capabilities: Vec<String> = sqlx::query_scalar(
@@ -101,7 +114,7 @@ pub async fn get_api_key_information(user_id: &str, key_id: &str) -> Result<ApiK
         ",
     )
     .bind(key_id)
-    .fetch_all(pool())
+    .fetch_all(&mut *conn)
     .await?;
 
     key.capabilities = capabilities;
@@ -109,7 +122,10 @@ pub async fn get_api_key_information(user_id: &str, key_id: &str) -> Result<ApiK
     Ok(key)
 }
 
-pub async fn list_api_keys(user_id: &str) -> Result<Vec<String>, ApiKeyError> {
+pub async fn list_api_keys<'e>(
+    db: impl SqliteExecutor<'e>,
+    user_id: &str,
+) -> Result<Vec<String>, ApiKeyError> {
     let keys: Vec<String> = sqlx::query_scalar(
         r"
         SELECT key_id
@@ -118,13 +134,13 @@ pub async fn list_api_keys(user_id: &str) -> Result<Vec<String>, ApiKeyError> {
         ",
     )
     .bind(user_id)
-    .fetch_all(pool())
+    .fetch_all(db)
     .await?;
 
     Ok(keys)
 }
 
-pub async fn add_providers(user_id: &str, providers: Vec<String>) {
+pub async fn add_providers<'e>(db: impl SqliteExecutor<'e>, user_id: &str, providers: Vec<String>) {
     let mut index = 1;
     let mut query = QueryBuilder::new("INSERT INTO providers (provider_type, priority, user_id)");
 
@@ -135,12 +151,17 @@ pub async fn add_providers(user_id: &str, providers: Vec<String>) {
 
     query
         .build()
-        .execute(pool())
+        .execute(db)
         .await
         .expect("Failed to add initial providers");
 }
 
-pub async fn get_preferences(user_id: &str) -> Result<Preferences, PreferencesError> {
+pub async fn get_preferences<'a>(
+    db: impl Acquire<'a, Database = Sqlite>,
+    user_id: &str,
+) -> Result<Preferences, PreferencesError> {
+    let mut conn = db.acquire().await?;
+
     let providers: Vec<String> = sqlx::query_scalar(
         r"
         SELECT provider_type
@@ -150,7 +171,7 @@ pub async fn get_preferences(user_id: &str) -> Result<Preferences, PreferencesEr
         ",
     )
     .bind(user_id)
-    .fetch_all(pool())
+    .fetch_all(&mut *conn)
     .await?;
 
     let automatic_metadata: bool = sqlx::query_scalar(
@@ -161,7 +182,7 @@ pub async fn get_preferences(user_id: &str) -> Result<Preferences, PreferencesEr
         ",
     )
     .bind(user_id)
-    .fetch_one(pool())
+    .fetch_one(&mut *conn)
     .await?;
 
     Ok(Preferences {
@@ -170,7 +191,11 @@ pub async fn get_preferences(user_id: &str) -> Result<Preferences, PreferencesEr
     })
 }
 
-pub async fn update_preferences(user_id: &str, preferences: Preferences) -> Result<(), PreferencesError> {
+pub async fn update_preferences<'a>(
+    db: impl Acquire<'a, Database = Sqlite>,
+    user_id: &str,
+    preferences: Preferences,
+) -> Result<(), PreferencesError> {
     let automatic_metadata = preferences
         .automatic_metadata
         .expect("Metadata preference should be present");
@@ -178,7 +203,7 @@ pub async fn update_preferences(user_id: &str, preferences: Preferences) -> Resu
         .metadata_providers
         .expect("Providers should be present");
 
-    let mut tx = pool().begin().await?;
+    let mut tx = db.begin().await?;
 
     sqlx::query(
         r"

@@ -1,7 +1,7 @@
 use crate::app::sync::models::{ChangeLogAction, ChangeLogEntityType, ChangeLogEntry};
-use crate::database::pool;
+use sqlx::SqliteExecutor;
 
-pub async fn delete_log_entries(entity_id: &str) {
+pub async fn delete_log_entries<'e>(db: impl SqliteExecutor<'e>, entity_id: &str) {
     sqlx::query(
         r"
         DELETE FROM change_log
@@ -9,12 +9,13 @@ pub async fn delete_log_entries(entity_id: &str) {
         ",
     )
     .bind(entity_id)
-    .execute(pool())
+    .execute(db)
     .await
     .expect("Failed to delete logs");
 }
 
-pub async fn log_change(
+pub async fn log_change<'e>(
+    db: impl SqliteExecutor<'e>,
     entity_id: &str,
     entity_type: ChangeLogEntityType,
     action: ChangeLogAction,
@@ -32,12 +33,17 @@ pub async fn log_change(
     .bind(owner_id)
     .bind(session_id)
     .bind(action)
-    .execute(pool())
+    .execute(db)
     .await
     .expect("Failed to log change");
 }
 
-pub async fn get_changes(user_id: &str, last_sync_token: i64, session_id: &str) -> Vec<ChangeLogEntry> {
+pub async fn get_changes<'e>(
+    db: impl SqliteExecutor<'e>,
+    user_id: &str,
+    last_sync_token: i64,
+    session_id: &str,
+) -> Vec<ChangeLogEntry> {
     let changes: Vec<ChangeLogEntry> = sqlx::query_as(
         r"
         SELECT log_id, entity_id, entity_type, owner_id, session_id, action
@@ -51,7 +57,7 @@ pub async fn get_changes(user_id: &str, last_sync_token: i64, session_id: &str) 
     .bind(user_id)
     .bind(last_sync_token)
     .bind(session_id)
-    .fetch_all(pool())
+    .fetch_all(db)
     .await
     .expect("Failed to fetch change log");
 

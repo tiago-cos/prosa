@@ -1,4 +1,4 @@
-use super::models::{BookEntity, BookError, UploadBookRequest};
+use super::models::{BookError, UploadBookRequest};
 use crate::app::{
     authentication::models::AuthToken,
     books::{
@@ -8,13 +8,7 @@ use crate::app::{
     covers::{self},
     epubs,
     error::ProsaError,
-    metadata,
     server::{LOCKS, METADATA_FETCHER},
-    state,
-    sync::{
-        self,
-        models::{ChangeLogAction, ChangeLogEntityType},
-    },
     users,
 };
 use axum::{
@@ -74,26 +68,7 @@ pub async fn upload_book_handler(
         return Err(BookError::BookConflict.into());
     }
 
-    let state_id = state::service::initialize_state().await;
-
-    let book = BookEntity {
-        owner_id: owner_id.to_string(),
-        epub_id,
-        metadata_id: None,
-        cover_id: None,
-        state_id,
-    };
-
-    let book_id = service::add_book(&book, data.book_id).await?;
-
-    sync::service::log_change(
-        &book_id,
-        ChangeLogEntityType::BookFile,
-        ChangeLogAction::Create,
-        owner_id,
-        &token.session_id,
-    )
-    .await;
+    let book_id = service::create_book(owner_id, epub_id, data.book_id, &token.session_id).await?;
 
     let lock = LOCKS.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
@@ -153,32 +128,14 @@ pub async fn delete_book_handler(
     let lock = LOCKS.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = service::get_book(&book_id).await?;
-    service::delete_book(&book_id).await?;
+    let orphaned = service::delete_book_cascade(&book_id, &token.session_id).await?;
 
-    if let Some(metadata_id) = book.metadata_id {
-        metadata::service::delete_metadata(&metadata_id).await?;
+    if let Some(epub_id) = orphaned.epub_id {
+        epubs::service::remove_epub_file(&epub_id).await?;
     }
 
-    if !service::epub_is_in_use(&book.epub_id).await {
-        epubs::service::delete_epub(&book.epub_id).await?;
-    }
-
-    sync::service::log_change(
-        &book_id,
-        ChangeLogEntityType::BookFile,
-        ChangeLogAction::Delete,
-        &book.owner_id,
-        &token.session_id,
-    )
-    .await;
-
-    let Some(cover_id) = book.cover_id else {
-        return Ok(StatusCode::NO_CONTENT);
-    };
-
-    if !service::cover_is_in_use(&cover_id).await {
-        covers::service::delete_cover(&cover_id).await?;
+    if let Some(cover_id) = orphaned.cover_id {
+        covers::service::remove_cover_file(&cover_id).await?;
     }
 
     Ok(StatusCode::NO_CONTENT)

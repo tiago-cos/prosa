@@ -6,16 +6,17 @@ use crate::app::{
         repository,
     },
 };
+use crate::database::pool;
 use uuid::Uuid;
 
 pub async fn get_shelf(shelf_id: &str) -> Result<Shelf, ProsaError> {
-    let shelf = repository::get_shelf(shelf_id).await?;
+    let shelf = repository::get_shelf(pool(), shelf_id).await?;
     Ok(shelf)
 }
 
 pub async fn get_shelf_metadata(shelf_id: &str) -> Result<ShelfMetadata, ProsaError> {
-    let shelf = repository::get_shelf(shelf_id).await?;
-    let book_count = repository::get_shelf_book_count(shelf_id).await;
+    let shelf = repository::get_shelf(pool(), shelf_id).await?;
+    let book_count = repository::get_shelf_book_count(pool(), shelf_id).await;
 
     let metadata = ShelfMetadata {
         name: shelf.name,
@@ -29,26 +30,26 @@ pub async fn get_shelf_metadata(shelf_id: &str) -> Result<ShelfMetadata, ProsaEr
 pub async fn add_shelf(shelf: Shelf) -> Result<String, ProsaError> {
     verify_shelf_name(&shelf.name)?;
 
-    let old_shelf = repository::get_shelf_by_name_and_owner(&shelf.name, &shelf.owner_id).await;
+    let old_shelf = repository::get_shelf_by_name_and_owner(pool(), &shelf.name, &shelf.owner_id).await;
 
     if old_shelf.is_some() {
         return Err(ShelfError::ShelfConflict.into());
     }
 
     let shelf_id = Uuid::new_v4().to_string();
-    repository::add_shelf(&shelf_id, shelf).await?;
+    repository::add_shelf(pool(), &shelf_id, shelf).await?;
 
     Ok(shelf_id)
 }
 
 pub async fn update_shelf(shelf_id: &str, name: &str) -> Result<(), ProsaError> {
     verify_shelf_name(name)?;
-    repository::update_shelf(shelf_id, name).await?;
+    repository::update_shelf(pool(), shelf_id, name).await?;
     Ok(())
 }
 
 pub async fn delete_shelf(shelf_id: &str) -> Result<(), ProsaError> {
-    repository::delete_shelf(shelf_id).await?;
+    repository::delete_shelf(pool(), shelf_id).await?;
     Ok(())
 }
 
@@ -65,7 +66,7 @@ pub async fn search_shelves(
         return Err(ShelfError::InvalidPagination.into());
     }
 
-    Ok(repository::get_paginated_shelves(page, page_size, username, name).await)
+    Ok(repository::get_paginated_shelves(pool(), page, page_size, username, name).await)
 }
 
 pub async fn add_book_to_shelf(shelf_id: &str, book_id: &str) -> Result<(), ProsaError> {
@@ -73,7 +74,7 @@ pub async fn add_book_to_shelf(shelf_id: &str, book_id: &str) -> Result<(), Pros
     books::service::get_book(book_id).await?;
     get_shelf_metadata(shelf_id).await?;
 
-    repository::add_book_to_shelf(shelf_id, book_id).await?;
+    repository::add_book_to_shelf(pool(), shelf_id, book_id).await?;
     Ok(())
 }
 
@@ -81,7 +82,7 @@ pub async fn list_shelf_books(shelf_id: &str) -> Result<Vec<String>, ProsaError>
     // Verify if the shelf exists
     get_shelf_metadata(shelf_id).await?;
 
-    let books = repository::get_shelf_books(shelf_id).await;
+    let books = repository::get_shelf_books(pool(), shelf_id).await;
     Ok(books)
 }
 
@@ -89,7 +90,7 @@ pub async fn delete_book_from_shelf(shelf_id: &str, book_id: &str) -> Result<(),
     // Verify if the shelf exists
     get_shelf_metadata(shelf_id).await?;
 
-    repository::delete_book_from_shelf(shelf_id, book_id).await?;
+    repository::delete_book_from_shelf(pool(), shelf_id, book_id).await?;
     Ok(())
 }
 

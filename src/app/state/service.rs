@@ -1,4 +1,5 @@
 use super::models::{Location, State, StateError, Statistics, VALID_READING_STATUS};
+use crate::database::pool;
 use crate::{
     CONFIG,
     app::{error::ProsaError, server::CACHE, state::repository},
@@ -6,10 +7,11 @@ use crate::{
 use epub::doc::EpubDoc;
 use merge::Merge;
 use regex::Regex;
+use sqlx::SqliteConnection;
 use std::{collections::HashSet, sync::Arc};
 use uuid::Uuid;
 
-pub async fn initialize_state() -> String {
+pub async fn initialize_state(conn: &mut SqliteConnection) -> String {
     let initial_state = State {
         location: None,
         statistics: Some(Statistics {
@@ -19,12 +21,12 @@ pub async fn initialize_state() -> String {
     };
     let state_id = Uuid::new_v4().to_string();
 
-    repository::add_state(&state_id, initial_state).await;
+    repository::add_state(conn, &state_id, initial_state).await;
     state_id
 }
 
 pub async fn get_state(state_id: &str) -> State {
-    repository::get_state(state_id).await
+    repository::get_state(pool(), state_id).await
 }
 
 pub async fn patch_state(state_id: &str, epub_id: &str, mut state: State) -> Result<(), ProsaError> {
@@ -32,18 +34,18 @@ pub async fn patch_state(state_id: &str, epub_id: &str, mut state: State) -> Res
         return Err(StateError::InvalidState.into());
     }
 
-    let original = repository::get_state(state_id).await;
+    let original = repository::get_state(pool(), state_id).await;
     state.merge(original);
 
     validate_state(&state, epub_id)?;
-    repository::update_state(state_id, state).await;
+    repository::update_state(pool(), state_id, state).await;
 
     Ok(())
 }
 
 pub async fn update_state(state_id: &str, epub_id: &str, state: State) -> Result<(), ProsaError> {
     validate_state(&state, epub_id)?;
-    repository::update_state(state_id, state).await;
+    repository::update_state(pool(), state_id, state).await;
 
     Ok(())
 }

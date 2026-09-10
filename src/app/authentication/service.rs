@@ -1,4 +1,5 @@
 use super::models::{AuthRole, AuthToken, AuthType, CAPABILITIES, JWTClaims};
+use crate::database::pool;
 use crate::{
     CONFIG,
     app::{
@@ -88,7 +89,16 @@ pub async fn generate_api_key(
     let key_hash = BASE64_STANDARD.encode(Sha256::digest(key_bytes));
     let encoded_key = BASE64_STANDARD.encode(key_bytes);
 
-    repository::add_api_key(&key_id, user_id, &key_hash, key_name, expiration, capabilities).await?;
+    repository::add_api_key(
+        pool(),
+        &key_id,
+        user_id,
+        &key_hash,
+        key_name,
+        expiration,
+        capabilities,
+    )
+    .await?;
 
     Ok((key_id, encoded_key))
 }
@@ -109,7 +119,7 @@ pub async fn generate_refresh_token(user_id: &str, session_id: &str) -> String {
     let expiration =
         DateTime::<Utc>::from_timestamp(expiration, 0).expect("Failed to obtain current timestamp");
 
-    repository::add_refresh_token(user_id, session_id, &hash, expiration).await;
+    repository::add_refresh_token(pool(), user_id, session_id, &hash, expiration).await;
 
     encoded_token
 }
@@ -133,16 +143,16 @@ pub fn verify_jwt(token: &str) -> Result<AuthToken, AuthTokenError> {
 pub async fn verify_api_key(key: &str) -> Result<AuthToken, ApiKeyError> {
     let key = BASE64_STANDARD.decode(key).or(Err(ApiKeyError::InvalidKey))?;
     let hash = BASE64_STANDARD.encode(Sha256::digest(&key));
-    let key = repository::get_api_key_by_hash(&hash)
+    let key = repository::get_api_key_by_hash(pool(), &hash)
         .await
         .ok_or(ApiKeyError::InvalidKey)?;
-    let user = users::repository::get_user(&key.user_id)
+    let user = users::repository::get_user(pool(), &key.user_id)
         .await
         .or(Err(ApiKeyError::InvalidKey))?;
 
     // Return error if expired
     if key.expiration.filter(|date| date >= &Utc::now()) != key.expiration {
-        repository::delete_api_key(&key.user_id, &key.key_id).await?;
+        repository::delete_api_key(pool(), &key.user_id, &key.key_id).await?;
         return Err(ApiKeyError::InvalidKey);
     }
 
@@ -165,11 +175,11 @@ pub async fn renew_refresh_token(token: &str) -> Result<(RefreshToken, String), 
         .decode(token)
         .or(Err(AuthTokenError::InvalidToken))?;
     let hash = BASE64_STANDARD.encode(Sha256::digest(&token));
-    let token = repository::get_refresh_token_by_hash(&hash)
+    let token = repository::get_refresh_token_by_hash(pool(), &hash)
         .await
         .ok_or(AuthTokenError::InvalidToken)?;
 
-    repository::delete_refresh_token(&hash).await?;
+    repository::delete_refresh_token(pool(), &hash).await?;
 
     // Return error if expired
     if token.expiration < Utc::now() {
@@ -187,12 +197,12 @@ pub async fn invalidate_refresh_token(token: &str) -> Result<(), AuthTokenError>
         .or(Err(AuthTokenError::InvalidToken))?;
     let hash = BASE64_STANDARD.encode(Sha256::digest(&token));
 
-    repository::delete_refresh_token(&hash).await?;
+    repository::delete_refresh_token(pool(), &hash).await?;
     Ok(())
 }
 
 pub async fn revoke_api_key(user_id: &str, key_id: &str) -> Result<(), ProsaError> {
-    repository::delete_api_key(user_id, key_id).await?;
+    repository::delete_api_key(pool(), user_id, key_id).await?;
     Ok(())
 }
 

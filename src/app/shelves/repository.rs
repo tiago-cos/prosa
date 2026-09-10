@@ -1,8 +1,8 @@
 use super::models::{Shelf, ShelfError};
 use crate::app::shelves::models::{PaginatedShelves, ShelfBookError};
-use crate::database::pool;
+use sqlx::{Acquire, Sqlite, SqliteExecutor};
 
-pub async fn get_shelf(shelf_id: &str) -> Result<Shelf, ShelfError> {
+pub async fn get_shelf<'e>(db: impl SqliteExecutor<'e>, shelf_id: &str) -> Result<Shelf, ShelfError> {
     let shelf: Shelf = sqlx::query_as(
         r"
         SELECT name, owner_id
@@ -11,13 +11,17 @@ pub async fn get_shelf(shelf_id: &str) -> Result<Shelf, ShelfError> {
         ",
     )
     .bind(shelf_id)
-    .fetch_one(pool())
+    .fetch_one(db)
     .await?;
 
     Ok(shelf)
 }
 
-pub async fn get_shelf_by_name_and_owner(name: &str, owner_id: &str) -> Option<Shelf> {
+pub async fn get_shelf_by_name_and_owner<'e>(
+    db: impl SqliteExecutor<'e>,
+    name: &str,
+    owner_id: &str,
+) -> Option<Shelf> {
     sqlx::query_as(
         r"
         SELECT name, owner_id
@@ -27,12 +31,16 @@ pub async fn get_shelf_by_name_and_owner(name: &str, owner_id: &str) -> Option<S
     )
     .bind(name)
     .bind(owner_id)
-    .fetch_optional(pool())
+    .fetch_optional(db)
     .await
     .expect("Failed to fetch shelf by name and owner")
 }
 
-pub async fn add_shelf(shelf_id: &str, shelf: Shelf) -> Result<(), ShelfError> {
+pub async fn add_shelf<'e>(
+    db: impl SqliteExecutor<'e>,
+    shelf_id: &str,
+    shelf: Shelf,
+) -> Result<(), ShelfError> {
     sqlx::query(
         r"
         INSERT INTO shelf (shelf_id, name, owner_id)
@@ -42,13 +50,13 @@ pub async fn add_shelf(shelf_id: &str, shelf: Shelf) -> Result<(), ShelfError> {
     .bind(shelf_id)
     .bind(shelf.name)
     .bind(shelf.owner_id)
-    .execute(pool())
+    .execute(db)
     .await?;
 
     Ok(())
 }
 
-pub async fn delete_shelf(shelf_id: &str) -> Result<(), ShelfError> {
+pub async fn delete_shelf<'e>(db: impl SqliteExecutor<'e>, shelf_id: &str) -> Result<(), ShelfError> {
     let result = sqlx::query(
         r"
         DELETE FROM shelf
@@ -56,7 +64,7 @@ pub async fn delete_shelf(shelf_id: &str) -> Result<(), ShelfError> {
         ",
     )
     .bind(shelf_id)
-    .execute(pool())
+    .execute(db)
     .await?;
 
     if result.rows_affected() == 0 {
@@ -66,7 +74,11 @@ pub async fn delete_shelf(shelf_id: &str) -> Result<(), ShelfError> {
     Ok(())
 }
 
-pub async fn update_shelf(shelf_id: &str, name: &str) -> Result<(), ShelfError> {
+pub async fn update_shelf<'e>(
+    db: impl SqliteExecutor<'e>,
+    shelf_id: &str,
+    name: &str,
+) -> Result<(), ShelfError> {
     let result = sqlx::query(
         r"
         UPDATE shelf
@@ -76,7 +88,7 @@ pub async fn update_shelf(shelf_id: &str, name: &str) -> Result<(), ShelfError> 
     )
     .bind(name)
     .bind(shelf_id)
-    .execute(pool())
+    .execute(db)
     .await?;
 
     if result.rows_affected() == 0 {
@@ -86,13 +98,16 @@ pub async fn update_shelf(shelf_id: &str, name: &str) -> Result<(), ShelfError> 
     Ok(())
 }
 
-pub async fn get_paginated_shelves(
+pub async fn get_paginated_shelves<'a>(
+    db: impl Acquire<'a, Database = Sqlite>,
     page: i64,
     page_size: i64,
     username: Option<String>,
     name: Option<String>,
 ) -> PaginatedShelves {
     let offset = (page - 1) * page_size;
+
+    let mut conn = db.acquire().await.expect("Failed to acquire connection");
 
     let mut shelf_query = sqlx::QueryBuilder::<sqlx::Sqlite>::new(
         r"
@@ -138,13 +153,13 @@ pub async fn get_paginated_shelves(
 
     let shelf_ids = shelf_query
         .build_query_scalar::<String>()
-        .fetch_all(pool())
+        .fetch_all(&mut *conn)
         .await
         .expect("Failed to search for shelves");
 
     let total_elements = count_query
         .build_query_scalar::<i64>()
-        .fetch_one(pool())
+        .fetch_one(&mut *conn)
         .await
         .expect("Failed to count shelves");
 
@@ -159,7 +174,7 @@ pub async fn get_paginated_shelves(
     }
 }
 
-pub async fn get_shelf_book_count(shelf_id: &str) -> i64 {
+pub async fn get_shelf_book_count<'e>(db: impl SqliteExecutor<'e>, shelf_id: &str) -> i64 {
     let count: (i64,) = sqlx::query_as(
         r"
         SELECT COUNT(book_id)
@@ -168,14 +183,18 @@ pub async fn get_shelf_book_count(shelf_id: &str) -> i64 {
         ",
     )
     .bind(shelf_id)
-    .fetch_one(pool())
+    .fetch_one(db)
     .await
     .expect("Failed to count books in shelf");
 
     count.0
 }
 
-pub async fn add_book_to_shelf(shelf_id: &str, book_id: &str) -> Result<(), ShelfBookError> {
+pub async fn add_book_to_shelf<'e>(
+    db: impl SqliteExecutor<'e>,
+    shelf_id: &str,
+    book_id: &str,
+) -> Result<(), ShelfBookError> {
     sqlx::query(
         r"
         INSERT INTO is_in_shelf (shelf_id, book_id)
@@ -184,13 +203,13 @@ pub async fn add_book_to_shelf(shelf_id: &str, book_id: &str) -> Result<(), Shel
     )
     .bind(shelf_id)
     .bind(book_id)
-    .execute(pool())
+    .execute(db)
     .await?;
 
     Ok(())
 }
 
-pub async fn get_shelf_books(shelf_id: &str) -> Vec<String> {
+pub async fn get_shelf_books<'e>(db: impl SqliteExecutor<'e>, shelf_id: &str) -> Vec<String> {
     sqlx::query_scalar(
         r"
         SELECT book_id
@@ -199,12 +218,16 @@ pub async fn get_shelf_books(shelf_id: &str) -> Vec<String> {
         ",
     )
     .bind(shelf_id)
-    .fetch_all(pool())
+    .fetch_all(db)
     .await
     .expect("Failed to list shelf books")
 }
 
-pub async fn delete_book_from_shelf(shelf_id: &str, book_id: &str) -> Result<(), ShelfBookError> {
+pub async fn delete_book_from_shelf<'e>(
+    db: impl SqliteExecutor<'e>,
+    shelf_id: &str,
+    book_id: &str,
+) -> Result<(), ShelfBookError> {
     let result = sqlx::query(
         r"
         DELETE FROM is_in_shelf
@@ -213,7 +236,7 @@ pub async fn delete_book_from_shelf(shelf_id: &str, book_id: &str) -> Result<(),
     )
     .bind(shelf_id)
     .bind(book_id)
-    .execute(pool())
+    .execute(db)
     .await?;
 
     if result.rows_affected() == 0 {

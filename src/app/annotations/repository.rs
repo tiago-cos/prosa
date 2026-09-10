@@ -1,7 +1,8 @@
 use super::models::{Annotation, AnnotationError, NewAnnotationRequest};
-use crate::database::pool;
+use sqlx::SqliteExecutor;
 
-pub async fn add_annotation(
+pub async fn add_annotation<'e>(
+    db: impl SqliteExecutor<'e>,
     annotation_id: &str,
     book_id: &str,
     annotation: &NewAnnotationRequest,
@@ -20,13 +21,16 @@ pub async fn add_annotation(
     .bind(annotation.start_char)
     .bind(annotation.end_char)
     .bind(&annotation.note)
-    .execute(pool())
+    .execute(db)
     .await?;
 
     Ok(())
 }
 
-pub async fn get_annotation(annotation_id: &str) -> Result<Annotation, AnnotationError> {
+pub async fn get_annotation<'e>(
+    db: impl SqliteExecutor<'e>,
+    annotation_id: &str,
+) -> Result<Annotation, AnnotationError> {
     let annotation = sqlx::query_as::<_, Annotation>(
         r"
         SELECT annotation_id, source, start_tag, end_tag, start_char, end_char, note
@@ -35,13 +39,13 @@ pub async fn get_annotation(annotation_id: &str) -> Result<Annotation, Annotatio
         ",
     )
     .bind(annotation_id)
-    .fetch_one(pool())
+    .fetch_one(db)
     .await?;
 
     Ok(annotation)
 }
 
-pub async fn get_annotations(book_id: &str) -> Vec<String> {
+pub async fn get_annotations<'e>(db: impl SqliteExecutor<'e>, book_id: &str) -> Vec<String> {
     sqlx::query_scalar(
         r"
         SELECT annotation_id
@@ -50,12 +54,15 @@ pub async fn get_annotations(book_id: &str) -> Vec<String> {
         ",
     )
     .bind(book_id)
-    .fetch_all(pool())
+    .fetch_all(db)
     .await
     .expect("Failed to retrieve book annotations")
 }
 
-pub async fn delete_annotation(annotation_id: &str) -> Result<(), AnnotationError> {
+pub async fn delete_annotation<'e>(
+    db: impl SqliteExecutor<'e>,
+    annotation_id: &str,
+) -> Result<(), AnnotationError> {
     let result = sqlx::query(
         r"
         DELETE FROM annotations
@@ -63,7 +70,7 @@ pub async fn delete_annotation(annotation_id: &str) -> Result<(), AnnotationErro
         ",
     )
     .bind(annotation_id)
-    .execute(pool())
+    .execute(db)
     .await
     .expect("Failed to delete annotation");
 
@@ -74,7 +81,11 @@ pub async fn delete_annotation(annotation_id: &str) -> Result<(), AnnotationErro
     Ok(())
 }
 
-pub async fn patch_annotation(annotation_id: &str, note: Option<String>) -> Result<(), AnnotationError> {
+pub async fn patch_annotation<'e>(
+    db: impl SqliteExecutor<'e>,
+    annotation_id: &str,
+    note: Option<String>,
+) -> Result<(), AnnotationError> {
     let result = sqlx::query(
         r"
         UPDATE annotations
@@ -84,7 +95,7 @@ pub async fn patch_annotation(annotation_id: &str, note: Option<String>) -> Resu
     )
     .bind(note)
     .bind(annotation_id)
-    .execute(pool())
+    .execute(db)
     .await
     .expect("Failed to patch annotation");
 

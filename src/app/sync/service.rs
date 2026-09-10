@@ -7,8 +7,22 @@ use crate::app::{
     },
     users,
 };
+use crate::database::pool;
+use sqlx::SqliteConnection;
 
 pub async fn log_change(
+    entity_id: &str,
+    entity_type: ChangeLogEntityType,
+    action: ChangeLogAction,
+    owner_id: &str,
+    session_id: &str,
+) {
+    let mut conn = pool().acquire().await.expect("Failed to acquire connection");
+    log_change_in(&mut conn, entity_id, entity_type, action, owner_id, session_id).await;
+}
+
+pub async fn log_change_in(
+    conn: &mut SqliteConnection,
     entity_id: &str,
     entity_type: ChangeLogEntityType,
     action: ChangeLogAction,
@@ -21,10 +35,10 @@ pub async fn log_change(
             ChangeLogEntityType::BookFile | ChangeLogEntityType::ShelfMetadata
         )
     {
-        repository::delete_log_entries(entity_id).await;
+        repository::delete_log_entries(&mut *conn, entity_id).await;
     }
 
-    repository::log_change(entity_id, entity_type, action, owner_id, session_id).await;
+    repository::log_change(conn, entity_id, entity_type, action, owner_id, session_id).await;
 }
 
 pub async fn get_unsynced_changes(
@@ -33,9 +47,9 @@ pub async fn get_unsynced_changes(
     sync_token: i64,
 ) -> Result<UnsyncedResponse, ProsaError> {
     // Ensure user exists
-    users::repository::get_user(owner_id).await?;
+    users::repository::get_user(pool(), owner_id).await?;
 
-    let changes = repository::get_changes(owner_id, sync_token, session_id).await;
+    let changes = repository::get_changes(pool(), owner_id, sync_token, session_id).await;
 
     let mut unsynced_books = UnsyncedBooks {
         file: Vec::new(),

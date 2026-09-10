@@ -1,7 +1,7 @@
 use super::models::CoverError;
-use crate::database::pool;
+use sqlx::SqliteExecutor;
 
-pub async fn add_cover(cover_id: &str, hash: &str) {
+pub async fn add_cover<'e>(db: impl SqliteExecutor<'e>, cover_id: &str, hash: &str) {
     sqlx::query(
         r"
         INSERT INTO covers (cover_id, hash)
@@ -10,12 +10,12 @@ pub async fn add_cover(cover_id: &str, hash: &str) {
     )
     .bind(cover_id)
     .bind(hash)
-    .execute(pool())
+    .execute(db)
     .await
     .expect("Failed to add cover");
 }
 
-pub async fn delete_cover(cover_id: &str) -> Result<(), CoverError> {
+pub async fn delete_cover<'e>(db: impl SqliteExecutor<'e>, cover_id: &str) -> Result<(), CoverError> {
     let result = sqlx::query(
         r"
         DELETE FROM covers
@@ -23,7 +23,7 @@ pub async fn delete_cover(cover_id: &str) -> Result<(), CoverError> {
         ",
     )
     .bind(cover_id)
-    .execute(pool())
+    .execute(db)
     .await
     .expect("Failed to delete cover");
 
@@ -34,7 +34,7 @@ pub async fn delete_cover(cover_id: &str) -> Result<(), CoverError> {
     Ok(())
 }
 
-pub async fn get_cover_by_hash(hash: &str) -> Option<String> {
+pub async fn get_cover_by_hash<'e>(db: impl SqliteExecutor<'e>, hash: &str) -> Option<String> {
     sqlx::query_scalar(
         r"
         SELECT cover_id
@@ -43,7 +43,7 @@ pub async fn get_cover_by_hash(hash: &str) -> Option<String> {
         ",
     )
     .bind(hash)
-    .fetch_optional(pool())
+    .fetch_optional(db)
     .await
     .expect("Failed to get cover by hash")
 }

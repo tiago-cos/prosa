@@ -1,10 +1,10 @@
 use crate::app::authentication::models::{ApiKeyError, AuthTokenError, RefreshToken};
 use crate::app::users::models::ApiKey;
-use crate::database::pool;
 use chrono::{DateTime, Utc};
-use sqlx::QueryBuilder;
+use sqlx::{Acquire, QueryBuilder, Sqlite, SqliteExecutor};
 
-pub async fn add_refresh_token(
+pub async fn add_refresh_token<'e>(
+    db: impl SqliteExecutor<'e>,
     user_id: &str,
     session_id: &str,
     refresh_token_hash: &str,
@@ -20,12 +20,15 @@ pub async fn add_refresh_token(
     .bind(session_id)
     .bind(refresh_token_hash)
     .bind(expiration)
-    .execute(pool())
+    .execute(db)
     .await
     .expect("Failed to add refresh token");
 }
 
-pub async fn get_refresh_token_by_hash(refresh_token_hash: &str) -> Option<RefreshToken> {
+pub async fn get_refresh_token_by_hash<'e>(
+    db: impl SqliteExecutor<'e>,
+    refresh_token_hash: &str,
+) -> Option<RefreshToken> {
     sqlx::query_as::<_, RefreshToken>(
         r"
         SELECT 
@@ -38,12 +41,15 @@ pub async fn get_refresh_token_by_hash(refresh_token_hash: &str) -> Option<Refre
         ",
     )
     .bind(refresh_token_hash)
-    .fetch_optional(pool())
+    .fetch_optional(db)
     .await
     .expect("Failed to get refresh token by hash")
 }
 
-pub async fn delete_refresh_token(token_hash: &str) -> Result<(), AuthTokenError> {
+pub async fn delete_refresh_token<'e>(
+    db: impl SqliteExecutor<'e>,
+    token_hash: &str,
+) -> Result<(), AuthTokenError> {
     let result = sqlx::query(
         r"
         DELETE FROM refresh_tokens
@@ -51,7 +57,7 @@ pub async fn delete_refresh_token(token_hash: &str) -> Result<(), AuthTokenError
         ",
     )
     .bind(token_hash)
-    .execute(pool())
+    .execute(db)
     .await
     .expect("Failed to delete refresh token");
 
@@ -62,7 +68,8 @@ pub async fn delete_refresh_token(token_hash: &str) -> Result<(), AuthTokenError
     Ok(())
 }
 
-pub async fn add_api_key(
+pub async fn add_api_key<'a>(
+    db: impl Acquire<'a, Database = Sqlite>,
     key_id: &str,
     user_id: &str,
     key_hash: &str,
@@ -70,7 +77,7 @@ pub async fn add_api_key(
     expiration: Option<DateTime<Utc>>,
     capabilities: Vec<String>,
 ) -> Result<(), ApiKeyError> {
-    let mut tx = pool().begin().await?;
+    let mut tx = db.begin().await?;
 
     sqlx::query(
         r"
@@ -96,7 +103,12 @@ pub async fn add_api_key(
     Ok(())
 }
 
-pub async fn get_api_key_by_hash(key_hash: &str) -> Option<ApiKey> {
+pub async fn get_api_key_by_hash<'a>(
+    db: impl Acquire<'a, Database = Sqlite>,
+    key_hash: &str,
+) -> Option<ApiKey> {
+    let mut conn = db.acquire().await.expect("Failed to acquire connection");
+
     let mut key: ApiKey = sqlx::query_as(
         r"
         SELECT 
@@ -109,7 +121,7 @@ pub async fn get_api_key_by_hash(key_hash: &str) -> Option<ApiKey> {
         ",
     )
     .bind(key_hash)
-    .fetch_optional(pool())
+    .fetch_optional(&mut *conn)
     .await
     .expect("Failed to get api key by hash")?;
 
@@ -121,7 +133,7 @@ pub async fn get_api_key_by_hash(key_hash: &str) -> Option<ApiKey> {
         ",
     )
     .bind(&key.key_id)
-    .fetch_all(pool())
+    .fetch_all(&mut *conn)
     .await
     .expect("Failed to get api key capabilities");
 
@@ -129,7 +141,11 @@ pub async fn get_api_key_by_hash(key_hash: &str) -> Option<ApiKey> {
     Some(key)
 }
 
-pub async fn delete_api_key(user_id: &str, key_id: &str) -> Result<(), ApiKeyError> {
+pub async fn delete_api_key<'e>(
+    db: impl SqliteExecutor<'e>,
+    user_id: &str,
+    key_id: &str,
+) -> Result<(), ApiKeyError> {
     let result = sqlx::query(
         r"
         DELETE FROM api_keys
@@ -138,7 +154,7 @@ pub async fn delete_api_key(user_id: &str, key_id: &str) -> Result<(), ApiKeyErr
     )
     .bind(key_id)
     .bind(user_id)
-    .execute(pool())
+    .execute(db)
     .await?;
 
     if result.rows_affected() == 0 {

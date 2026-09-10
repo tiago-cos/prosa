@@ -1,7 +1,7 @@
 use super::models::{Location, State, Statistics};
-use crate::database::pool;
+use sqlx::SqliteExecutor;
 
-pub async fn get_state(state_id: &str) -> State {
+pub async fn get_state<'e>(db: impl SqliteExecutor<'e>, state_id: &str) -> State {
     let (tag, source, rating, reading_status): (Option<String>, Option<String>, Option<f32>, String) =
         sqlx::query_as(
             r"
@@ -11,7 +11,7 @@ pub async fn get_state(state_id: &str) -> State {
             ",
         )
         .bind(state_id)
-        .fetch_one(pool())
+        .fetch_one(db)
         .await
         .expect("Failed to get book state");
 
@@ -27,7 +27,7 @@ pub async fn get_state(state_id: &str) -> State {
     }
 }
 
-pub async fn add_state(state_id: &str, state: State) {
+pub async fn add_state<'e>(db: impl SqliteExecutor<'e>, state_id: &str, state: State) {
     let (tag, source) = state.location.map_or((None, None), |l| (l.tag, l.source));
     let statistics = state.statistics.expect("Statistics should be present");
     let reading_status = statistics
@@ -45,12 +45,12 @@ pub async fn add_state(state_id: &str, state: State) {
     .bind(source)
     .bind(statistics.rating)
     .bind(reading_status.clone())
-    .execute(pool())
+    .execute(db)
     .await
     .expect("Failed to add book state");
 }
 
-pub async fn update_state(state_id: &str, state: State) {
+pub async fn update_state<'e>(db: impl SqliteExecutor<'e>, state_id: &str, state: State) {
     let (tag, source) = state.location.map_or((None, None), |l| (l.tag, l.source));
     let statistics = state.statistics.expect("Statistics should be present");
     let reading_status = statistics
@@ -69,7 +69,20 @@ pub async fn update_state(state_id: &str, state: State) {
     .bind(statistics.rating)
     .bind(reading_status)
     .bind(state_id)
-    .execute(pool())
+    .execute(db)
     .await
     .expect("Failed to update book state");
+}
+
+pub async fn delete_state<'e>(db: impl SqliteExecutor<'e>, state_id: &str) {
+    sqlx::query(
+        r"
+        DELETE FROM state
+        WHERE state_id = $1
+        ",
+    )
+    .bind(state_id)
+    .execute(db)
+    .await
+    .expect("Failed to delete book state");
 }

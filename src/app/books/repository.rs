@@ -1,7 +1,7 @@
 use super::models::{BookEntity, BookError, PaginatedBookResponse};
-use crate::database::pool;
+use sqlx::{Acquire, Sqlite, SqliteExecutor};
 
-pub async fn get_book(book_id: &str) -> Result<BookEntity, BookError> {
+pub async fn get_book<'e>(db: impl SqliteExecutor<'e>, book_id: &str) -> Result<BookEntity, BookError> {
     let book = sqlx::query_as::<_, BookEntity>(
         r"
         SELECT owner_id, epub_id, metadata_id, cover_id, state_id
@@ -10,13 +10,17 @@ pub async fn get_book(book_id: &str) -> Result<BookEntity, BookError> {
         ",
     )
     .bind(book_id)
-    .fetch_one(pool())
+    .fetch_one(db)
     .await?;
 
     Ok(book)
 }
 
-pub async fn add_book(book_id: &str, book: &BookEntity) -> Result<(), BookError> {
+pub async fn add_book<'e>(
+    db: impl SqliteExecutor<'e>,
+    book_id: &str,
+    book: &BookEntity,
+) -> Result<(), BookError> {
     sqlx::query(
         r"
         INSERT INTO books (book_id, owner_id, epub_id, metadata_id, cover_id, state_id)
@@ -29,13 +33,13 @@ pub async fn add_book(book_id: &str, book: &BookEntity) -> Result<(), BookError>
     .bind(&book.metadata_id)
     .bind(&book.cover_id)
     .bind(&book.state_id)
-    .execute(pool())
+    .execute(db)
     .await?;
 
     Ok(())
 }
 
-pub async fn delete_book(book_id: &str) -> Result<(), BookError> {
+pub async fn delete_book<'e>(db: impl SqliteExecutor<'e>, book_id: &str) -> Result<(), BookError> {
     let result = sqlx::query(
         r"
         DELETE FROM books
@@ -43,7 +47,7 @@ pub async fn delete_book(book_id: &str) -> Result<(), BookError> {
         ",
     )
     .bind(book_id)
-    .execute(pool())
+    .execute(db)
     .await?;
 
     if result.rows_affected() == 0 {
@@ -53,7 +57,11 @@ pub async fn delete_book(book_id: &str) -> Result<(), BookError> {
     Ok(())
 }
 
-pub async fn update_book(book_id: &str, book: &BookEntity) -> Result<(), BookError> {
+pub async fn update_book<'e>(
+    db: impl SqliteExecutor<'e>,
+    book_id: &str,
+    book: &BookEntity,
+) -> Result<(), BookError> {
     let result = sqlx::query(
         r"
         UPDATE books
@@ -67,7 +75,7 @@ pub async fn update_book(book_id: &str, book: &BookEntity) -> Result<(), BookErr
     .bind(&book.cover_id)
     .bind(&book.state_id)
     .bind(book_id)
-    .execute(pool())
+    .execute(db)
     .await?;
 
     if result.rows_affected() == 0 {
@@ -77,7 +85,7 @@ pub async fn update_book(book_id: &str, book: &BookEntity) -> Result<(), BookErr
     Ok(())
 }
 
-pub async fn get_books_by_cover(cover_id: &str) -> Vec<BookEntity> {
+pub async fn get_books_by_cover<'e>(db: impl SqliteExecutor<'e>, cover_id: &str) -> Vec<BookEntity> {
     sqlx::query_as::<_, BookEntity>(
         r"
         SELECT owner_id, epub_id, metadata_id, cover_id, state_id
@@ -86,12 +94,12 @@ pub async fn get_books_by_cover(cover_id: &str) -> Vec<BookEntity> {
         ",
     )
     .bind(cover_id)
-    .fetch_all(pool())
+    .fetch_all(db)
     .await
     .expect("Failed to retrieve books by cover")
 }
 
-pub async fn get_books_by_epub(epub_id: &str) -> Vec<BookEntity> {
+pub async fn get_books_by_epub<'e>(db: impl SqliteExecutor<'e>, epub_id: &str) -> Vec<BookEntity> {
     sqlx::query_as::<_, BookEntity>(
         r"
         SELECT owner_id, epub_id, metadata_id, cover_id, state_id
@@ -100,12 +108,12 @@ pub async fn get_books_by_epub(epub_id: &str) -> Vec<BookEntity> {
         ",
     )
     .bind(epub_id)
-    .fetch_all(pool())
+    .fetch_all(db)
     .await
     .expect("Failed to retrieve books by epub")
 }
 
-pub async fn epub_belongs_to_user(epub_id: &str, user_id: &str) -> bool {
+pub async fn epub_belongs_to_user<'e>(db: impl SqliteExecutor<'e>, epub_id: &str, user_id: &str) -> bool {
     let exists = sqlx::query_scalar::<_, i64>(
         r"
         SELECT 1
@@ -116,14 +124,15 @@ pub async fn epub_belongs_to_user(epub_id: &str, user_id: &str) -> bool {
     )
     .bind(epub_id)
     .bind(user_id)
-    .fetch_optional(pool())
+    .fetch_optional(db)
     .await
     .expect("Failed to verify if epub belongs to user");
 
     exists.is_some()
 }
 
-pub async fn get_paginated_books(
+pub async fn get_paginated_books<'a>(
+    db: impl Acquire<'a, Database = Sqlite>,
     page: i64,
     page_size: i64,
     username: Option<String>,
@@ -131,6 +140,8 @@ pub async fn get_paginated_books(
     author: Option<String>,
 ) -> PaginatedBookResponse {
     let offset = (page - 1) * page_size;
+
+    let mut conn = db.acquire().await.expect("Failed to acquire connection");
 
     let mut book_query = sqlx::QueryBuilder::<sqlx::Sqlite>::new(
         r"
@@ -192,13 +203,13 @@ pub async fn get_paginated_books(
 
     let book_ids = book_query
         .build_query_scalar::<String>()
-        .fetch_all(pool())
+        .fetch_all(&mut *conn)
         .await
         .expect("Failed to search for books");
 
     let total_elements = count_query
         .build_query_scalar::<i64>()
-        .fetch_one(pool())
+        .fetch_one(&mut *conn)
         .await
         .expect("Failed to count books");
 

@@ -1,8 +1,12 @@
 use super::models::{Contributor, Metadata, MetadataError, Series};
-use crate::database::pool;
-use sqlx::QueryBuilder;
+use sqlx::{Acquire, QueryBuilder, Sqlite};
 
-pub async fn get_metadata(metadata_id: &str) -> Result<Metadata, MetadataError> {
+pub async fn get_metadata<'a>(
+    db: impl Acquire<'a, Database = Sqlite>,
+    metadata_id: &str,
+) -> Result<Metadata, MetadataError> {
+    let mut conn = db.acquire().await?;
+
     let mut metadata: Metadata = sqlx::query_as(
         r"
         SELECT title, subtitle, description, publisher, publication_date, isbn, page_count, language
@@ -11,7 +15,7 @@ pub async fn get_metadata(metadata_id: &str) -> Result<Metadata, MetadataError> 
         ",
     )
     .bind(metadata_id)
-    .fetch_one(pool())
+    .fetch_one(&mut *conn)
     .await?;
 
     let contributors: Vec<Contributor> = sqlx::query_as(
@@ -22,7 +26,7 @@ pub async fn get_metadata(metadata_id: &str) -> Result<Metadata, MetadataError> 
         ",
     )
     .bind(metadata_id)
-    .fetch_all(pool())
+    .fetch_all(&mut *conn)
     .await?;
 
     let contributors = Some(contributors).filter(|c| !c.is_empty());
@@ -35,7 +39,7 @@ pub async fn get_metadata(metadata_id: &str) -> Result<Metadata, MetadataError> 
         ",
     )
     .bind(metadata_id)
-    .fetch_optional(pool())
+    .fetch_optional(&mut *conn)
     .await?;
 
     let genres: Vec<String> = sqlx::query_scalar(
@@ -46,7 +50,7 @@ pub async fn get_metadata(metadata_id: &str) -> Result<Metadata, MetadataError> 
         ",
     )
     .bind(metadata_id)
-    .fetch_all(pool())
+    .fetch_all(&mut *conn)
     .await?;
 
     let genres = Some(genres).filter(|g| !g.is_empty());
@@ -58,8 +62,12 @@ pub async fn get_metadata(metadata_id: &str) -> Result<Metadata, MetadataError> 
     Ok(metadata)
 }
 
-pub async fn add_metadata(metadata_id: &str, metadata: &Metadata) -> Result<(), MetadataError> {
-    let mut tx = pool().begin().await?;
+pub async fn add_metadata<'a>(
+    db: impl Acquire<'a, Database = Sqlite>,
+    metadata_id: &str,
+    metadata: &Metadata,
+) -> Result<(), MetadataError> {
+    let mut tx = db.begin().await?;
 
     sqlx::query(
         r"
@@ -115,7 +123,10 @@ pub async fn add_metadata(metadata_id: &str, metadata: &Metadata) -> Result<(), 
     Ok(())
 }
 
-pub async fn delete_metadata(metadata_id: &str) -> Result<(), MetadataError> {
+pub async fn delete_metadata<'e>(
+    db: impl sqlx::SqliteExecutor<'e>,
+    metadata_id: &str,
+) -> Result<(), MetadataError> {
     let result = sqlx::query(
         r"
         DELETE FROM metadata
@@ -123,7 +134,7 @@ pub async fn delete_metadata(metadata_id: &str) -> Result<(), MetadataError> {
         ",
     )
     .bind(metadata_id)
-    .execute(pool())
+    .execute(db)
     .await?;
 
     if result.rows_affected() == 0 {
@@ -133,8 +144,12 @@ pub async fn delete_metadata(metadata_id: &str) -> Result<(), MetadataError> {
     Ok(())
 }
 
-pub async fn update_metadata(metadata_id: &str, metadata: &Metadata) -> Result<(), MetadataError> {
-    let mut tx = pool().begin().await?;
+pub async fn update_metadata<'a>(
+    db: impl Acquire<'a, Database = Sqlite>,
+    metadata_id: &str,
+    metadata: &Metadata,
+) -> Result<(), MetadataError> {
+    let mut tx = db.begin().await?;
 
     let result = sqlx::query(
         r"

@@ -1,4 +1,5 @@
 use super::models::EpubError;
+use crate::database::pool;
 use crate::{
     CONFIG,
     app::{epubs::repository, server::LOCKS},
@@ -7,10 +8,10 @@ use base64::{Engine, prelude::BASE64_STANDARD};
 use epub::doc::EpubDoc;
 use sha2::{Digest, Sha256};
 use std::io::Cursor;
+use tokio::process::Command;
 use tokio::{
     fs::{self, File, remove_file},
     io::{AsyncReadExt, AsyncWriteExt},
-    process::Command,
 };
 use uuid::Uuid;
 
@@ -23,7 +24,7 @@ pub async fn write_epub(epub_data: &Vec<u8>) -> Result<String, EpubError> {
     let lock = LOCKS.get_hash_lock(&hash).await;
     let _guard = lock.write().await;
 
-    if let Some(epub_id) = repository::get_epub_by_hash(&hash).await {
+    if let Some(epub_id) = repository::get_epub_by_hash(pool(), &hash).await {
         return Ok(epub_id);
     }
 
@@ -41,7 +42,7 @@ pub async fn write_epub(epub_data: &Vec<u8>) -> Result<String, EpubError> {
     file.sync_all().await.expect("Failed to sync epub file");
 
     convert_to_kepub(&epub_file).await;
-    repository::add_epub(&epub_id, &hash).await;
+    repository::add_epub(pool(), &epub_id, &hash).await;
 
     Ok(epub_id)
 }
@@ -66,11 +67,9 @@ pub async fn read_epub(epub_id: &str) -> Result<Vec<u8>, EpubError> {
     Ok(buffer)
 }
 
-pub async fn delete_epub(epub_id: &str) -> Result<(), EpubError> {
+pub async fn remove_epub_file(epub_id: &str) -> Result<(), EpubError> {
     let epub_file = format!("{}/{}.kepub.epub", CONFIG.book_storage.epub_path, epub_id);
     remove_file(epub_file).await?;
-
-    repository::delete_epub(epub_id).await?;
 
     Ok(())
 }

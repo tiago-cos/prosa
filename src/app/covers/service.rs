@@ -1,4 +1,5 @@
 use super::models::CoverError;
+use crate::database::pool;
 use crate::{
     CONFIG,
     app::{
@@ -25,7 +26,7 @@ pub async fn write_cover(cover_data: &Vec<u8>) -> Result<String, CoverError> {
     let lock = LOCKS.get_hash_lock(&hash).await;
     let _guard = lock.write().await;
 
-    if let Some(cover_id) = repository::get_cover_by_hash(&hash).await {
+    if let Some(cover_id) = repository::get_cover_by_hash(pool(), &hash).await {
         return Ok(cover_id);
     }
 
@@ -41,7 +42,7 @@ pub async fn write_cover(cover_data: &Vec<u8>) -> Result<String, CoverError> {
 
     file.sync_all().await.expect("Failed to sync cover file");
 
-    repository::add_cover(&cover_id, &hash).await;
+    repository::add_cover(pool(), &cover_id, &hash).await;
 
     let cache_key = format!("images:{cover_id}");
     CACHE.image_cache.insert(cache_key, Arc::new(cover_data.clone()));
@@ -67,10 +68,15 @@ pub async fn read_cover(cover_id: &str) -> Result<Vec<u8>, CoverError> {
 }
 
 pub async fn delete_cover(cover_id: &str) -> Result<(), CoverError> {
+    repository::delete_cover(pool(), cover_id).await?;
+    remove_cover_file(cover_id).await?;
+
+    Ok(())
+}
+
+pub async fn remove_cover_file(cover_id: &str) -> Result<(), CoverError> {
     let cover_file = format!("{}/{}.jpeg", CONFIG.book_storage.cover_path, cover_id);
     remove_file(&cover_file).await?;
-
-    repository::delete_cover(cover_id).await?;
 
     let cache_key = format!("images:{cover_id}");
     CACHE.image_cache.remove(&cache_key);

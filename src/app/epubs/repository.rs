@@ -1,7 +1,7 @@
 use super::models::EpubError;
-use crate::database::pool;
+use sqlx::SqliteExecutor;
 
-pub async fn add_epub(epub_id: &str, hash: &str) {
+pub async fn add_epub<'e>(db: impl SqliteExecutor<'e>, epub_id: &str, hash: &str) {
     sqlx::query(
         r"
         INSERT INTO epubs (epub_id, hash)
@@ -10,12 +10,12 @@ pub async fn add_epub(epub_id: &str, hash: &str) {
     )
     .bind(epub_id)
     .bind(hash)
-    .execute(pool())
+    .execute(db)
     .await
     .expect("Failed to add epub");
 }
 
-pub async fn delete_epub(epub_id: &str) -> Result<(), EpubError> {
+pub async fn delete_epub<'e>(db: impl SqliteExecutor<'e>, epub_id: &str) -> Result<(), EpubError> {
     let result = sqlx::query(
         r"
         DELETE FROM epubs
@@ -23,7 +23,7 @@ pub async fn delete_epub(epub_id: &str) -> Result<(), EpubError> {
         ",
     )
     .bind(epub_id)
-    .execute(pool())
+    .execute(db)
     .await
     .expect("Failed to delete epub");
 
@@ -34,7 +34,7 @@ pub async fn delete_epub(epub_id: &str) -> Result<(), EpubError> {
     Ok(())
 }
 
-pub async fn get_epub_by_hash(hash: &str) -> Option<String> {
+pub async fn get_epub_by_hash<'e>(db: impl SqliteExecutor<'e>, hash: &str) -> Option<String> {
     sqlx::query_scalar(
         r"
         SELECT epub_id
@@ -43,7 +43,7 @@ pub async fn get_epub_by_hash(hash: &str) -> Option<String> {
         ",
     )
     .bind(hash)
-    .fetch_optional(pool())
+    .fetch_optional(db)
     .await
     .expect("Failed to get epub by hash")
 }
