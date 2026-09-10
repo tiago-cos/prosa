@@ -105,6 +105,72 @@ describe('Get metadata', () => {
   });
 });
 
+describe('Extracted metadata', () => {
+  test('Unparsable fields are skipped, not fatal', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const uploadResponse = await uploadBook(userId, 'Malformed_Metadata.epub', { jwt: registerResponse.body.jwt_token });
+    expect(uploadResponse.status).toBe(200);
+
+    // Wait for metadata to be extracted
+    await wait(1);
+
+    const getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    expect(getResponse.status).toBe(200);
+
+    expect(getResponse.body.title).toBe('Hostile Book');
+    expect(getResponse.body.subtitle).toBe('A Subtitle Via Refines');
+
+    expect(getResponse.body.isbn).toBe('9780441013593');
+
+    expect(getResponse.body.contributors).toEqual([
+      { name: 'Ada Writer', role: 'Author' },
+      { name: 'Bob Editor', role: 'Editor' },
+      { name: 'Cy Translator', role: 'Translator' }
+    ]);
+
+    expect(getResponse.body.publication_date).toBeUndefined();
+    expect(getResponse.body.series).toBeUndefined();
+  });
+
+  test('A book with unparsable fields does not stop later extractions', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const malformedResponse = await uploadBook(userId, 'Malformed_Metadata.epub', { jwt: registerResponse.body.jwt_token });
+    expect(malformedResponse.status).toBe(200);
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    expect(uploadResponse.status).toBe(200);
+
+    // Wait for metadata to be extracted
+    await wait(1);
+
+    const getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    expect(getResponse.status).toBe(200);
+    expect(getResponse.body).toEqual(ALICE_METADATA);
+  });
+
+  test('An identifier that is not an ISBN is not stored as one', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    expect(uploadResponse.status).toBe(200);
+
+    // Wait for metadata to be extracted
+    await wait(1);
+
+    const getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    expect(getResponse.status).toBe(200);
+    expect(getResponse.body.isbn).toBeUndefined();
+  });
+});
+
 describe('Add metadata', () => {
   test('Simple', async () => {
     const { response: registerResponse } = await registerUser();
