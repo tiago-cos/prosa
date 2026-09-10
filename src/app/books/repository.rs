@@ -4,7 +4,7 @@ use sqlx::{Acquire, Sqlite, SqliteExecutor};
 pub async fn get_book<'e>(db: impl SqliteExecutor<'e>, book_id: &str) -> Result<BookEntity, BookError> {
     let book = sqlx::query_as::<_, BookEntity>(
         r"
-        SELECT owner_id, epub_id, metadata_id, cover_id
+        SELECT owner_id, epub_id, cover_id
         FROM books
         WHERE book_id = ?
         ",
@@ -23,14 +23,13 @@ pub async fn add_book<'e>(
 ) -> Result<(), BookError> {
     sqlx::query(
         r"
-        INSERT INTO books (book_id, owner_id, epub_id, metadata_id, cover_id)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO books (book_id, owner_id, epub_id, cover_id)
+        VALUES (?, ?, ?, ?)
         ",
     )
     .bind(book_id)
     .bind(&book.owner_id)
     .bind(&book.epub_id)
-    .bind(&book.metadata_id)
     .bind(&book.cover_id)
     .execute(db)
     .await?;
@@ -64,13 +63,12 @@ pub async fn update_book<'e>(
     let result = sqlx::query(
         r"
         UPDATE books
-        SET owner_id = ?, epub_id = ?, metadata_id = ?, cover_id = ?
+        SET owner_id = ?, epub_id = ?, cover_id = ?
         WHERE book_id = ?
         ",
     )
     .bind(&book.owner_id)
     .bind(&book.epub_id)
-    .bind(&book.metadata_id)
     .bind(&book.cover_id)
     .bind(book_id)
     .execute(db)
@@ -86,7 +84,7 @@ pub async fn update_book<'e>(
 pub async fn get_books_by_cover<'e>(db: impl SqliteExecutor<'e>, cover_id: &str) -> Vec<BookEntity> {
     sqlx::query_as::<_, BookEntity>(
         r"
-        SELECT owner_id, epub_id, metadata_id, cover_id
+        SELECT owner_id, epub_id, cover_id
         FROM books
         WHERE cover_id = ?
         ",
@@ -100,7 +98,7 @@ pub async fn get_books_by_cover<'e>(db: impl SqliteExecutor<'e>, cover_id: &str)
 pub async fn get_books_by_epub<'e>(db: impl SqliteExecutor<'e>, epub_id: &str) -> Vec<BookEntity> {
     sqlx::query_as::<_, BookEntity>(
         r"
-        SELECT owner_id, epub_id, metadata_id, cover_id
+        SELECT owner_id, epub_id, cover_id
         FROM books
         WHERE epub_id = ?
         ",
@@ -146,8 +144,8 @@ pub async fn get_paginated_books<'a>(
         SELECT DISTINCT b.book_id
         FROM books b
         INNER JOIN users u ON b.owner_id = u.user_id
-        LEFT JOIN metadata m ON b.metadata_id = m.metadata_id
-        LEFT JOIN contributors c ON b.metadata_id = c.metadata_id
+        LEFT JOIN metadata m ON m.book_id = b.book_id
+        LEFT JOIN contributors c ON c.metadata_id = m.metadata_id
         WHERE 1=1
         ",
     );
@@ -157,8 +155,8 @@ pub async fn get_paginated_books<'a>(
         SELECT COUNT(DISTINCT b.book_id)
         FROM books b
         INNER JOIN users u ON b.owner_id = u.user_id
-        LEFT JOIN metadata m ON b.metadata_id = m.metadata_id
-        LEFT JOIN contributors c ON b.metadata_id = c.metadata_id
+        LEFT JOIN metadata m ON m.book_id = b.book_id
+        LEFT JOIN contributors c ON c.metadata_id = m.metadata_id
         WHERE 1=1
         ",
     );

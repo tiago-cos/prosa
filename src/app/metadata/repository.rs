@@ -3,7 +3,7 @@ use sqlx::{Acquire, QueryBuilder, Sqlite};
 
 pub async fn get_metadata<'a>(
     db: impl Acquire<'a, Database = Sqlite>,
-    metadata_id: &str,
+    book_id: &str,
 ) -> Result<Metadata, MetadataError> {
     let mut conn = db.acquire().await?;
 
@@ -11,21 +11,22 @@ pub async fn get_metadata<'a>(
         r"
         SELECT title, subtitle, description, publisher, publication_date, isbn, page_count, language
         FROM metadata
-        WHERE metadata_id = $1
+        WHERE book_id = $1
         ",
     )
-    .bind(metadata_id)
+    .bind(book_id)
     .fetch_one(&mut *conn)
     .await?;
 
     let contributors: Vec<Contributor> = sqlx::query_as(
         r"
-        SELECT role, name
-        FROM contributors
-        WHERE metadata_id = $1
+        SELECT c.role, c.name
+        FROM contributors c
+        JOIN metadata m ON m.metadata_id = c.metadata_id
+        WHERE m.book_id = $1
         ",
     )
-    .bind(metadata_id)
+    .bind(book_id)
     .fetch_all(&mut *conn)
     .await?;
 
@@ -33,23 +34,25 @@ pub async fn get_metadata<'a>(
 
     let series: Option<Series> = sqlx::query_as(
         r"
-        SELECT title, number
-        FROM series
-        WHERE metadata_id = $1
+        SELECT s.title, s.number
+        FROM series s
+        JOIN metadata m ON m.metadata_id = s.metadata_id
+        WHERE m.book_id = $1
         ",
     )
-    .bind(metadata_id)
+    .bind(book_id)
     .fetch_optional(&mut *conn)
     .await?;
 
     let genres: Vec<String> = sqlx::query_scalar(
         r"
-        SELECT genre
-        FROM genres
-        WHERE metadata_id = $1
+        SELECT g.genre
+        FROM genres g
+        JOIN metadata m ON m.metadata_id = g.metadata_id
+        WHERE m.book_id = $1
         ",
     )
-    .bind(metadata_id)
+    .bind(book_id)
     .fetch_all(&mut *conn)
     .await?;
 
@@ -62,20 +65,37 @@ pub async fn get_metadata<'a>(
     Ok(metadata)
 }
 
+pub async fn metadata_exists<'e>(db: impl sqlx::SqliteExecutor<'e>, book_id: &str) -> bool {
+    sqlx::query_scalar::<_, i64>(
+        r"
+        SELECT 1
+        FROM metadata
+        WHERE book_id = $1
+        ",
+    )
+    .bind(book_id)
+    .fetch_optional(db)
+    .await
+    .expect("Failed to check for book metadata")
+    .is_some()
+}
+
 pub async fn add_metadata<'a>(
     db: impl Acquire<'a, Database = Sqlite>,
     metadata_id: &str,
+    book_id: &str,
     metadata: &Metadata,
 ) -> Result<(), MetadataError> {
     let mut tx = db.begin().await?;
 
     sqlx::query(
         r"
-        INSERT INTO metadata (metadata_id, title, subtitle, description, publisher, publication_date, isbn, page_count, language)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        INSERT INTO metadata (metadata_id, book_id, title, subtitle, description, publisher, publication_date, isbn, page_count, language)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         ",
     )
     .bind(metadata_id)
+    .bind(book_id)
     .bind(&metadata.title)
     .bind(&metadata.subtitle)
     .bind(&metadata.description)
@@ -125,15 +145,15 @@ pub async fn add_metadata<'a>(
 
 pub async fn delete_metadata<'e>(
     db: impl sqlx::SqliteExecutor<'e>,
-    metadata_id: &str,
+    book_id: &str,
 ) -> Result<(), MetadataError> {
     let result = sqlx::query(
         r"
         DELETE FROM metadata
-        WHERE metadata_id = $1
+        WHERE book_id = $1
         ",
     )
-    .bind(metadata_id)
+    .bind(book_id)
     .execute(db)
     .await?;
 
@@ -146,10 +166,26 @@ pub async fn delete_metadata<'e>(
 
 pub async fn update_metadata<'a>(
     db: impl Acquire<'a, Database = Sqlite>,
-    metadata_id: &str,
+    book_id: &str,
     metadata: &Metadata,
 ) -> Result<(), MetadataError> {
     let mut tx = db.begin().await?;
+
+    let metadata_id: Option<String> = sqlx::query_scalar(
+        r"
+        SELECT metadata_id
+        FROM metadata
+        WHERE book_id = $1
+        ",
+    )
+    .bind(book_id)
+    .fetch_optional(&mut *tx)
+    .await?;
+
+    let Some(metadata_id) = metadata_id else {
+        return Err(MetadataError::MetadataNotFound);
+    };
+    let metadata_id = metadata_id.as_str();
 
     let result = sqlx::query(
         r"

@@ -2,8 +2,7 @@ use super::models::{BookEntity, BookError, PaginatedBookResponse};
 use crate::app::{
     books::repository,
     covers, epubs,
-    error::ProsaError,
-    metadata, state,
+    error::ProsaError, state,
     sync::{
         self,
         models::{ChangeLogAction, ChangeLogEntityType},
@@ -36,7 +35,6 @@ pub async fn create_book(
     let book = BookEntity {
         owner_id: owner_id.to_string(),
         epub_id,
-        metadata_id: None,
         cover_id: None,
     };
 
@@ -74,10 +72,6 @@ pub async fn delete_book_cascade(book_id: &str, session_id: &str) -> Result<Orph
 
     let book = repository::get_book(&mut *tx, book_id).await?;
     repository::delete_book(&mut *tx, book_id).await?;
-
-    if let Some(metadata_id) = &book.metadata_id {
-        metadata::repository::delete_metadata(&mut *tx, metadata_id).await?;
-    }
 
     let mut epub_id = None;
     if repository::get_books_by_epub(&mut *tx, &book.epub_id)

@@ -129,10 +129,12 @@ impl MetadataFetcherService {
             return;
         };
 
-        let metadata_result = match (book.metadata_id, metadata) {
-            (_, None) => Ok(()),
-            (Some(_), Some(metadata)) => self.handle_metadata_update(book_id, metadata).await,
-            (None, Some(metadata)) => self.handle_metadata_create(book_id, metadata).await,
+        let metadata_result = match metadata {
+            None => Ok(()),
+            Some(metadata) if metadata::service::metadata_exists(book_id).await => {
+                self.handle_metadata_update(book_id, metadata).await
+            }
+            Some(metadata) => self.handle_metadata_create(book_id, metadata).await,
         };
 
         let cover_result = match (book.cover_id, image) {
@@ -148,8 +150,7 @@ impl MetadataFetcherService {
 
     async fn handle_metadata_update(&self, book_id: &str, metadata: Metadata) -> Result<(), ProsaError> {
         let book = books::service::get_book(book_id).await?;
-        let metadata_id = book.metadata_id.as_ref().expect("Failed to retrieve metadata id");
-        metadata::service::update_metadata(metadata_id, metadata).await?;
+        metadata::service::update_metadata(book_id, metadata).await?;
 
         sync::service::log_change(
             book_id,
@@ -164,10 +165,8 @@ impl MetadataFetcherService {
     }
 
     async fn handle_metadata_create(&self, book_id: &str, metadata: Metadata) -> Result<(), ProsaError> {
-        let mut book = books::service::get_book(book_id).await?;
-        let metadata_id = metadata::service::add_metadata(metadata).await?;
-        book.metadata_id = Some(metadata_id);
-        books::service::update_book(book_id, &book).await?;
+        let book = books::service::get_book(book_id).await?;
+        metadata::service::add_metadata(book_id, metadata).await?;
 
         sync::service::log_change(
             book_id,

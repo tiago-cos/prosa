@@ -16,13 +16,7 @@ pub async fn get_metadata_handler(Path(book_id): Path<String>) -> Result<Json<Me
     let lock = LOCKS.get_book_lock(&book_id).await;
     let _guard = lock.read().await;
 
-    let book = books::service::get_book(&book_id).await?;
-
-    let Some(metadata_id) = book.metadata_id else {
-        return Err(MetadataError::MetadataNotFound.into());
-    };
-
-    let metadata = service::get_metadata(&metadata_id).await?;
+    let metadata = service::get_metadata(&book_id).await?;
     Ok(Json(metadata))
 }
 
@@ -34,15 +28,13 @@ pub async fn add_metadata_handler(
     let lock = LOCKS.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let mut book = books::service::get_book(&book_id).await?;
+    let book = books::service::get_book(&book_id).await?;
 
-    let metadata_id = match book.metadata_id {
-        None => service::add_metadata(metadata).await?,
-        Some(_) => return Err(MetadataError::MetadataConflict.into()),
-    };
+    if service::metadata_exists(&book_id).await {
+        return Err(MetadataError::MetadataConflict.into());
+    }
 
-    book.metadata_id = Some(metadata_id);
-    books::service::update_book(&book_id, &book).await?;
+    service::add_metadata(&book_id, metadata).await?;
 
     sync::service::log_change(
         &book_id,
@@ -65,11 +57,7 @@ pub async fn delete_metadata_handler(
 
     let book = books::service::get_book(&book_id).await?;
 
-    let Some(metadata_id) = book.metadata_id else {
-        return Err(MetadataError::MetadataNotFound.into());
-    };
-
-    service::delete_metadata(&metadata_id).await?;
+    service::delete_metadata(&book_id).await?;
 
     sync::service::log_change(
         &book_id,
@@ -93,11 +81,7 @@ pub async fn patch_metadata_handler(
 
     let book = books::service::get_book(&book_id).await?;
 
-    let Some(metadata_id) = book.metadata_id else {
-        return Err(MetadataError::MetadataNotFound.into());
-    };
-
-    service::patch_metadata(&metadata_id, metadata).await?;
+    service::patch_metadata(&book_id, metadata).await?;
 
     sync::service::log_change(
         &book_id,
@@ -121,11 +105,7 @@ pub async fn update_metadata_handler(
 
     let book = books::service::get_book(&book_id).await?;
 
-    let Some(metadata_id) = book.metadata_id else {
-        return Err(MetadataError::MetadataNotFound.into());
-    };
-
-    service::update_metadata(&metadata_id, metadata).await?;
+    service::update_metadata(&book_id, metadata).await?;
 
     sync::service::log_change(
         &book_id,

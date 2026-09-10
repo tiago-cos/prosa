@@ -55,7 +55,6 @@ impl From<&SqliteError> for BookError {
 pub struct BookEntity {
     pub owner_id: String,
     pub epub_id: String,
-    pub metadata_id: Option<String>,
     pub cover_id: Option<String>,
 }
 
