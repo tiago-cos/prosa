@@ -1148,6 +1148,36 @@ describe('Sync JWT', () => {
     expect(syncResponse.body).toEqual(expectedResponse);
   });
 
+  test('Deletion is delivered after the deleted book was the newest change', async () => {
+    const { response: registerResponse, username, password } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
+
+    const loginResponse = await loginUser(username, password);
+    expect(loginResponse.status).toBe(200);
+    const jwtToken2 = loginResponse.body.jwt_token;
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
+    expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
+    await wait(1);
+
+    let syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+    const syncToken = syncResponse.body.new_sync_token;
+    expect(syncResponse.body.unsynced_books.file).toEqual([bookId]);
+
+    const deleteResponse = await deleteBook(bookId, { jwt: jwtToken });
+    expect(deleteResponse.status).toBe(204);
+    await wait(1);
+
+    syncResponse = await sync(userId, syncToken, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+    expect(syncResponse.body.unsynced_books.deleted).toEqual([bookId]);
+    expect(syncResponse.body.new_sync_token).toBeGreaterThan(syncToken);
+  });
+
   test('Invalid sync token', async () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
