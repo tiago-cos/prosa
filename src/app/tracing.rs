@@ -24,7 +24,17 @@ pub fn init_logging() {
         .compact();
 
     let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
-    let filter = filter.add_directive("html5ever=error".parse().expect("Failed to parse log filter"));
+    let filter = filter
+        .add_directive(
+            "html5ever=error"
+                .parse()
+                .expect("Failed to parse html5ever log filter"),
+        )
+        .add_directive(
+            "xml5ever=error"
+                .parse()
+                .expect("Failed to parse xml5ever log filter"),
+        );
 
     tracing_subscriber::registry().with(filter).with(fmt_layer).init();
 }
