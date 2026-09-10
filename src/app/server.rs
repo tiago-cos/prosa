@@ -37,9 +37,8 @@ pub static METADATA_FETCHER: LazyLock<Arc<MetadataFetcherService>> = LazyLock::n
 pub static LOCKS: LazyLock<LockService> = LazyLock::new(|| LockService::new(20));
 
 pub async fn run() {
-    let host = format!("{}:{}", &CONFIG.server.host, &CONFIG.server.port);
+    let host = format!("{}:{}", CONFIG.server.host, CONFIG.server.port);
 
-    tracing::init_logging();
     info!("Server started on http://{host}");
 
     let app = Router::new()

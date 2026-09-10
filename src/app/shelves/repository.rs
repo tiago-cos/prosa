@@ -1,6 +1,6 @@
 use super::models::{Shelf, ShelfError};
-use crate::DB_POOL;
 use crate::app::shelves::models::{PaginatedShelves, ShelfBookError};
+use crate::database::pool;
 
 pub async fn get_shelf(shelf_id: &str) -> Result<Shelf, ShelfError> {
     let shelf: Shelf = sqlx::query_as(
@@ -11,7 +11,7 @@ pub async fn get_shelf(shelf_id: &str) -> Result<Shelf, ShelfError> {
         ",
     )
     .bind(shelf_id)
-    .fetch_one(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_one(pool())
     .await?;
 
     Ok(shelf)
@@ -27,7 +27,7 @@ pub async fn get_shelf_by_name_and_owner(name: &str, owner_id: &str) -> Option<S
     )
     .bind(name)
     .bind(owner_id)
-    .fetch_optional(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_optional(pool())
     .await
     .expect("Failed to fetch shelf by name and owner")
 }
@@ -42,7 +42,7 @@ pub async fn add_shelf(shelf_id: &str, shelf: Shelf) -> Result<(), ShelfError> {
     .bind(shelf_id)
     .bind(shelf.name)
     .bind(shelf.owner_id)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await?;
 
     Ok(())
@@ -56,7 +56,7 @@ pub async fn delete_shelf(shelf_id: &str) -> Result<(), ShelfError> {
         ",
     )
     .bind(shelf_id)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await?;
 
     if result.rows_affected() == 0 {
@@ -76,7 +76,7 @@ pub async fn update_shelf(shelf_id: &str, name: &str) -> Result<(), ShelfError> 
     )
     .bind(name)
     .bind(shelf_id)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await?;
 
     if result.rows_affected() == 0 {
@@ -138,13 +138,13 @@ pub async fn get_paginated_shelves(
 
     let shelf_ids = shelf_query
         .build_query_scalar::<String>()
-        .fetch_all(DB_POOL.get().expect("Failed to get database pool"))
+        .fetch_all(pool())
         .await
         .expect("Failed to search for shelves");
 
     let total_elements = count_query
         .build_query_scalar::<i64>()
-        .fetch_one(DB_POOL.get().expect("Failed to get database pool"))
+        .fetch_one(pool())
         .await
         .expect("Failed to count shelves");
 
@@ -168,7 +168,7 @@ pub async fn get_shelf_book_count(shelf_id: &str) -> i64 {
         ",
     )
     .bind(shelf_id)
-    .fetch_one(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_one(pool())
     .await
     .expect("Failed to count books in shelf");
 
@@ -184,7 +184,7 @@ pub async fn add_book_to_shelf(shelf_id: &str, book_id: &str) -> Result<(), Shel
     )
     .bind(shelf_id)
     .bind(book_id)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await?;
 
     Ok(())
@@ -199,7 +199,7 @@ pub async fn get_shelf_books(shelf_id: &str) -> Vec<String> {
         ",
     )
     .bind(shelf_id)
-    .fetch_all(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_all(pool())
     .await
     .expect("Failed to list shelf books")
 }
@@ -213,7 +213,7 @@ pub async fn delete_book_from_shelf(shelf_id: &str, book_id: &str) -> Result<(),
     )
     .bind(shelf_id)
     .bind(book_id)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await?;
 
     if result.rows_affected() == 0 {

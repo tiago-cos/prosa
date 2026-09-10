@@ -14,3 +14,4 @@ mod sync;
 mod tracing;
 mod users;
 pub use server::run;
+pub use tracing::init_logging;

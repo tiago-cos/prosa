@@ -1,5 +1,5 @@
 use super::models::{Contributor, Metadata, MetadataError, Series};
-use crate::DB_POOL;
+use crate::database::pool;
 use sqlx::QueryBuilder;
 
 pub async fn get_metadata(metadata_id: &str) -> Result<Metadata, MetadataError> {
@@ -11,7 +11,7 @@ pub async fn get_metadata(metadata_id: &str) -> Result<Metadata, MetadataError> 
         ",
     )
     .bind(metadata_id)
-    .fetch_one(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_one(pool())
     .await?;
 
     let contributors: Vec<Contributor> = sqlx::query_as(
@@ -22,7 +22,7 @@ pub async fn get_metadata(metadata_id: &str) -> Result<Metadata, MetadataError> 
         ",
     )
     .bind(metadata_id)
-    .fetch_all(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_all(pool())
     .await?;
 
     let contributors = Some(contributors).filter(|c| !c.is_empty());
@@ -35,7 +35,7 @@ pub async fn get_metadata(metadata_id: &str) -> Result<Metadata, MetadataError> 
         ",
     )
     .bind(metadata_id)
-    .fetch_optional(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_optional(pool())
     .await?;
 
     let genres: Vec<String> = sqlx::query_scalar(
@@ -46,7 +46,7 @@ pub async fn get_metadata(metadata_id: &str) -> Result<Metadata, MetadataError> 
         ",
     )
     .bind(metadata_id)
-    .fetch_all(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_all(pool())
     .await?;
 
     let genres = Some(genres).filter(|g| !g.is_empty());
@@ -59,11 +59,7 @@ pub async fn get_metadata(metadata_id: &str) -> Result<Metadata, MetadataError> 
 }
 
 pub async fn add_metadata(metadata_id: &str, metadata: &Metadata) -> Result<(), MetadataError> {
-    let mut tx = DB_POOL
-        .get()
-        .expect("Failed to get database pool")
-        .begin()
-        .await?;
+    let mut tx = pool().begin().await?;
 
     sqlx::query(
         r"
@@ -127,7 +123,7 @@ pub async fn delete_metadata(metadata_id: &str) -> Result<(), MetadataError> {
         ",
     )
     .bind(metadata_id)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await?;
 
     if result.rows_affected() == 0 {
@@ -138,11 +134,7 @@ pub async fn delete_metadata(metadata_id: &str) -> Result<(), MetadataError> {
 }
 
 pub async fn update_metadata(metadata_id: &str, metadata: &Metadata) -> Result<(), MetadataError> {
-    let mut tx = DB_POOL
-        .get()
-        .expect("Failed to get database pool")
-        .begin()
-        .await?;
+    let mut tx = pool().begin().await?;
 
     let result = sqlx::query(
         r"

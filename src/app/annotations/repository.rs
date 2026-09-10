@@ -1,5 +1,5 @@
 use super::models::{Annotation, AnnotationError, NewAnnotationRequest};
-use crate::DB_POOL;
+use crate::database::pool;
 
 pub async fn add_annotation(
     annotation_id: &str,
@@ -20,7 +20,7 @@ pub async fn add_annotation(
     .bind(annotation.start_char)
     .bind(annotation.end_char)
     .bind(&annotation.note)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await?;
 
     Ok(())
@@ -35,7 +35,7 @@ pub async fn get_annotation(annotation_id: &str) -> Result<Annotation, Annotatio
         ",
     )
     .bind(annotation_id)
-    .fetch_one(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_one(pool())
     .await?;
 
     Ok(annotation)
@@ -50,7 +50,7 @@ pub async fn get_annotations(book_id: &str) -> Vec<String> {
         ",
     )
     .bind(book_id)
-    .fetch_all(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_all(pool())
     .await
     .expect("Failed to retrieve book annotations")
 }
@@ -63,7 +63,7 @@ pub async fn delete_annotation(annotation_id: &str) -> Result<(), AnnotationErro
         ",
     )
     .bind(annotation_id)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await
     .expect("Failed to delete annotation");
 
@@ -84,7 +84,7 @@ pub async fn patch_annotation(annotation_id: &str, note: Option<String>) -> Resu
     )
     .bind(note)
     .bind(annotation_id)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await
     .expect("Failed to patch annotation");
 

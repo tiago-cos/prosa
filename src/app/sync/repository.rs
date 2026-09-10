@@ -1,5 +1,5 @@
-use crate::DB_POOL;
 use crate::app::sync::models::{ChangeLogAction, ChangeLogEntityType, ChangeLogEntry};
+use crate::database::pool;
 
 pub async fn delete_log_entries(entity_id: &str) {
     sqlx::query(
@@ -9,7 +9,7 @@ pub async fn delete_log_entries(entity_id: &str) {
         ",
     )
     .bind(entity_id)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await
     .expect("Failed to delete logs");
 }
@@ -32,7 +32,7 @@ pub async fn log_change(
     .bind(owner_id)
     .bind(session_id)
     .bind(action)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await
     .expect("Failed to log change");
 }
@@ -51,7 +51,7 @@ pub async fn get_changes(user_id: &str, last_sync_token: i64, session_id: &str) 
     .bind(user_id)
     .bind(last_sync_token)
     .bind(session_id)
-    .fetch_all(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_all(pool())
     .await
     .expect("Failed to fetch change log");
 

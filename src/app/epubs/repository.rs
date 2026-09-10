@@ -1,5 +1,5 @@
 use super::models::EpubError;
-use crate::DB_POOL;
+use crate::database::pool;
 
 pub async fn add_epub(epub_id: &str, hash: &str) {
     sqlx::query(
@@ -10,7 +10,7 @@ pub async fn add_epub(epub_id: &str, hash: &str) {
     )
     .bind(epub_id)
     .bind(hash)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await
     .expect("Failed to add epub");
 }
@@ -23,7 +23,7 @@ pub async fn delete_epub(epub_id: &str) -> Result<(), EpubError> {
         ",
     )
     .bind(epub_id)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await
     .expect("Failed to delete epub");
 
@@ -43,7 +43,7 @@ pub async fn get_epub_by_hash(hash: &str) -> Option<String> {
         ",
     )
     .bind(hash)
-    .fetch_optional(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_optional(pool())
     .await
     .expect("Failed to get epub by hash")
 }

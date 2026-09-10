@@ -1,6 +1,6 @@
-use crate::DB_POOL;
 use crate::app::authentication::models::{ApiKeyError, AuthTokenError, RefreshToken};
 use crate::app::users::models::ApiKey;
+use crate::database::pool;
 use chrono::{DateTime, Utc};
 use sqlx::QueryBuilder;
 
@@ -20,7 +20,7 @@ pub async fn add_refresh_token(
     .bind(session_id)
     .bind(refresh_token_hash)
     .bind(expiration)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await
     .expect("Failed to add refresh token");
 }
@@ -38,7 +38,7 @@ pub async fn get_refresh_token_by_hash(refresh_token_hash: &str) -> Option<Refre
         ",
     )
     .bind(refresh_token_hash)
-    .fetch_optional(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_optional(pool())
     .await
     .expect("Failed to get refresh token by hash")
 }
@@ -51,7 +51,7 @@ pub async fn delete_refresh_token(token_hash: &str) -> Result<(), AuthTokenError
         ",
     )
     .bind(token_hash)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await
     .expect("Failed to delete refresh token");
 
@@ -70,11 +70,7 @@ pub async fn add_api_key(
     expiration: Option<DateTime<Utc>>,
     capabilities: Vec<String>,
 ) -> Result<(), ApiKeyError> {
-    let mut tx = DB_POOL
-        .get()
-        .expect("Failed to get database pool")
-        .begin()
-        .await?;
+    let mut tx = pool().begin().await?;
 
     sqlx::query(
         r"
@@ -113,7 +109,7 @@ pub async fn get_api_key_by_hash(key_hash: &str) -> Option<ApiKey> {
         ",
     )
     .bind(key_hash)
-    .fetch_optional(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_optional(pool())
     .await
     .expect("Failed to get api key by hash")?;
 
@@ -125,7 +121,7 @@ pub async fn get_api_key_by_hash(key_hash: &str) -> Option<ApiKey> {
         ",
     )
     .bind(&key.key_id)
-    .fetch_all(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_all(pool())
     .await
     .expect("Failed to get api key capabilities");
 
@@ -142,7 +138,7 @@ pub async fn delete_api_key(user_id: &str, key_id: &str) -> Result<(), ApiKeyErr
     )
     .bind(key_id)
     .bind(user_id)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await?;
 
     if result.rows_affected() == 0 {

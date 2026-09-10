@@ -9,40 +9,111 @@
 #![allow(clippy::too_many_lines)]
 
 use config::Configuration;
-use sqlx::SqlitePool;
-use std::{
-    io::Error,
-    path::Path,
-    sync::{LazyLock, OnceLock},
-};
+use std::{io::Error, path::Path, sync::LazyLock};
 use tokio::fs::create_dir_all;
 
 mod app;
 mod config;
 mod database;
 
-static DB_POOL: OnceLock<SqlitePool> = OnceLock::new();
 static CONFIG: LazyLock<Configuration> =
     LazyLock::new(|| Configuration::new().expect("Failed to load configuration"));
 
-#[tokio::main]
-async fn main() {
-    run_startup_checks().await.expect("Startup checks failed");
+type StartupError = Box<dyn std::error::Error + Send + Sync>;
 
-    let db_pool = database::init(&CONFIG.database.file_path).await;
-    DB_POOL.set(db_pool).expect("Failed to set database pool");
+const USAGE: &str = "\
+Prosa - a backend and API for managing eBook collections
 
-    print_banner();
+Usage:
+  prosa                        Run the server, applying any pending migrations
+  prosa --migrate-status       Show applied and pending schema migrations
+  prosa --migrate-down <ver>   Revert the schema down to version <ver>
+  prosa --help                 Show this message
 
-    app::run().await;
+Downgrading:
+  A binary can only revert migrations whose down scripts it carries, so run
+  --migrate-down with the newer Prosa build *before* swapping in the older one.
+";
+
+enum Command {
+    Serve,
+    MigrateStatus,
+    MigrateDown(i64),
 }
 
-async fn run_startup_checks() -> Result<(), Box<dyn std::error::Error>> {
-    let kepubify = Path::new(&CONFIG.kepubify.path);
-    if !kepubify.exists() || !kepubify.is_file() {
-        return Err("Kepubify must be present".into());
+#[tokio::main]
+async fn main() {
+    if let Err(error) = start().await {
+        eprintln!("Error: {error}");
+        std::process::exit(1);
+    }
+}
+
+async fn start() -> Result<(), StartupError> {
+    let Some(command) = parse_args()? else {
+        print!("{USAGE}");
+        return Ok(());
+    };
+
+    if matches!(command, Command::Serve) {
+        print_banner();
     }
 
+    app::init_logging();
+    run_startup_checks().await?;
+
+    match command {
+        Command::MigrateStatus => {
+            let pool = database::connect(&CONFIG.database.file_path).await?;
+            let report = database::status(&pool).await?;
+            pool.close().await;
+            print!("{report}");
+        }
+        Command::MigrateDown(target) => {
+            let pool = database::connect(&CONFIG.database.file_path).await?;
+            let result = database::revert_to(&pool, target, &CONFIG.database.file_path).await;
+            pool.close().await;
+            result?;
+        }
+        Command::Serve => {
+            let pool = database::init(&CONFIG.database.file_path).await?;
+            database::set_pool(pool)?;
+            app::run().await;
+        }
+    }
+
+    Ok(())
+}
+
+fn parse_args() -> Result<Option<Command>, StartupError> {
+    let mut args = std::env::args().skip(1);
+
+    let command = match args.next().as_deref() {
+        None => Command::Serve,
+        Some("--help" | "-h") => return Ok(None),
+        Some("--migrate-status") => Command::MigrateStatus,
+        Some("--migrate-down") => {
+            let target = args
+                .next()
+                .ok_or("--migrate-down requires a target schema version")?;
+
+            let target = target
+                .parse()
+                .map_err(|_| format!("invalid target schema version '{target}'"))?;
+
+            Command::MigrateDown(target)
+        }
+        Some(unknown) => return Err(format!("unknown argument '{unknown}'\n\n{USAGE}").into()),
+    };
+
+    if let Some(extra) = args.next() {
+        return Err(format!("unexpected argument '{extra}'\n\n{USAGE}").into());
+    }
+
+    Ok(Some(command))
+}
+
+async fn run_startup_checks() -> Result<(), StartupError> {
     if CONFIG.auth.admin_key.len() < 8 {
         return Err("admin_key must be configured and at least 8 characters long".into());
     }

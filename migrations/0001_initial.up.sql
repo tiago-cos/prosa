@@ -1,0 +1,153 @@
+--- User tables
+
+CREATE TABLE IF NOT EXISTS users (
+    user_id TEXT PRIMARY KEY NOT NULL,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    is_admin BOOLEAN DEFAULT FALSE,
+    automatic_metadata BOOL NOT NULL DEFAULT TRUE
+);
+
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    user_id TEXT NOT NULL,
+    session_id TEXT NOT NULL,
+    refresh_token_hash TEXT PRIMARY KEY NOT NULL,
+    expiration DATETIME NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS providers (
+    provider_type TEXT NOT NULL CHECK(provider_type IN ('goodreads_metadata_scraper','epub_metadata_extractor')),
+    priority INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    PRIMARY KEY (provider_type, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS api_keys (
+    key_id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    key_hash TEXT NOT NULL,
+    name TEXT NOT NULL,
+    expiration DATETIME,
+    FOREIGN KEY(user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS key_capabilities (
+    key_id TEXT NOT NULL,
+    capability TEXT NOT NULL CHECK(capability IN ('Create','Read','Update','Delete')),
+    FOREIGN KEY(key_id) REFERENCES api_keys(key_id) ON DELETE CASCADE,
+    PRIMARY KEY(key_id, capability)
+);
+
+-- Book tables
+
+CREATE TABLE IF NOT EXISTS books (
+    book_id TEXT NOT NULL PRIMARY KEY,
+    owner_id TEXT NOT NULL,
+    epub_id TEXT NOT NULL,
+    metadata_id TEXT,
+    cover_id TEXT,
+    state_id TEXT NOT NULL,
+    FOREIGN KEY(epub_id) REFERENCES epubs(epub_id) ON DELETE CASCADE,
+    FOREIGN KEY(metadata_id) REFERENCES metadata(metadata_id) ON DELETE SET NULL,
+    FOREIGN KEY(cover_id) REFERENCES covers(cover_id) ON DELETE SET NULL,
+    FOREIGN KEY(owner_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY(state_id) REFERENCES state(state_id) ON DELETE CASCADE,
+    UNIQUE(epub_id, owner_id)
+);
+
+CREATE TABLE IF NOT EXISTS epubs (
+    epub_id TEXT PRIMARY KEY NOT NULL,
+    hash TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS covers (
+    cover_id TEXT PRIMARY KEY NOT NULL,
+    hash TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS metadata (
+    metadata_id TEXT PRIMARY KEY NOT NULL,
+    title TEXT,
+    subtitle TEXT,
+    description TEXT,
+    publisher TEXT,
+    publication_date DATETIME,
+    isbn TEXT,
+    page_count INTEGER,
+    language TEXT
+);
+
+CREATE TABLE IF NOT EXISTS series (
+    metadata_id TEXT PRIMARY KEY NOT NULL,
+    title TEXT NOT NULL,
+    number REAL NOT NULL,
+    FOREIGN KEY(metadata_id) REFERENCES metadata(metadata_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS contributors (
+    metadata_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    name TEXT NOT NULL,
+    FOREIGN KEY(metadata_id) REFERENCES metadata(metadata_id) ON DELETE CASCADE,
+    PRIMARY KEY(metadata_id, role, name)
+);
+
+CREATE TABLE IF NOT EXISTS genres (
+    metadata_id TEXT NOT NULL,
+    genre TEXT NOT NULL,
+    FOREIGN KEY(metadata_id) REFERENCES metadata(metadata_id) ON DELETE CASCADE,
+    PRIMARY KEY(metadata_id, genre)
+);
+
+CREATE TABLE IF NOT EXISTS state (
+    state_id TEXT PRIMARY KEY NOT NULL,
+    tag TEXT,
+    source TEXT,
+    rating REAL,
+    reading_status TEXT NOT NULL CHECK(reading_status IN ('Unread','Reading','Read'))
+);
+
+CREATE TABLE IF NOT EXISTS annotations (
+    annotation_id TEXT PRIMARY KEY NOT NULL,
+    book_id TEXT NOT NULL,
+    source TEXT NOT NULL,
+    start_tag TEXT NOT NULL,
+    end_tag TEXT NOT NULL,
+    start_char INTEGER NOT NULL,
+    end_char INTEGER NOT NULL,
+    note TEXT,
+    FOREIGN KEY(book_id) REFERENCES books(book_id) ON DELETE CASCADE,
+    UNIQUE (book_id, source, start_tag, end_tag, start_char, end_char)
+);
+
+-- Shelf tables
+
+CREATE TABLE IF NOT EXISTS shelf (
+    shelf_id TEXT PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL,
+    owner_id TEXT NOT NULL,
+    FOREIGN KEY(owner_id) REFERENCES users(user_id) ON DELETE CASCADE,
+    UNIQUE (owner_id, name)
+);
+
+CREATE TABLE IF NOT EXISTS is_in_shelf (
+    shelf_id TEXT NOT NULL,
+    book_id TEXT NOT NULL,
+    PRIMARY KEY(shelf_id, book_id),
+    FOREIGN KEY(shelf_id) REFERENCES shelf(shelf_id) ON DELETE CASCADE,
+    FOREIGN KEY(book_id) REFERENCES books(book_id) ON DELETE CASCADE
+);
+
+-- Sync tables
+
+CREATE TABLE IF NOT EXISTS change_log (
+    log_id INTEGER PRIMARY KEY,
+    entity_id TEXT NOT NULL,
+    entity_type TEXT NOT NULL CHECK(entity_type IN ('book_file','book_metadata','book_cover','book_state','book_annotations','shelf_metadata','shelf_content')),
+    owner_id TEXT NOT NULL,
+    session_id TEXT NOT NULL,
+    action TEXT NOT NULL CHECK(action IN ('update','delete','create')),
+    FOREIGN KEY(owner_id) REFERENCES users(user_id) ON DELETE CASCADE
+);

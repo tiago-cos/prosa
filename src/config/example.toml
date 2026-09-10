@@ -20,6 +20,7 @@ epub_extractor = 0
 
 [database]
 file_path = "library/database.db"
+backup_before_migration = true
 
 [kepubify]
 path = "kepubify/kepubify"

@@ -1,6 +1,6 @@
 use super::models::{ApiKey, Preferences, PreferencesError, User, UserError};
-use crate::DB_POOL;
 use crate::app::{authentication::models::ApiKeyError, users::models::UserProfile};
+use crate::database::pool;
 use sqlx::QueryBuilder;
 
 pub async fn add_user(
@@ -20,7 +20,7 @@ pub async fn add_user(
     .bind(password_hash)
     .bind(is_admin)
     .bind(true)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await?;
 
     Ok(())
@@ -35,7 +35,7 @@ pub async fn get_user(user_id: &str) -> Result<User, UserError> {
         ",
     )
     .bind(user_id)
-    .fetch_one(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_one(pool())
     .await?;
 
     Ok(user)
@@ -51,7 +51,7 @@ pub async fn update_user_profile(user_id: &str, profile: UserProfile) -> Result<
     )
     .bind(profile.username)
     .bind(user_id)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await?;
 
     if result.rows_affected() == 0 {
@@ -70,7 +70,7 @@ pub async fn get_user_by_username(username: &str) -> Result<User, UserError> {
         ",
     )
     .bind(username)
-    .fetch_one(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_one(pool())
     .await?;
 
     Ok(user)
@@ -90,7 +90,7 @@ pub async fn get_api_key_information(user_id: &str, key_id: &str) -> Result<ApiK
     )
     .bind(key_id)
     .bind(user_id)
-    .fetch_one(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_one(pool())
     .await?;
 
     let capabilities: Vec<String> = sqlx::query_scalar(
@@ -101,7 +101,7 @@ pub async fn get_api_key_information(user_id: &str, key_id: &str) -> Result<ApiK
         ",
     )
     .bind(key_id)
-    .fetch_all(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_all(pool())
     .await?;
 
     key.capabilities = capabilities;
@@ -118,7 +118,7 @@ pub async fn list_api_keys(user_id: &str) -> Result<Vec<String>, ApiKeyError> {
         ",
     )
     .bind(user_id)
-    .fetch_all(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_all(pool())
     .await?;
 
     Ok(keys)
@@ -135,7 +135,7 @@ pub async fn add_providers(user_id: &str, providers: Vec<String>) {
 
     query
         .build()
-        .execute(DB_POOL.get().expect("Failed to get database pool"))
+        .execute(pool())
         .await
         .expect("Failed to add initial providers");
 }
@@ -150,7 +150,7 @@ pub async fn get_preferences(user_id: &str) -> Result<Preferences, PreferencesEr
         ",
     )
     .bind(user_id)
-    .fetch_all(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_all(pool())
     .await?;
 
     let automatic_metadata: bool = sqlx::query_scalar(
@@ -161,7 +161,7 @@ pub async fn get_preferences(user_id: &str) -> Result<Preferences, PreferencesEr
         ",
     )
     .bind(user_id)
-    .fetch_one(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_one(pool())
     .await?;
 
     Ok(Preferences {
@@ -178,11 +178,7 @@ pub async fn update_preferences(user_id: &str, preferences: Preferences) -> Resu
         .metadata_providers
         .expect("Providers should be present");
 
-    let mut tx = DB_POOL
-        .get()
-        .expect("Failed to get database pool")
-        .begin()
-        .await?;
+    let mut tx = pool().begin().await?;
 
     sqlx::query(
         r"

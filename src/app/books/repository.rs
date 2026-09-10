@@ -1,5 +1,5 @@
 use super::models::{BookEntity, BookError, PaginatedBookResponse};
-use crate::DB_POOL;
+use crate::database::pool;
 
 pub async fn get_book(book_id: &str) -> Result<BookEntity, BookError> {
     let book = sqlx::query_as::<_, BookEntity>(
@@ -10,7 +10,7 @@ pub async fn get_book(book_id: &str) -> Result<BookEntity, BookError> {
         ",
     )
     .bind(book_id)
-    .fetch_one(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_one(pool())
     .await?;
 
     Ok(book)
@@ -29,7 +29,7 @@ pub async fn add_book(book_id: &str, book: &BookEntity) -> Result<(), BookError>
     .bind(&book.metadata_id)
     .bind(&book.cover_id)
     .bind(&book.state_id)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await?;
 
     Ok(())
@@ -43,7 +43,7 @@ pub async fn delete_book(book_id: &str) -> Result<(), BookError> {
         ",
     )
     .bind(book_id)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await?;
 
     if result.rows_affected() == 0 {
@@ -67,7 +67,7 @@ pub async fn update_book(book_id: &str, book: &BookEntity) -> Result<(), BookErr
     .bind(&book.cover_id)
     .bind(&book.state_id)
     .bind(book_id)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await?;
 
     if result.rows_affected() == 0 {
@@ -86,7 +86,7 @@ pub async fn get_books_by_cover(cover_id: &str) -> Vec<BookEntity> {
         ",
     )
     .bind(cover_id)
-    .fetch_all(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_all(pool())
     .await
     .expect("Failed to retrieve books by cover")
 }
@@ -100,7 +100,7 @@ pub async fn get_books_by_epub(epub_id: &str) -> Vec<BookEntity> {
         ",
     )
     .bind(epub_id)
-    .fetch_all(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_all(pool())
     .await
     .expect("Failed to retrieve books by epub")
 }
@@ -116,7 +116,7 @@ pub async fn epub_belongs_to_user(epub_id: &str, user_id: &str) -> bool {
     )
     .bind(epub_id)
     .bind(user_id)
-    .fetch_optional(DB_POOL.get().expect("Failed to get database pool"))
+    .fetch_optional(pool())
     .await
     .expect("Failed to verify if epub belongs to user");
 
@@ -192,13 +192,13 @@ pub async fn get_paginated_books(
 
     let book_ids = book_query
         .build_query_scalar::<String>()
-        .fetch_all(DB_POOL.get().expect("Failed to get database pool"))
+        .fetch_all(pool())
         .await
         .expect("Failed to search for books");
 
     let total_elements = count_query
         .build_query_scalar::<i64>()
-        .fetch_one(DB_POOL.get().expect("Failed to get database pool"))
+        .fetch_one(pool())
         .await
         .expect("Failed to count books");
 

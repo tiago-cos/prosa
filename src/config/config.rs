@@ -47,6 +47,7 @@ pub struct Kepubify {
 #[serde(default)]
 pub struct Database {
     pub file_path: String,
+    pub backup_before_migration: bool,
 }
 
 #[derive(Deserialize, Clone)]
@@ -100,6 +101,7 @@ impl Default for Database {
     fn default() -> Self {
         Self {
             file_path: "library/database.db".to_string(),
+            backup_before_migration: true,
         }
     }
 }

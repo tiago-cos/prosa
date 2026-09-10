@@ -3,7 +3,7 @@ name = "prosa"
 version = "0.2.0"
 edition = "2024"
 publish = false
-include = ["src/**/*"]
+include = ["src/**/*", "migrations/**/*"]
 license = "MIT"
 
 [dependencies]

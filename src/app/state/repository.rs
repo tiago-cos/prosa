@@ -1,5 +1,5 @@
 use super::models::{Location, State, Statistics};
-use crate::DB_POOL;
+use crate::database::pool;
 
 pub async fn get_state(state_id: &str) -> State {
     let (tag, source, rating, reading_status): (Option<String>, Option<String>, Option<f32>, String) =
@@ -11,7 +11,7 @@ pub async fn get_state(state_id: &str) -> State {
             ",
         )
         .bind(state_id)
-        .fetch_one(DB_POOL.get().expect("Failed to get database pool"))
+        .fetch_one(pool())
         .await
         .expect("Failed to get book state");
 
@@ -45,7 +45,7 @@ pub async fn add_state(state_id: &str, state: State) {
     .bind(source)
     .bind(statistics.rating)
     .bind(reading_status.clone())
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await
     .expect("Failed to add book state");
 }
@@ -69,7 +69,7 @@ pub async fn update_state(state_id: &str, state: State) {
     .bind(statistics.rating)
     .bind(reading_status)
     .bind(state_id)
-    .execute(DB_POOL.get().expect("Failed to get database pool"))
+    .execute(pool())
     .await
     .expect("Failed to update book state");
 }
