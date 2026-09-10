@@ -1,0 +1,10 @@
+DROP INDEX IF EXISTS idx_change_log_entity_id;
+DROP INDEX IF EXISTS idx_change_log_owner_id_log_id;
+DROP INDEX IF EXISTS idx_is_in_shelf_book_id;
+DROP INDEX IF EXISTS idx_books_state_id;
+DROP INDEX IF EXISTS idx_books_cover_id;
+DROP INDEX IF EXISTS idx_books_metadata_id;
+DROP INDEX IF EXISTS idx_books_owner_id;
+DROP INDEX IF EXISTS idx_api_keys_user_id;
+DROP INDEX IF EXISTS idx_api_keys_key_hash;
+DROP INDEX IF EXISTS idx_refresh_tokens_user_id;
