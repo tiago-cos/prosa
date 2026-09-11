@@ -35,7 +35,7 @@ export const ALICE_METADATA = {
     }
   ],
   genres: ['Alice (Fictitious character from Carroll) -- Juvenile fiction', "Children's stories", 'Fantasy fiction', 'Imaginary places -- Juvenile fiction'],
-  language: 'en',
+  language: 'English',
   publication_date: 1214524800000,
   title: "Alice's Adventures in Wonderland"
 };

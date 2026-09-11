@@ -1,7 +1,7 @@
 import { BOOK_NOT_FOUND, uploadBook } from '../utils/books.js';
 import { FORBIDDEN, wait } from '../utils/common.js';
 import { addMetadata, addMetadataRequest, ALICE_METADATA, deleteMetadata, EXAMPLE_METADATA, getMetadata, INVALID_METADATA, listMetadataRequests, METADATA_CONFLICT, METADATA_NOT_FOUND, patchMetadata, updateMetadata } from '../utils/metadata.js';
-import { INVALID_PROVIDERS, patchPreferences, registerUser } from '../utils/users.js';
+import { INVALID_PROVIDERS, MISSING_PROVIDER_KEY, patchPreferences, registerUser } from '../utils/users.js';
 import { describeAuthContract } from '../utils/auth-contract.js';
 
 describe('Get metadata', () => {
@@ -132,7 +132,8 @@ describe('Extracted metadata', () => {
     ]);
 
     expect(getResponse.body.publication_date).toBeUndefined();
-    expect(getResponse.body.series).toBeUndefined();
+
+    expect(getResponse.body.series).toEqual({ title: 'Nonsense Cycle' });
   });
 
   test('A book with unparsable fields does not stop later extractions', async () => {
@@ -210,6 +211,33 @@ describe('Add metadata', () => {
           role: 'Author'
         }
       ]
+    };
+
+    const addResponse = await addMetadata(uploadResponse.text, metadata, { jwt: registerResponse.body.jwt_token });
+    expect(addResponse.status).toBe(204);
+
+    const downloadResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    expect(downloadResponse.status).toBe(200);
+
+    expect(downloadResponse.body).toEqual(metadata);
+  });
+
+  test('A series without a number', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const uploadResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { jwt: registerResponse.body.jwt_token });
+    expect(uploadResponse.status).toBe(200);
+
+    // Give chance for any metadata to be extracted
+    await wait(1);
+
+    const metadata = {
+      title: 'The Great Gatsby',
+      series: {
+        title: 'The Great Gatsby'
+      }
     };
 
     const addResponse = await addMetadata(uploadResponse.text, metadata, { jwt: registerResponse.body.jwt_token });
@@ -631,6 +659,22 @@ describe('Add metadata request', () => {
     const addResponse = await addMetadataRequest(uploadResponse.text, ['invalid'], { jwt: registerResponse.body.jwt_token });
     expect(addResponse.status).toBe(400);
     expect(addResponse.text).toBe(INVALID_PROVIDERS);
+  });
+
+  test('Provider without a stored key', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const patchPreferencesResponse = await patchPreferences(userId, undefined, false, { jwt: registerResponse.body.jwt_token });
+    expect(patchPreferencesResponse.status).toBe(204);
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    expect(uploadResponse.status).toBe(200);
+
+    const addResponse = await addMetadataRequest(uploadResponse.text, ['hardcover'], { jwt: registerResponse.body.jwt_token });
+    expect(addResponse.status).toBe(400);
+    expect(addResponse.text).toBe(MISSING_PROVIDER_KEY);
   });
 
   test('Non-existent book', async () => {

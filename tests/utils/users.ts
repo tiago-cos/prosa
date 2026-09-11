@@ -13,6 +13,7 @@ export const API_KEY_NOT_FOUND = 'The requested key does not exist or is not acc
 export const INVALID_CAPABILITIES = 'Invalid or unsupported capabilities provided.';
 export const INVALID_TIMESTAMP = 'Expiration timestamp is invalid or incorrectly formatted.';
 export const INVALID_PROVIDERS = 'Invalid or unsupported metadata provider selection.';
+export const MISSING_PROVIDER_KEY = 'This metadata provider requires an API key.';
 export const MISSING_METADATA_PREFERENCE = 'Automatic metadata preference must be present.';
 export const INVALID_PREFERENCES = 'Invalid or unsupported preferences provided.';
 export const INVALID_TOKEN = 'The provided token is invalid.';
@@ -121,7 +122,7 @@ export async function getPreferences(user_id: string, auth?: { jwt?: string; api
   return req.send();
 }
 
-export async function updatePreferences(user_id: string, providers?: string[], automatic_metadata?: boolean, auth?: { jwt?: string; apiKey?: string }) {
+export async function updatePreferences(user_id: string, providers?: string[], automatic_metadata?: boolean, auth?: { jwt?: string; apiKey?: string }, provider_keys?: Record<string, string | null>) {
   let req = request(SERVER_URL).put(`/users/${user_id}/preferences`);
 
   if (auth?.jwt) req = req.auth(auth.jwt, { type: 'bearer' });
@@ -130,11 +131,12 @@ export async function updatePreferences(user_id: string, providers?: string[], a
   const body: any = {};
   if (providers !== undefined) body.metadata_providers = providers;
   if (automatic_metadata !== undefined) body.automatic_metadata = automatic_metadata;
+  if (provider_keys !== undefined) body.provider_keys = provider_keys;
 
   return req.send(body);
 }
 
-export async function patchPreferences(user_id: string, providers?: string[], automatic_metadata?: boolean, auth?: { jwt?: string; apiKey?: string }) {
+export async function patchPreferences(user_id: string, providers?: string[], automatic_metadata?: boolean, auth?: { jwt?: string; apiKey?: string }, provider_keys?: Record<string, string | null>) {
   let req = request(SERVER_URL).patch(`/users/${user_id}/preferences`);
 
   if (auth?.jwt) req = req.auth(auth.jwt, { type: 'bearer' });
@@ -143,6 +145,7 @@ export async function patchPreferences(user_id: string, providers?: string[], au
   const body: any = {};
   if (providers !== undefined) body.metadata_providers = providers;
   if (automatic_metadata !== undefined) body.automatic_metadata = automatic_metadata;
+  if (provider_keys !== undefined) body.provider_keys = provider_keys;
 
   return req.send(body);
 }

@@ -20,6 +20,7 @@ import {
   logoutUser,
   MISSING_ADMIN_KEY,
   MISSING_METADATA_PREFERENCE,
+  MISSING_PROVIDER_KEY,
   PASSWORD_TOO_BIG,
   patchPreferences,
   refreshToken,
@@ -649,6 +650,8 @@ describe('Get preferences', () => {
     expect(getPreferencesResponse.status).toBe(200);
     expect(getPreferencesResponse.body).toHaveProperty('metadata_providers');
     expect(getPreferencesResponse.body.metadata_providers).toEqual(['epub_metadata_extractor']);
+    expect(getPreferencesResponse.body).toHaveProperty('configured_providers');
+    expect(getPreferencesResponse.body.configured_providers).toEqual([]);
     expect(getPreferencesResponse.body).toHaveProperty('automatic_metadata');
     expect(getPreferencesResponse.body.automatic_metadata).toEqual(true);
   });
@@ -711,13 +714,13 @@ describe('Update preferences', () => {
     expect(getPreferencesResponse.body).toHaveProperty('automatic_metadata');
     expect(getPreferencesResponse.body.automatic_metadata).toEqual(true);
 
-    const updatePreferencesResponse = await updatePreferences(userId, ['goodreads_metadata_scraper', 'epub_metadata_extractor'], false, { jwt: registerResponse.body.jwt_token });
+    const updatePreferencesResponse = await updatePreferences(userId, ['openlibrary', 'epub_metadata_extractor'], false, { jwt: registerResponse.body.jwt_token });
     expect(updatePreferencesResponse.status).toBe(204);
 
     const getPreferencesResponse2 = await getPreferences(userId, { jwt: registerResponse.body.jwt_token });
     expect(getPreferencesResponse2.status).toBe(200);
     expect(getPreferencesResponse2.body).toHaveProperty('metadata_providers');
-    expect(getPreferencesResponse2.body.metadata_providers).toEqual(['goodreads_metadata_scraper', 'epub_metadata_extractor']);
+    expect(getPreferencesResponse2.body.metadata_providers).toEqual(['openlibrary', 'epub_metadata_extractor']);
     expect(getPreferencesResponse2.body).toHaveProperty('automatic_metadata');
     expect(getPreferencesResponse2.body.automatic_metadata).toEqual(false);
 
@@ -760,7 +763,7 @@ describe('Update preferences', () => {
     const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
-    const updatePreferencesResponse = await updatePreferences('non-existent', ['goodreads_metadata_scraper'], true, { jwt: registerResponse.body.jwt_token });
+    const updatePreferencesResponse = await updatePreferences('non-existent', ['openlibrary'], true, { jwt: registerResponse.body.jwt_token });
     expect(updatePreferencesResponse.status).toBe(404);
     expect(updatePreferencesResponse.text).toBe(USER_NOT_FOUND);
   });
@@ -773,7 +776,7 @@ describe('Update preferences', () => {
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
 
-    const updatePreferencesResponse = await updatePreferences(userId, ['goodreads_metadata_scraper'], true, { jwt: registerResponse2.body.jwt_token });
+    const updatePreferencesResponse = await updatePreferences(userId, ['openlibrary'], true, { jwt: registerResponse2.body.jwt_token });
     expect(updatePreferencesResponse.status).toBe(403);
     expect(updatePreferencesResponse.text).toBe(FORBIDDEN);
   });
@@ -786,7 +789,7 @@ describe('Update preferences', () => {
     const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
-    const updatePreferencesResponse = await updatePreferences(userId, ['goodreads_metadata_scraper'], true, { jwt: registerResponse2.body.jwt_token });
+    const updatePreferencesResponse = await updatePreferences(userId, ['openlibrary'], true, { jwt: registerResponse2.body.jwt_token });
     expect(updatePreferencesResponse.status).toBe(204);
   });
 
@@ -795,9 +798,116 @@ describe('Update preferences', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const updatePreferencesResponse = await updatePreferences(userId, ['goodreads_metadata_scraper'], true);
+    const updatePreferencesResponse = await updatePreferences(userId, ['openlibrary'], true);
     expect(updatePreferencesResponse.status).toBe(401);
     expect(updatePreferencesResponse.text).toBe(UNAUTHORIZED);
+  });
+});
+
+describe('Provider API keys', () => {
+  test('Enabling a provider that needs a key without one', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const updatePreferencesResponse = await updatePreferences(userId, ['hardcover'], true, { jwt: registerResponse.body.jwt_token });
+    expect(updatePreferencesResponse.status).toBe(400);
+    expect(updatePreferencesResponse.text).toBe(MISSING_PROVIDER_KEY);
+  });
+
+  test('Enabling a provider that needs a key with one', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const updatePreferencesResponse = await updatePreferences(userId, ['hardcover'], true, { jwt: registerResponse.body.jwt_token }, { hardcover: 'a-secret-key' });
+    expect(updatePreferencesResponse.status).toBe(204);
+
+    const getPreferencesResponse = await getPreferences(userId, { jwt: registerResponse.body.jwt_token });
+    expect(getPreferencesResponse.status).toBe(200);
+    expect(getPreferencesResponse.body.metadata_providers).toEqual(['hardcover']);
+    expect(getPreferencesResponse.body.configured_providers).toEqual(['hardcover']);
+    // The key itself is never handed back out.
+    expect(getPreferencesResponse.body).not.toHaveProperty('provider_keys');
+    expect(JSON.stringify(getPreferencesResponse.body)).not.toContain('a-secret-key');
+  });
+
+  test('Key survives the provider being disabled', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    let response = await updatePreferences(userId, ['hardcover'], true, { jwt: registerResponse.body.jwt_token }, { hardcover: 'a-secret-key' });
+    expect(response.status).toBe(204);
+
+    response = await patchPreferences(userId, ['epub_metadata_extractor'], undefined, { jwt: registerResponse.body.jwt_token });
+    expect(response.status).toBe(204);
+
+    let getPreferencesResponse = await getPreferences(userId, { jwt: registerResponse.body.jwt_token });
+    expect(getPreferencesResponse.status).toBe(200);
+    expect(getPreferencesResponse.body.metadata_providers).toEqual(['epub_metadata_extractor']);
+    expect(getPreferencesResponse.body.configured_providers).toEqual(['hardcover']);
+
+    // So enabling it again does not mean entering the credential again.
+    response = await patchPreferences(userId, ['epub_metadata_extractor', 'hardcover'], undefined, { jwt: registerResponse.body.jwt_token });
+    expect(response.status).toBe(204);
+
+    getPreferencesResponse = await getPreferences(userId, { jwt: registerResponse.body.jwt_token });
+    expect(getPreferencesResponse.status).toBe(200);
+    expect(getPreferencesResponse.body.metadata_providers).toEqual(['epub_metadata_extractor', 'hardcover']);
+  });
+
+  test('Clearing the key of an enabled provider', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    let response = await updatePreferences(userId, ['hardcover'], true, { jwt: registerResponse.body.jwt_token }, { hardcover: 'a-secret-key' });
+    expect(response.status).toBe(204);
+
+    response = await patchPreferences(userId, undefined, undefined, { jwt: registerResponse.body.jwt_token }, { hardcover: null });
+    expect(response.status).toBe(400);
+    expect(response.text).toBe(MISSING_PROVIDER_KEY);
+  });
+
+  test('Clearing the key of a disabled provider', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    let response = await updatePreferences(userId, ['hardcover'], true, { jwt: registerResponse.body.jwt_token }, { hardcover: 'a-secret-key' });
+    expect(response.status).toBe(204);
+
+    response = await patchPreferences(userId, ['epub_metadata_extractor'], undefined, { jwt: registerResponse.body.jwt_token }, { hardcover: null });
+    expect(response.status).toBe(204);
+
+    const getPreferencesResponse = await getPreferences(userId, { jwt: registerResponse.body.jwt_token });
+    expect(getPreferencesResponse.status).toBe(200);
+    expect(getPreferencesResponse.body.configured_providers).toEqual([]);
+  });
+
+  test('Key for a provider that does not exist', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const response = await patchPreferences(userId, undefined, undefined, { jwt: registerResponse.body.jwt_token }, { 'invalid provider': 'a-secret-key' });
+    expect(response.status).toBe(400);
+    expect(response.text).toBe(INVALID_PROVIDERS);
+  });
+
+  test('A key alone is enough to patch', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const response = await patchPreferences(userId, undefined, undefined, { jwt: registerResponse.body.jwt_token }, { hardcover: 'a-secret-key' });
+    expect(response.status).toBe(204);
+
+    const getPreferencesResponse = await getPreferences(userId, { jwt: registerResponse.body.jwt_token });
+    expect(getPreferencesResponse.status).toBe(200);
+    expect(getPreferencesResponse.body.metadata_providers).toEqual(['epub_metadata_extractor']);
+    expect(getPreferencesResponse.body.configured_providers).toEqual(['hardcover']);
   });
 });
 
@@ -814,13 +924,13 @@ describe('Patch preferences', () => {
     expect(getPreferencesResponse.body).toHaveProperty('automatic_metadata');
     expect(getPreferencesResponse.body.automatic_metadata).toEqual(true);
 
-    let patchPreferencesResponse = await patchPreferences(userId, ['goodreads_metadata_scraper', 'epub_metadata_extractor'], undefined, { jwt: registerResponse.body.jwt_token });
+    let patchPreferencesResponse = await patchPreferences(userId, ['openlibrary', 'epub_metadata_extractor'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(patchPreferencesResponse.status).toBe(204);
 
     getPreferencesResponse = await getPreferences(userId, { jwt: registerResponse.body.jwt_token });
     expect(getPreferencesResponse.status).toBe(200);
     expect(getPreferencesResponse.body).toHaveProperty('metadata_providers');
-    expect(getPreferencesResponse.body.metadata_providers).toEqual(['goodreads_metadata_scraper', 'epub_metadata_extractor']);
+    expect(getPreferencesResponse.body.metadata_providers).toEqual(['openlibrary', 'epub_metadata_extractor']);
     expect(getPreferencesResponse.body).toHaveProperty('automatic_metadata');
     expect(getPreferencesResponse.body.automatic_metadata).toEqual(true);
 
@@ -830,7 +940,7 @@ describe('Patch preferences', () => {
     getPreferencesResponse = await getPreferences(userId, { jwt: registerResponse.body.jwt_token });
     expect(getPreferencesResponse.status).toBe(200);
     expect(getPreferencesResponse.body).toHaveProperty('metadata_providers');
-    expect(getPreferencesResponse.body.metadata_providers).toEqual(['goodreads_metadata_scraper', 'epub_metadata_extractor']);
+    expect(getPreferencesResponse.body.metadata_providers).toEqual(['openlibrary', 'epub_metadata_extractor']);
     expect(getPreferencesResponse.body).toHaveProperty('automatic_metadata');
     expect(getPreferencesResponse.body.automatic_metadata).toEqual(false);
   });
@@ -859,7 +969,7 @@ describe('Patch preferences', () => {
     const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
-    const patchPreferencesResponse = await patchPreferences('non-existent', ['goodreads_metadata_scraper'], undefined, { jwt: registerResponse.body.jwt_token });
+    const patchPreferencesResponse = await patchPreferences('non-existent', ['openlibrary'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(patchPreferencesResponse.status).toBe(404);
     expect(patchPreferencesResponse.text).toBe(USER_NOT_FOUND);
   });
@@ -872,7 +982,7 @@ describe('Patch preferences', () => {
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
 
-    const patchPreferencesResponse = await patchPreferences(userId, ['goodreads_metadata_scraper'], undefined, { jwt: registerResponse2.body.jwt_token });
+    const patchPreferencesResponse = await patchPreferences(userId, ['openlibrary'], undefined, { jwt: registerResponse2.body.jwt_token });
     expect(patchPreferencesResponse.status).toBe(403);
     expect(patchPreferencesResponse.text).toBe(FORBIDDEN);
   });
@@ -885,7 +995,7 @@ describe('Patch preferences', () => {
     const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
-    const patchPreferencesResponse = await patchPreferences(userId, ['goodreads_metadata_scraper'], undefined, { jwt: registerResponse2.body.jwt_token });
+    const patchPreferencesResponse = await patchPreferences(userId, ['openlibrary'], undefined, { jwt: registerResponse2.body.jwt_token });
     expect(patchPreferencesResponse.status).toBe(204);
   });
 
