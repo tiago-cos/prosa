@@ -5,7 +5,8 @@ use crate::app::metadata::models::{Metadata, MetadataError, MetadataFetchRequest
 use crate::app::metadata::service;
 use crate::app::server::{LOCKS, METADATA_FETCHER};
 use crate::app::sync::models::{ChangeLogAction, ChangeLogEntityType};
-use crate::app::users::models::{PreferencesError, VALID_PROVIDERS};
+use crate::app::users::models::PreferencesError;
+use crate::app::users::service::is_valid_provider;
 use crate::app::{books, sync, users};
 use axum::extract::{Path, Query};
 use axum::http::StatusCode;
@@ -132,8 +133,12 @@ pub async fn add_metadata_request_handler(
             .expect("Providers should be present"),
     };
 
-    if !providers.iter().all(|p| VALID_PROVIDERS.contains(&p.as_str())) {
+    if !providers.iter().all(|p| is_valid_provider(p)) {
         return Err(PreferencesError::InvalidMetadataProvider.into());
+    }
+
+    if !users::service::providers_are_usable(&book.owner_id, &providers).await? {
+        return Err(PreferencesError::MissingProviderKey.into());
     }
 
     METADATA_FETCHER

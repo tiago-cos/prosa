@@ -9,8 +9,8 @@ use axum::middleware::from_fn;
 use axum::routing::get;
 use log::info;
 use quick_cache::sync::Cache as QuickCache;
-use std::sync::LazyLock;
 use std::sync::Arc;
+use std::sync::LazyLock;
 use tokio::net::TcpListener;
 
 pub struct Cache {
@@ -21,12 +21,8 @@ pub static CACHE: LazyLock<Cache> = LazyLock::new(|| Cache {
     image_cache: QuickCache::new(50),
 });
 
-pub static METADATA_FETCHER: LazyLock<Arc<MetadataFetcherService>> = LazyLock::new(|| {
-    MetadataFetcherService::new(
-        CONFIG.metadata_cooldown.epub_extractor,
-        CONFIG.metadata_cooldown.goodreads,
-    )
-});
+pub static METADATA_FETCHER: LazyLock<Arc<MetadataFetcherService>> =
+    LazyLock::new(MetadataFetcherService::new);
 
 pub static LOCKS: LazyLock<LockService> = LazyLock::new(|| LockService::new(20));
 

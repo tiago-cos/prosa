@@ -1,7 +1,7 @@
 use axum::{Json, response::IntoResponse};
 use serde::Serialize;
 
-use crate::CONFIG;
+use crate::{CONFIG, app::users::models::PROVIDERS};
 
 #[derive(Serialize)]
 pub struct HealthResponse {
@@ -21,13 +21,27 @@ pub async fn health_check() -> impl IntoResponse {
 }
 
 #[derive(Serialize)]
+pub struct ProviderInfo {
+    pub provider_id: &'static str,
+    pub requires_api_key: bool,
+}
+
+#[derive(Serialize)]
 pub struct PublicConfiguration {
     pub allow_user_registration: bool,
+    pub metadata_providers: Vec<ProviderInfo>,
 }
 
 pub async fn get_public_config() -> impl IntoResponse {
     let pub_config = PublicConfiguration {
         allow_user_registration: CONFIG.auth.allow_user_registration,
+        metadata_providers: PROVIDERS
+            .iter()
+            .map(|(provider_id, requires_api_key)| ProviderInfo {
+                provider_id,
+                requires_api_key: *requires_api_key,
+            })
+            .collect(),
     };
 
     Json(pub_config)

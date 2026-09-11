@@ -3,11 +3,12 @@ use crate::app::{
     authentication,
     error::ProsaError,
     users::{
-        models::{PreferencesError, UserProfile, VALID_PROVIDERS},
+        models::{PROVIDERS, PreferencesError, UserProfile},
         repository,
     },
 };
 use crate::database::pool;
+use log::warn;
 use merge::Merge;
 use regex::Regex;
 use uuid::Uuid;
@@ -19,7 +20,7 @@ pub async fn register_user(username: &str, password: &str, is_admin: bool) -> Re
     let user_id = Uuid::new_v4().to_string();
     let password_hash = authentication::service::hash_secret(password);
     repository::add_user(pool(), username, &user_id, &password_hash, is_admin).await?;
-    repository::add_providers(pool(), &user_id, vec![VALID_PROVIDERS[0].to_string()]).await;
+    repository::add_providers(pool(), &user_id).await;
 
     Ok(user_id)
 }
@@ -74,6 +75,44 @@ pub async fn get_preferences(user_id: &str) -> Result<Preferences, ProsaError> {
     Ok(preferences)
 }
 
+pub async fn get_provider_keys(
+    user_id: &str,
+    providers: &[String],
+) -> Result<Vec<(String, Option<String>)>, ProsaError> {
+    let stored = repository::get_provider_keys(pool(), user_id).await?;
+
+    let keys = providers
+        .iter()
+        .map(|provider| {
+            let key = stored
+                .iter()
+                .find(|(id, _)| id == provider)
+                .and_then(|(_, key)| key.as_ref())
+                .and_then(|sealed| {
+                    authentication::service::decrypt_provider_api_key(sealed, user_id, provider).or_else(
+                        || {
+                            warn!("Stored key for provider {provider} could not be decrypted");
+                            None
+                        },
+                    )
+                });
+
+            (provider.clone(), key)
+        })
+        .collect();
+
+    Ok(keys)
+}
+
+pub async fn providers_are_usable(user_id: &str, providers: &[String]) -> Result<bool, ProsaError> {
+    let configured = repository::get_configured_providers(pool(), user_id).await?;
+
+    Ok(providers
+        .iter()
+        .filter(|p| requires_api_key(p))
+        .all(|p| configured.contains(p)))
+}
+
 pub async fn update_preferences(user_id: &str, preferences: Preferences) -> Result<(), ProsaError> {
     repository::get_user(pool(), user_id).await?;
 
@@ -85,14 +124,16 @@ pub async fn update_preferences(user_id: &str, preferences: Preferences) -> Resu
         return Err(PreferencesError::InvalidMetadataProvider.into());
     }
 
-    repository::update_preferences(pool(), user_id, preferences).await?;
-    Ok(())
+    store_preferences(user_id, preferences).await
 }
 
 pub async fn patch_preferences(user_id: &str, mut preferences: Preferences) -> Result<(), ProsaError> {
     repository::get_user(pool(), user_id).await?;
 
-    if preferences.automatic_metadata.is_none() && preferences.metadata_providers.is_none() {
+    if preferences.automatic_metadata.is_none()
+        && preferences.metadata_providers.is_none()
+        && preferences.provider_keys.is_none()
+    {
         return Err(PreferencesError::InvalidPreferences.into());
     }
 
@@ -103,7 +144,46 @@ pub async fn patch_preferences(user_id: &str, mut preferences: Preferences) -> R
         return Err(PreferencesError::MissingAutomaticMetadata.into());
     }
 
-    repository::update_preferences(pool(), user_id, preferences).await?;
+    store_preferences(user_id, preferences).await
+}
+
+async fn store_preferences(user_id: &str, mut preferences: Preferences) -> Result<(), ProsaError> {
+    let providers = preferences.metadata_providers.clone().unwrap_or_default();
+
+    if !providers.iter().all(|p| is_valid_provider(p)) {
+        return Err(PreferencesError::InvalidMetadataProvider.into());
+    }
+
+    let submitted = preferences.provider_keys.take().unwrap_or_default();
+
+    if !submitted.keys().all(|p| is_valid_provider(p)) {
+        return Err(PreferencesError::InvalidMetadataProvider.into());
+    }
+
+    let configured = repository::get_configured_providers(pool(), user_id).await?;
+
+    for provider in providers.iter().filter(|p| requires_api_key(p)) {
+        let supplied = submitted.get(provider).is_some_and(Option::is_some);
+        let stored = configured.contains(provider) && !submitted.contains_key(provider);
+
+        if !supplied && !stored {
+            return Err(PreferencesError::MissingProviderKey.into());
+        }
+    }
+
+    let mut keys = Vec::with_capacity(submitted.len());
+    for (provider, key) in submitted {
+        let sealed = match key {
+            Some(key) => Some(
+                authentication::service::encrypt_provider_api_key(&key, user_id, &provider)
+                    .ok_or(PreferencesError::InternalError)?,
+            ),
+            None => None,
+        };
+        keys.push((provider, sealed));
+    }
+
+    repository::update_preferences(pool(), user_id, preferences, keys).await?;
     Ok(())
 }
 
@@ -127,4 +207,14 @@ fn verify_password(password: &str) -> Result<(), UserError> {
         return Err(UserError::PasswordTooBig);
     }
     Ok(())
+}
+
+pub fn is_valid_provider(provider: &str) -> bool {
+    PROVIDERS.iter().any(|(name, _)| *name == provider)
+}
+
+pub fn requires_api_key(provider: &str) -> bool {
+    PROVIDERS
+        .iter()
+        .any(|(name, requires)| *name == provider && *requires)
 }

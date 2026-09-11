@@ -1,5 +1,8 @@
 use super::models::{ApiKey, Preferences, PreferencesError, User, UserError};
-use crate::app::{authentication::models::ApiKeyError, users::models::UserProfile};
+use crate::app::{
+    authentication::models::ApiKeyError,
+    users::models::{DEFAULT_PROVIDER, PROVIDERS, UserProfile},
+};
 use sqlx::{Acquire, QueryBuilder, Sqlite, SqliteExecutor};
 
 pub async fn add_user<'e>(
@@ -140,13 +143,16 @@ pub async fn list_api_keys<'e>(
     Ok(keys)
 }
 
-pub async fn add_providers<'e>(db: impl SqliteExecutor<'e>, user_id: &str, providers: Vec<String>) {
-    let mut index = 1;
-    let mut query = QueryBuilder::new("INSERT INTO providers (provider_type, priority, user_id)");
+pub async fn add_providers<'e>(db: impl SqliteExecutor<'e>, user_id: &str) {
+    let mut query =
+        QueryBuilder::new("INSERT INTO user_providers (user_id, provider_id, enabled, priority, api_key)");
 
-    query.push_values(providers, |mut b, provider| {
-        b.push_bind(provider).push_bind(index).push_bind(user_id);
-        index += 1;
+    query.push_values(PROVIDERS.iter().enumerate(), |mut b, (index, (provider, _))| {
+        b.push_bind(user_id)
+            .push_bind(*provider)
+            .push_bind(*provider == DEFAULT_PROVIDER)
+            .push_bind(i64::try_from(index).unwrap_or_default())
+            .push_bind(None::<String>);
     });
 
     query
@@ -154,6 +160,44 @@ pub async fn add_providers<'e>(db: impl SqliteExecutor<'e>, user_id: &str, provi
         .execute(db)
         .await
         .expect("Failed to add initial providers");
+}
+
+pub async fn get_configured_providers<'e>(
+    db: impl SqliteExecutor<'e>,
+    user_id: &str,
+) -> Result<Vec<String>, PreferencesError> {
+    let providers = sqlx::query_scalar(
+        r"
+        SELECT provider_id
+        FROM user_providers
+        WHERE user_id = $1 AND api_key IS NOT NULL
+        ORDER BY priority
+        ",
+    )
+    .bind(user_id)
+    .fetch_all(db)
+    .await?;
+
+    Ok(providers)
+}
+
+pub async fn get_provider_keys<'e>(
+    db: impl SqliteExecutor<'e>,
+    user_id: &str,
+) -> Result<Vec<(String, Option<String>)>, PreferencesError> {
+    let providers = sqlx::query_as(
+        r"
+        SELECT provider_id, api_key
+        FROM user_providers
+        WHERE user_id = $1
+        ORDER BY priority
+        ",
+    )
+    .bind(user_id)
+    .fetch_all(db)
+    .await?;
+
+    Ok(providers)
 }
 
 pub async fn get_preferences<'a>(
@@ -164,15 +208,17 @@ pub async fn get_preferences<'a>(
 
     let providers: Vec<String> = sqlx::query_scalar(
         r"
-        SELECT provider_type
-        FROM providers
-        WHERE user_id = $1
+        SELECT provider_id
+        FROM user_providers
+        WHERE user_id = $1 AND enabled = TRUE
         ORDER BY priority
         ",
     )
     .bind(user_id)
     .fetch_all(&mut *conn)
     .await?;
+
+    let configured = get_configured_providers(&mut *conn, user_id).await?;
 
     let automatic_metadata: bool = sqlx::query_scalar(
         r"
@@ -187,6 +233,8 @@ pub async fn get_preferences<'a>(
 
     Ok(Preferences {
         metadata_providers: Some(providers),
+        provider_keys: None,
+        configured_providers: Some(configured),
         automatic_metadata: Some(automatic_metadata),
     })
 }
@@ -195,6 +243,7 @@ pub async fn update_preferences<'a>(
     db: impl Acquire<'a, Database = Sqlite>,
     user_id: &str,
     preferences: Preferences,
+    keys: Vec<(String, Option<String>)>,
 ) -> Result<(), PreferencesError> {
     let automatic_metadata = preferences
         .automatic_metadata
@@ -219,8 +268,19 @@ pub async fn update_preferences<'a>(
 
     sqlx::query(
         r"
-        DELETE
+        INSERT OR IGNORE INTO user_providers (user_id, provider_id, enabled, priority)
+        SELECT $1, provider_id, FALSE, 0
         FROM providers
+        ",
+    )
+    .bind(user_id)
+    .execute(&mut *tx)
+    .await?;
+
+    sqlx::query(
+        r"
+        UPDATE user_providers
+        SET enabled = FALSE
         WHERE user_id = $1
         ",
     )
@@ -228,20 +288,36 @@ pub async fn update_preferences<'a>(
     .execute(&mut *tx)
     .await?;
 
-    if providers.is_empty() {
-        tx.commit().await?;
-        return Ok(());
+    for (priority, provider) in providers.iter().enumerate() {
+        sqlx::query(
+            r"
+            UPDATE user_providers
+            SET enabled = TRUE, priority = $1
+            WHERE user_id = $2 AND provider_id = $3
+            ",
+        )
+        .bind(i64::try_from(priority).unwrap_or_default())
+        .bind(user_id)
+        .bind(provider)
+        .execute(&mut *tx)
+        .await?;
     }
 
-    let mut index = 1;
-    let mut query = QueryBuilder::new("INSERT INTO providers (provider_type, priority, user_id)");
+    for (provider, key) in keys {
+        sqlx::query(
+            r"
+            UPDATE user_providers
+            SET api_key = $1
+            WHERE user_id = $2 AND provider_id = $3
+            ",
+        )
+        .bind(key)
+        .bind(user_id)
+        .bind(&provider)
+        .execute(&mut *tx)
+        .await?;
+    }
 
-    query.push_values(providers, |mut b, provider| {
-        b.push_bind(provider).push_bind(index).push_bind(user_id);
-        index += 1;
-    });
-
-    query.build().execute(&mut *tx).await?;
     tx.commit().await?;
 
     Ok(())

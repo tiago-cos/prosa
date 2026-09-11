@@ -13,27 +13,32 @@ use crate::{
 };
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use base64::{Engine, prelude::BASE64_STANDARD};
+use chacha20poly1305::{
+    XChaCha20Poly1305, XNonce,
+    aead::{Aead, Generate, Key, KeyInit, Payload},
+};
 use chrono::{DateTime, Utc};
 use jsonwebtoken::{
     Algorithm, DecodingKey, EncodingKey, Header, Validation,
     jwk::{Jwk, JwkSet},
 };
+use log::warn;
 use rsa::{
     RsaPrivateKey,
     pkcs1::{EncodeRsaPrivateKey, EncodeRsaPublicKey},
     rand_core::{OsRng, RngCore},
 };
 use sha2::{Digest, Sha256};
-use std::{
-    fs,
-    path::Path,
-    sync::LazyLock,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::time::{SystemTime, UNIX_EPOCH};
+use std::{fs, path::Path, sync::LazyLock};
 use uuid::Uuid;
 
 static ENCODING_KEY: LazyLock<EncodingKey> = LazyLock::new(|| load_or_generate_rsa_keys().0);
 static DECODING_KEY: LazyLock<DecodingKey> = LazyLock::new(|| load_or_generate_rsa_keys().1);
+static CIPHER: LazyLock<XChaCha20Poly1305> = LazyLock::new(load_or_generate_provider_api_key);
+
+const PROVIDER_API_KEY_LENGTH: usize = 32;
+const PROVIDER_API_NONCE_LENGTH: usize = 24;
 
 #[rustfmt::skip]
 pub fn generate_jwt( user_id: &str, session_id: &str, is_admin: bool) -> String {
@@ -292,3 +297,91 @@ fn load_or_generate_rsa_keys() -> (EncodingKey, DecodingKey) {
 
     (encoding_key, decoding_key)
 }
+
+fn load_or_generate_provider_api_key() -> XChaCha20Poly1305 {
+    let path = &CONFIG.auth.symmetric_key_path;
+
+    if Path::new(path).exists() {
+        let key = fs::read(path).expect("Failed to read the symmetric key");
+        assert!(
+            key.len() == PROVIDER_API_KEY_LENGTH,
+            "The symmetric key at {path} is {} bytes, expected {PROVIDER_API_KEY_LENGTH}",
+            key.len()
+        );
+
+        let key =
+            Key::<XChaCha20Poly1305>::try_from(&key[..]).expect("The symmetric key is the wrong length");
+
+        return XChaCha20Poly1305::new(&key);
+    }
+
+    let key = Key::<XChaCha20Poly1305>::generate();
+    fs::write(path, key).expect("Failed to write the symmetric key");
+    restrict_permissions(path);
+
+    XChaCha20Poly1305::new(&key)
+}
+
+pub fn encrypt_provider_api_key(secret: &str, user_id: &str, provider_id: &str) -> Option<String> {
+    let nonce = XNonce::generate();
+    let aad = provider_associated_data(user_id, provider_id);
+    let payload = Payload {
+        msg: secret.as_bytes(),
+        aad: aad.as_bytes(),
+    };
+
+    let Ok(ciphertext) = CIPHER.encrypt(&nonce, payload) else {
+        warn!("Failed to encrypt the API key for provider {provider_id}");
+        return None;
+    };
+
+    let mut sealed = nonce.to_vec();
+    sealed.extend_from_slice(&ciphertext);
+
+    Some(BASE64_STANDARD.encode(sealed))
+}
+
+pub fn decrypt_provider_api_key(sealed: &str, user_id: &str, provider_id: &str) -> Option<String> {
+    let Ok(sealed) = BASE64_STANDARD.decode(sealed) else {
+        warn!("Stored API key for provider {provider_id} is not valid base64");
+        return None;
+    };
+
+    if sealed.len() <= PROVIDER_API_NONCE_LENGTH {
+        warn!("Stored API key for provider {provider_id} is too short to be valid");
+        return None;
+    }
+
+    let (nonce, ciphertext) = sealed.split_at(PROVIDER_API_NONCE_LENGTH);
+    let aad = provider_associated_data(user_id, provider_id);
+    let payload = Payload {
+        msg: ciphertext,
+        aad: aad.as_bytes(),
+    };
+
+    let nonce = XNonce::from(*<&[u8; PROVIDER_API_NONCE_LENGTH]>::try_from(nonce).ok()?);
+
+    let Ok(plaintext) = CIPHER.decrypt(&nonce, payload) else {
+        warn!("Failed to decrypt the stored API key for provider {provider_id}");
+        return None;
+    };
+
+    String::from_utf8(plaintext).ok()
+}
+
+fn provider_associated_data(user_id: &str, provider_id: &str) -> String {
+    format!("{user_id}:{provider_id}")
+}
+
+#[cfg(unix)]
+fn restrict_permissions(path: &str) {
+    use std::os::unix::fs::PermissionsExt;
+
+    let permissions = fs::Permissions::from_mode(0o600);
+    if fs::set_permissions(path, permissions).is_err() {
+        warn!("Failed to restrict permissions on the symmetric key at {path}");
+    }
+}
+
+#[cfg(not(unix))]
+const fn restrict_permissions(_path: &str) {}

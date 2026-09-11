@@ -28,6 +28,7 @@ pub struct Auth {
     pub allow_user_registration: bool,
     pub public_key_path: String,
     pub private_key_path: String,
+    pub symmetric_key_path: String,
 }
 
 #[derive(Deserialize, Clone)]
@@ -55,8 +56,9 @@ pub struct Database {
 #[derive(Deserialize, Clone)]
 #[serde(default)]
 pub struct MetadataCooldown {
-    pub goodreads: u64,
-    pub epub_extractor: u64,
+    pub openlibrary: u64,
+    pub hardcover: u64,
+    pub google_books: u64,
 }
 
 impl Default for Server {
@@ -77,6 +79,7 @@ impl Default for Auth {
             allow_user_registration: true,
             public_key_path: "library/public_key.bin".to_string(),
             private_key_path: "library/private_key.bin".to_string(),
+            symmetric_key_path: "library/symmetric_key.bin".to_string(),
         }
     }
 }
@@ -93,8 +96,9 @@ impl Default for BookStorage {
 impl Default for MetadataCooldown {
     fn default() -> Self {
         Self {
-            goodreads: 1000,
-            epub_extractor: 0,
+            openlibrary: 1000,
+            hardcover: 1000,
+            google_books: 1000,
         }
     }
 }

@@ -11,11 +11,12 @@ use crate::app::{
         self,
         models::{ChangeLogAction, ChangeLogEntityType},
     },
+    users,
 };
 use log::warn;
 use serde::Serialize;
 use std::{collections::VecDeque, sync::Arc};
-use tokio::sync::{Mutex, Notify, RwLock};
+use tokio::sync::{Notify, RwLock};
 
 #[derive(Clone, Serialize, PartialEq, Eq)]
 pub struct MetadataFetcherRequest {
@@ -27,15 +28,15 @@ pub struct MetadataFetcherRequest {
 pub struct MetadataFetcherService {
     queue: RwLock<VecDeque<MetadataFetcherRequest>>,
     notify: Notify,
-    fetcher: Mutex<MetadataFetcher>,
+    fetcher: MetadataFetcher,
 }
 
 impl MetadataFetcherService {
-    pub fn new(epub_extractor_cooldown: u64, goodreads_cooldown: u64) -> Arc<Self> {
+    pub fn new() -> Arc<Self> {
         let manager = Self {
             queue: RwLock::new(VecDeque::new()),
             notify: Notify::new(),
-            fetcher: Mutex::new(MetadataFetcher::new(epub_extractor_cooldown, goodreads_cooldown)),
+            fetcher: MetadataFetcher::new(),
         };
 
         let manager = Arc::new(manager);
@@ -88,7 +89,9 @@ impl MetadataFetcherService {
                 continue;
             };
 
-            let (metadata, image) = self.fetch_metadata(&req.book_id, req.providers).await;
+            let (metadata, image) = self
+                .fetch_metadata(&req.user_id, &req.book_id, &req.providers)
+                .await;
             if metadata.is_none() && image.is_none() {
                 continue;
             }
@@ -98,8 +101,9 @@ impl MetadataFetcherService {
 
     async fn fetch_metadata(
         &self,
+        user_id: &str,
         book_id: &str,
-        providers: Vec<String>,
+        providers: &[String],
     ) -> (Option<Metadata>, Option<Vec<u8>>) {
         let lock = LOCKS.get_book_lock(book_id).await;
         let _guard = lock.read().await;
@@ -108,16 +112,18 @@ impl MetadataFetcherService {
             warn!("Background metadata fetching failed for book {book_id}");
             return (None, None);
         };
+
         let Ok(epub_data) = epubs::service::read_epub(&book.epub_id).await else {
             warn!("Background metadata fetching failed for book {book_id}");
             return (None, None);
         };
 
-        self.fetcher
-            .lock()
-            .await
-            .fetch_metadata(epub_data, providers)
-            .await
+        let Ok(providers) = users::service::get_provider_keys(user_id, providers).await else {
+            warn!("Background metadata fetching failed for book {book_id}");
+            return (None, None);
+        };
+
+        self.fetcher.fetch_metadata(&epub_data, &providers).await
     }
 
     async fn store_metadata(&self, book_id: &str, metadata: Option<Metadata>, image: Option<Vec<u8>>) -> () {

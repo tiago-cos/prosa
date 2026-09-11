@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use chrono::{DateTime, Utc};
 use merge::Merge;
 use serde::{Deserialize, Serialize};
@@ -72,6 +74,10 @@ pub enum PreferencesError {
     #[strum(props(StatusCode = "400"))]
     InvalidPreferences,
 
+    #[strum(message = "This metadata provider requires an API key.")]
+    #[strum(props(StatusCode = "400"))]
+    MissingProviderKey,
+
     #[strum(message = "The requested user does not exist or is not accessible.")]
     #[strum(props(StatusCode = "404"))]
     UserNotFound,
@@ -130,12 +136,27 @@ pub struct RefreshTokenRequest {
     pub refresh_token: String,
 }
 
-pub const VALID_PROVIDERS: [&str; 2] = ["epub_metadata_extractor", "goodreads_metadata_scraper"];
+pub const PROVIDERS: [(&str, bool); 4] = [
+    ("epub_metadata_extractor", false),
+    ("openlibrary", false),
+    ("hardcover", true),
+    ("google_books", true),
+];
 
-#[derive(FromRow, Serialize, Deserialize, Merge)]
+pub const DEFAULT_PROVIDER: &str = "epub_metadata_extractor";
+
+#[skip_serializing_none]
+#[derive(Serialize, Deserialize, Merge, Default)]
 #[merge(strategy = merge::option::overwrite_none)]
 pub struct Preferences {
     pub metadata_providers: Option<Vec<String>>,
+    /// Keys to store, by provider. Write-only: a provider mapped to `null`
+    /// has its key cleared, one left out keeps whatever is already stored.
+    #[serde(skip_serializing)]
+    pub provider_keys: Option<HashMap<String, Option<String>>>,
+    /// Providers that currently have a key stored. Read-only.
+    #[serde(skip_deserializing)]
+    pub configured_providers: Option<Vec<String>>,
     pub automatic_metadata: Option<bool>,
 }
 

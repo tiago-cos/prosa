@@ -53,20 +53,21 @@ impl From<&SqliteError> for MetadataError {
     }
 }
 
-#[derive(FromRow, Serialize, Deserialize)]
+#[derive(FromRow, Clone, Serialize, Deserialize)]
 pub struct Contributor {
     pub name: String,
     pub role: String,
 }
 
-#[derive(FromRow, Serialize, Deserialize)]
+#[skip_serializing_none]
+#[derive(FromRow, Clone, Serialize, Deserialize)]
 pub struct Series {
     pub title: String,
-    pub number: f32,
+    pub number: Option<f32>,
 }
 
 #[skip_serializing_none]
-#[derive(FromRow, Merge, Serialize, Deserialize, Default)]
+#[derive(FromRow, Clone, Merge, Serialize, Deserialize, Default)]
 #[merge(strategy = merge::option::overwrite_none)]
 pub struct Metadata {
     pub title: Option<String>,
@@ -99,6 +100,20 @@ impl Metadata {
             && self.series.is_none()
             && self.page_count.is_none()
             && self.language.is_none()
+    }
+
+    pub const fn is_complete(&self) -> bool {
+        self.title.is_some()
+            && self.subtitle.is_some()
+            && self.description.is_some()
+            && self.publisher.is_some()
+            && self.publication_date.is_some()
+            && self.isbn.is_some()
+            && self.contributors.is_some()
+            && self.genres.is_some()
+            && self.series.is_some()
+            && self.page_count.is_some()
+            && self.language.is_some()
     }
 }
 

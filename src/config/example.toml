@@ -9,14 +9,16 @@ refresh_token_duration = 604800
 allow_user_registration = true
 public_key_path = "library/public_key.bin"
 private_key_path = "library/private_key.bin"
+symmetric_key_path = "library/symmetric_key.bin"
 
 [book_storage]
 epub_path = "library/epubs"
 cover_path = "library/covers"
 
 [metadata_cooldown]
-goodreads = 1000
-epub_extractor = 0
+openlibrary = 1000
+hardcover = 1000
+google_books = 1000
 
 [database]
 file_path = "library/database.db"

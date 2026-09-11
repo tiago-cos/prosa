@@ -1,56 +1,34 @@
-use super::rate_limiter::RateLimiter;
-use crate::app::{
-    core::metadata_fetcher::fetcher::MetadataProvider,
-    metadata::models::{Contributor, Metadata, Series},
-};
-use async_trait::async_trait;
+use crate::app::metadata::models::{Contributor, Metadata, Series};
 use chrono::{DateTime, NaiveDate, NaiveDateTime, Utc};
 use epub::doc::{EpubDoc, MetadataItem};
 use log::warn;
 use std::io::Cursor;
 
-pub struct EpubExtractor {
-    rate_limiter: RateLimiter,
-}
+pub fn extract(epub_data: &[u8]) -> (Option<Metadata>, Option<Vec<u8>>) {
+    let Ok(mut epub) = EpubDoc::from_reader(Cursor::new(epub_data)) else {
+        warn!("Skipping metadata extraction: the book could not be opened as an EPUB");
+        return (None, None);
+    };
 
-impl EpubExtractor {
-    pub fn new(cooldown: u64) -> Self {
-        Self {
-            rate_limiter: RateLimiter::new(cooldown),
-        }
-    }
-}
+    let (title, subtitle) = titles(&epub.metadata);
 
-#[async_trait]
-impl MetadataProvider for EpubExtractor {
-    async fn fetch_metadata(&mut self, epub_data: &[u8]) -> (Option<Metadata>, Option<Vec<u8>>) {
-        self.rate_limiter.cooldown().await;
+    let metadata = Metadata {
+        title,
+        subtitle,
+        description: first(&epub.metadata, "description").map(|item| item.value.clone()),
+        publisher: first(&epub.metadata, "publisher").map(|item| item.value.clone()),
+        publication_date: first(&epub.metadata, "date").and_then(|item| parse_date(&item.value).ok()),
+        isbn: isbn(&epub.metadata),
+        contributors: contributors(&epub.metadata),
+        genres: genres(&epub.metadata),
+        series: series(&epub.metadata),
+        page_count: None,
+        language: language(&epub.metadata),
+    };
 
-        let Ok(mut epub) = EpubDoc::from_reader(Cursor::new(epub_data)) else {
-            warn!("Skipping metadata extraction: the book could not be opened as an EPUB");
-            return (None, None);
-        };
+    let cover = epub.get_cover().map(|(data, _)| data);
 
-        let (title, subtitle) = titles(&epub.metadata);
-
-        let metadata = Metadata {
-            title,
-            subtitle,
-            description: first(&epub.metadata, "description").map(|item| item.value.clone()),
-            publisher: first(&epub.metadata, "publisher").map(|item| item.value.clone()),
-            publication_date: first(&epub.metadata, "date").and_then(|item| parse_date(&item.value).ok()),
-            isbn: isbn(&epub.metadata),
-            contributors: contributors(&epub.metadata),
-            genres: genres(&epub.metadata),
-            series: series(&epub.metadata),
-            page_count: None,
-            language: first(&epub.metadata, "language").map(|item| item.value.clone()),
-        };
-
-        let cover = epub.get_cover().map(|(data, _)| data);
-
-        ((!metadata.is_empty()).then_some(metadata), cover)
-    }
+    ((!metadata.is_empty()).then_some(metadata), cover)
 }
 
 fn first<'a>(metadata: &'a [MetadataItem], property: &str) -> Option<&'a MetadataItem> {
@@ -165,9 +143,46 @@ fn genres(metadata: &[MetadataItem]) -> Option<Vec<String>> {
     (!genres.is_empty()).then_some(genres)
 }
 
+fn language(metadata: &[MetadataItem]) -> Option<String> {
+    let value = first(metadata, "language")?.value.trim();
+
+    let primary = value.split(['-', '_']).next().unwrap_or(value);
+
+    let name = match primary.to_ascii_lowercase().as_str() {
+        "ar" => "Arabic",
+        "cs" => "Czech",
+        "da" => "Danish",
+        "de" => "German",
+        "el" => "Greek",
+        "en" => "English",
+        "es" => "Spanish",
+        "fi" => "Finnish",
+        "fr" => "French",
+        "he" => "Hebrew",
+        "hi" => "Hindi",
+        "hu" => "Hungarian",
+        "it" => "Italian",
+        "ja" => "Japanese",
+        "ko" => "Korean",
+        "nl" => "Dutch",
+        "no" | "nb" | "nn" => "Norwegian",
+        "pl" => "Polish",
+        "pt" => "Portuguese",
+        "ro" => "Romanian",
+        "ru" => "Russian",
+        "sv" => "Swedish",
+        "tr" => "Turkish",
+        "uk" => "Ukrainian",
+        "zh" => "Chinese",
+        _ => return Some(value.to_string()),
+    };
+
+    Some(name.to_string())
+}
+
 fn series(metadata: &[MetadataItem]) -> Option<Series> {
     let title = first(metadata, "calibre:series").map(|item| item.value.clone())?;
-    let number = first(metadata, "calibre:series_index").and_then(|item| item.value.trim().parse().ok())?;
+    let number = first(metadata, "calibre:series_index").and_then(|item| item.value.trim().parse().ok());
 
     Some(Series { title, number })
 }

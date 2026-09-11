@@ -121,6 +121,7 @@ async fn run_startup_checks() -> Result<(), StartupError> {
     create_parent_dir(&CONFIG.database.file_path).await?;
     create_parent_dir(&CONFIG.auth.public_key_path).await?;
     create_parent_dir(&CONFIG.auth.private_key_path).await?;
+    create_parent_dir(&CONFIG.auth.symmetric_key_path).await?;
     create_dir_all(&CONFIG.book_storage.epub_path).await?;
     create_dir_all(&CONFIG.book_storage.cover_path).await?;
 
