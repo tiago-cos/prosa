@@ -17,21 +17,12 @@ use axum::{
 use axum_typed_multipart::TypedMultipart;
 use std::collections::HashMap;
 
-fn user_id_matches(user_id: &str, token: &AuthToken) -> bool {
-    let token_user_id = match &token.role {
-        AuthRole::Admin(_) => return true,
-        AuthRole::User(id) => id,
-    };
-
-    user_id == token_user_id
-}
-
 pub async fn can_create_book(
     Extension(token): Extension<AuthToken>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if !token.capabilities.contains(&CREATE.to_string()) {
+    if !token.can(CREATE) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -47,7 +38,7 @@ pub async fn can_create_book(
         .expect("Failed to parse request");
 
     match data.owner_id.as_deref() {
-        Some(id) if !user_id_matches(id, &token) => return Err(AuthError::Forbidden.into()),
+        Some(id) if !token.can_act_for(id) => return Err(AuthError::Forbidden.into()),
         _ => (),
     }
 
@@ -60,13 +51,13 @@ pub async fn can_read_book(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if !token.capabilities.contains(&READ.to_string()) {
+    if !token.can(READ) {
         return Err(AuthError::Forbidden.into());
     }
 
     let book = books::service::get_book(&book_id).await?;
 
-    if !user_id_matches(&book.owner_id, &token) {
+    if !token.can_act_for(&book.owner_id) {
         return Err(BookError::BookNotFound.into());
     }
 
@@ -79,7 +70,7 @@ pub async fn can_search_books(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if !token.capabilities.contains(&READ.to_string()) {
+    if !token.can(READ) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -109,13 +100,13 @@ pub async fn can_delete_book(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if !token.capabilities.contains(&DELETE.to_string()) {
+    if !token.can(DELETE) {
         return Err(AuthError::Forbidden.into());
     }
 
     let book = books::service::get_book(&book_id).await?;
 
-    if !user_id_matches(&book.owner_id, &token) {
+    if !token.can_act_for(&book.owner_id) {
         return Err(BookError::BookNotFound.into());
     }
 
@@ -128,13 +119,13 @@ pub async fn can_update_book(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if !token.capabilities.contains(&UPDATE.to_string()) {
+    if !token.can(UPDATE) {
         return Err(AuthError::Forbidden.into());
     }
 
     let book = books::service::get_book(&book_id).await?;
 
-    if !user_id_matches(&book.owner_id, &token) {
+    if !token.can_act_for(&book.owner_id) {
         return Err(BookError::BookNotFound.into());
     }
 

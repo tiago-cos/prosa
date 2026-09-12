@@ -1,5 +1,5 @@
 use crate::app::{
-    authentication::models::{AuthError, AuthRole, AuthToken, AuthType, CREATE, DELETE, READ, UPDATE},
+    authentication::models::{AuthError, AuthToken, AuthType, CREATE, DELETE, READ, UPDATE},
     error::ProsaError,
 };
 use axum::{
@@ -8,15 +8,6 @@ use axum::{
     middleware::Next,
     response::IntoResponse,
 };
-
-fn user_id_matches(user_id: &str, token: AuthToken) -> bool {
-    let token_user_id = match token.role {
-        AuthRole::Admin(_) => return true,
-        AuthRole::User(id) => id,
-    };
-
-    user_id == token_user_id
-}
 
 pub async fn can_create_api_key(
     Extension(token): Extension<AuthToken>,
@@ -28,11 +19,11 @@ pub async fn can_create_api_key(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !token.capabilities.contains(&CREATE.to_string()) {
+    if !token.can(CREATE) {
         return Err(AuthError::Forbidden.into());
     }
 
-    if !user_id_matches(&user_id, token) {
+    if !token.can_act_for(&user_id) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -49,11 +40,11 @@ pub async fn can_read_api_key(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !token.capabilities.contains(&READ.to_string()) {
+    if !token.can(READ) {
         return Err(AuthError::Forbidden.into());
     }
 
-    if !user_id_matches(&user_id, token) {
+    if !token.can_act_for(&user_id) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -70,11 +61,11 @@ pub async fn can_read_api_keys(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !token.capabilities.contains(&READ.to_string()) {
+    if !token.can(READ) {
         return Err(AuthError::Forbidden.into());
     }
 
-    if !user_id_matches(&user_id, token) {
+    if !token.can_act_for(&user_id) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -91,11 +82,11 @@ pub async fn can_delete_api_key(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !token.capabilities.contains(&DELETE.to_string()) {
+    if !token.can(DELETE) {
         return Err(AuthError::Forbidden.into());
     }
 
-    if !user_id_matches(&user_id, token) {
+    if !token.can_act_for(&user_id) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -112,11 +103,11 @@ pub async fn can_update_preferences(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !token.capabilities.contains(&UPDATE.to_string()) {
+    if !token.can(UPDATE) {
         return Err(AuthError::Forbidden.into());
     }
 
-    if !user_id_matches(&user_id, token) {
+    if !token.can_act_for(&user_id) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -133,11 +124,11 @@ pub async fn can_read_preferences(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !token.capabilities.contains(&READ.to_string()) {
+    if !token.can(READ) {
         return Err(AuthError::Forbidden.into());
     }
 
-    if !user_id_matches(&user_id, token) {
+    if !token.can_act_for(&user_id) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -154,11 +145,11 @@ pub async fn can_read_profile(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !token.capabilities.contains(&READ.to_string()) {
+    if !token.can(READ) {
         return Err(AuthError::Forbidden.into());
     }
 
-    if !user_id_matches(&user_id, token) {
+    if !token.can_act_for(&user_id) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -175,11 +166,11 @@ pub async fn can_update_profile(
         return Err(AuthError::Forbidden.into());
     }
 
-    if !token.capabilities.contains(&UPDATE.to_string()) {
+    if !token.can(UPDATE) {
         return Err(AuthError::Forbidden.into());
     }
 
-    if !user_id_matches(&user_id, token) {
+    if !token.can_act_for(&user_id) {
         return Err(AuthError::Forbidden.into());
     }
 

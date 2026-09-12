@@ -1,5 +1,5 @@
 use crate::app::{
-    authentication::models::{AuthError, AuthRole, AuthToken, READ, UPDATE},
+    authentication::models::{AuthError, AuthToken, READ, UPDATE},
     books::{self, models::BookError},
     error::ProsaError,
 };
@@ -10,28 +10,19 @@ use axum::{
     response::IntoResponse,
 };
 
-fn user_id_matches(user_id: &str, token: &AuthToken) -> bool {
-    let token_user_id = match &token.role {
-        AuthRole::Admin(_) => return true,
-        AuthRole::User(id) => id,
-    };
-
-    user_id == token_user_id
-}
-
 pub async fn can_read_annotation(
     Extension(token): Extension<AuthToken>,
     Path((book_id, _)): Path<(String, String)>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if !token.capabilities.contains(&READ.to_string()) {
+    if !token.can(READ) {
         return Err(AuthError::Forbidden.into());
     }
 
     let book = books::service::get_book(&book_id).await?;
 
-    if !user_id_matches(&book.owner_id, &token) {
+    if !token.can_act_for(&book.owner_id) {
         return Err(BookError::BookNotFound.into());
     }
 
@@ -44,13 +35,13 @@ pub async fn can_update_annotation(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if !token.capabilities.contains(&UPDATE.to_string()) {
+    if !token.can(UPDATE) {
         return Err(AuthError::Forbidden.into());
     }
 
     let book = books::service::get_book(&book_id).await?;
 
-    if !user_id_matches(&book.owner_id, &token) {
+    if !token.can_act_for(&book.owner_id) {
         return Err(BookError::BookNotFound.into());
     }
 

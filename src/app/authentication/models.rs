@@ -188,3 +188,16 @@ pub struct AuthenticationResponse {
     pub refresh_token: String,
     pub user_id: String,
 }
+
+impl AuthToken {
+    pub fn can_act_for(&self, user_id: &str) -> bool {
+        match &self.role {
+            AuthRole::Admin(_) => true,
+            AuthRole::User(id) => id == user_id,
+        }
+    }
+
+    pub fn can(&self, capability: &str) -> bool {
+        self.capabilities.iter().any(|held| held == capability)
+    }
+}

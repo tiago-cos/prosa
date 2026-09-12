@@ -13,30 +13,21 @@ use axum::{
 };
 use std::collections::HashMap;
 
-fn user_id_matches(user_id: &str, token: &AuthToken) -> bool {
-    let token_user_id = match &token.role {
-        AuthRole::Admin(_) => return true,
-        AuthRole::User(id) => id,
-    };
-
-    user_id == token_user_id
-}
-
 pub async fn can_list_metadata_requests(
     Extension(token): Extension<AuthToken>,
     Query(params): Query<HashMap<String, String>>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if !token.capabilities.contains(&READ.to_string()) {
+    if !token.can(READ) {
         return Err(AuthError::Forbidden.into());
     }
 
     let is_admin = matches!(&token.role, AuthRole::Admin(_));
 
     match params.get("user_id") {
-        Some(id) if !user_id_matches(id, &token) => Err(AuthError::Forbidden.into()),
-        Some(id) if user_id_matches(id, &token) => Ok(next.run(request).await),
+        Some(id) if !token.can_act_for(id) => Err(AuthError::Forbidden.into()),
+        Some(id) if token.can_act_for(id) => Ok(next.run(request).await),
         None if is_admin => Ok(next.run(request).await),
         _ => Err(AuthError::Forbidden.into()),
     }
@@ -47,7 +38,7 @@ pub async fn can_add_metadata_request(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if !token.capabilities.contains(&UPDATE.to_string()) {
+    if !token.can(UPDATE) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -63,7 +54,7 @@ pub async fn can_add_metadata_request(
 
     let book = books::service::get_book(&payload.book_id).await?;
 
-    if !user_id_matches(&book.owner_id, &token) {
+    if !token.can_act_for(&book.owner_id) {
         return Err(BookError::BookNotFound.into());
     }
 

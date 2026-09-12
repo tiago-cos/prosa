@@ -17,21 +17,12 @@ use axum::{
 };
 use std::collections::HashMap;
 
-fn user_id_matches(user_id: &str, token: &AuthToken) -> bool {
-    let token_user_id = match &token.role {
-        AuthRole::Admin(_) => return true,
-        AuthRole::User(id) => id,
-    };
-
-    user_id == token_user_id
-}
-
 pub async fn can_create_shelf(
     Extension(token): Extension<AuthToken>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if !token.capabilities.contains(&CREATE.to_string()) {
+    if !token.can(CREATE) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -46,7 +37,7 @@ pub async fn can_create_shelf(
     };
 
     match payload.owner_id.as_deref() {
-        Some(id) if !user_id_matches(id, &token) => return Err(AuthError::Forbidden.into()),
+        Some(id) if !token.can_act_for(id) => return Err(AuthError::Forbidden.into()),
         _ => (),
     }
 
@@ -59,13 +50,13 @@ pub async fn can_read_shelf(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if !token.capabilities.contains(&READ.to_string()) {
+    if !token.can(READ) {
         return Err(AuthError::Forbidden.into());
     }
 
     let shelf = shelves::service::get_shelf(&shelf_id).await?;
 
-    if !user_id_matches(&shelf.owner_id, &token) {
+    if !token.can_act_for(&shelf.owner_id) {
         return Err(ShelfError::ShelfNotFound.into());
     }
 
@@ -78,13 +69,13 @@ pub async fn can_update_shelf(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if !token.capabilities.contains(&UPDATE.to_string()) {
+    if !token.can(UPDATE) {
         return Err(AuthError::Forbidden.into());
     }
 
     let shelf = shelves::service::get_shelf(&shelf_id).await?;
 
-    if !user_id_matches(&shelf.owner_id, &token) {
+    if !token.can_act_for(&shelf.owner_id) {
         return Err(ShelfError::ShelfNotFound.into());
     }
 
@@ -97,13 +88,13 @@ pub async fn can_delete_shelf(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if !token.capabilities.contains(&DELETE.to_string()) {
+    if !token.can(DELETE) {
         return Err(AuthError::Forbidden.into());
     }
 
     let shelf = shelves::service::get_shelf(&shelf_id).await?;
 
-    if !user_id_matches(&shelf.owner_id, &token) {
+    if !token.can_act_for(&shelf.owner_id) {
         return Err(ShelfError::ShelfNotFound.into());
     }
 
@@ -116,7 +107,7 @@ pub async fn can_search_shelves(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if !token.capabilities.contains(&READ.to_string()) {
+    if !token.can(READ) {
         return Err(AuthError::Forbidden.into());
     }
 
@@ -146,13 +137,13 @@ pub async fn can_add_book_to_shelf(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if !token.capabilities.contains(&UPDATE.to_string()) {
+    if !token.can(UPDATE) {
         return Err(AuthError::Forbidden.into());
     }
 
     let shelf = shelves::service::get_shelf(&shelf_id).await?;
 
-    if !user_id_matches(&shelf.owner_id, &token) {
+    if !token.can_act_for(&shelf.owner_id) {
         return Err(ShelfError::ShelfNotFound.into());
     }
 
@@ -168,7 +159,7 @@ pub async fn can_add_book_to_shelf(
 
     let book = books::service::get_book(&payload.book_id).await?;
 
-    if !user_id_matches(&book.owner_id, &token) {
+    if !token.can_act_for(&book.owner_id) {
         return Err(BookError::BookNotFound.into());
     }
 
@@ -185,13 +176,13 @@ pub async fn can_delete_book_from_shelf(
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, ProsaError> {
-    if !token.capabilities.contains(&UPDATE.to_string()) {
+    if !token.can(UPDATE) {
         return Err(AuthError::Forbidden.into());
     }
 
     let shelf = shelves::service::get_shelf(&shelf_id).await?;
 
-    if !user_id_matches(&shelf.owner_id, &token) {
+    if !token.can_act_for(&shelf.owner_id) {
         return Err(ShelfError::ShelfNotFound.into());
     }
 
@@ -199,7 +190,7 @@ pub async fn can_delete_book_from_shelf(
         .await
         .map_err(|_| ShelfBookError::ShelfBookNotFound)?;
 
-    if !user_id_matches(&book.owner_id, &token) {
+    if !token.can_act_for(&book.owner_id) {
         return Err(ShelfBookError::ShelfBookNotFound.into());
     }
 
