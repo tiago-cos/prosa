@@ -7,6 +7,10 @@ use crate::app::{
         models::{PaginatedShelves, Shelf, ShelfError, ShelfMetadata},
         repository,
     },
+    sync::{
+        self,
+        models::{ChangeLogAction, ChangeLogEntityType},
+    },
 };
 use crate::database::pool;
 
@@ -28,7 +32,11 @@ pub async fn get_shelf_metadata(shelf_id: &str) -> Result<ShelfMetadata, ProsaEr
     Ok(metadata)
 }
 
-pub async fn add_shelf(shelf: Shelf, shelf_id: Option<String>) -> Result<String, ProsaError> {
+pub async fn add_shelf(
+    shelf: Shelf,
+    shelf_id: Option<String>,
+    session_id: &str,
+) -> Result<String, ProsaError> {
     verify_shelf_name(&shelf.name)?;
 
     let shelf_id = ids::resolve(shelf_id).map_err(|_| ShelfError::InvalidShelfId)?;
@@ -46,19 +54,25 @@ pub async fn add_shelf(shelf: Shelf, shelf_id: Option<String>) -> Result<String,
         return Err(ShelfError::ShelfConflict.into());
     }
 
+    let owner_id = shelf.owner_id.clone();
     repository::add_shelf(pool(), &shelf_id, shelf).await?;
+    log_metadata_change(&shelf_id, ChangeLogAction::Create, &owner_id, session_id).await;
 
     Ok(shelf_id)
 }
 
-pub async fn update_shelf(shelf_id: &str, name: &str) -> Result<(), ProsaError> {
+pub async fn update_shelf(shelf_id: &str, name: &str, session_id: &str) -> Result<(), ProsaError> {
     verify_shelf_name(name)?;
+    let shelf = repository::get_shelf(pool(), shelf_id).await?;
     repository::update_shelf(pool(), shelf_id, name).await?;
+    log_metadata_change(shelf_id, ChangeLogAction::Update, &shelf.owner_id, session_id).await;
     Ok(())
 }
 
-pub async fn delete_shelf(shelf_id: &str) -> Result<(), ProsaError> {
+pub async fn delete_shelf(shelf_id: &str, session_id: &str) -> Result<(), ProsaError> {
+    let shelf = repository::get_shelf(pool(), shelf_id).await?;
     repository::delete_shelf(pool(), shelf_id).await?;
+    log_metadata_change(shelf_id, ChangeLogAction::Delete, &shelf.owner_id, session_id).await;
     Ok(())
 }
 
@@ -78,28 +92,28 @@ pub async fn search_shelves(
     Ok(repository::get_paginated_shelves(pool(), page, page_size, username, name).await)
 }
 
-pub async fn add_book_to_shelf(shelf_id: &str, book_id: &str) -> Result<(), ProsaError> {
-    // Verify if book and shelf exist
+pub async fn add_book_to_shelf(shelf_id: &str, book_id: &str, session_id: &str) -> Result<(), ProsaError> {
     books::service::get_book(book_id).await?;
-    get_shelf_metadata(shelf_id).await?;
-
+    let shelf = repository::get_shelf(pool(), shelf_id).await?;
     repository::add_book_to_shelf(pool(), shelf_id, book_id).await?;
+    log_content_change(shelf_id, ChangeLogAction::Create, &shelf.owner_id, session_id).await;
     Ok(())
 }
 
 pub async fn list_shelf_books(shelf_id: &str) -> Result<Vec<String>, ProsaError> {
-    // Verify if the shelf exists
-    get_shelf_metadata(shelf_id).await?;
-
+    verify_shelf_exists(shelf_id).await?;
     let books = repository::get_shelf_books(pool(), shelf_id).await;
     Ok(books)
 }
 
-pub async fn delete_book_from_shelf(shelf_id: &str, book_id: &str) -> Result<(), ProsaError> {
-    // Verify if the shelf exists
-    get_shelf_metadata(shelf_id).await?;
-
+pub async fn delete_book_from_shelf(
+    shelf_id: &str,
+    book_id: &str,
+    session_id: &str,
+) -> Result<(), ProsaError> {
+    let shelf = repository::get_shelf(pool(), shelf_id).await?;
     repository::delete_book_from_shelf(pool(), shelf_id, book_id).await?;
+    log_content_change(shelf_id, ChangeLogAction::Delete, &shelf.owner_id, session_id).await;
     Ok(())
 }
 
@@ -113,4 +127,34 @@ fn verify_shelf_name(name: &str) -> Result<(), ShelfError> {
     }
 
     Ok(())
+}
+
+async fn verify_shelf_exists(shelf_id: &str) -> Result<(), ProsaError> {
+    if !repository::shelf_exists(pool(), shelf_id).await {
+        return Err(ShelfError::ShelfNotFound.into());
+    }
+
+    Ok(())
+}
+
+async fn log_metadata_change(shelf_id: &str, action: ChangeLogAction, owner_id: &str, session_id: &str) {
+    sync::service::log_change(
+        shelf_id,
+        ChangeLogEntityType::ShelfMetadata,
+        action,
+        owner_id,
+        session_id,
+    )
+    .await;
+}
+
+async fn log_content_change(shelf_id: &str, action: ChangeLogAction, owner_id: &str, session_id: &str) {
+    sync::service::log_change(
+        shelf_id,
+        ChangeLogEntityType::ShelfContent,
+        action,
+        owner_id,
+        session_id,
+    )
+    .await;
 }

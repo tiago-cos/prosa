@@ -1,6 +1,5 @@
 use crate::app::server::LOCKS;
 use crate::app::shelves::service;
-use crate::app::sync::models::{ChangeLogAction, ChangeLogEntityType};
 use crate::app::{
     authentication::models::AuthToken,
     error::ProsaError,
@@ -9,7 +8,7 @@ use crate::app::{
         UpdateShelfRequest,
     },
 };
-use crate::app::{sync, users};
+use crate::app::users;
 use axum::Extension;
 use axum::extract::{Path, Query};
 use axum::{Json, http::StatusCode};
@@ -31,16 +30,7 @@ pub async fn add_shelf_handler(
         owner_id: owner_id.to_string(),
     };
 
-    let shelf_id = service::add_shelf(shelf, request.shelf_id).await?;
-
-    sync::service::log_change(
-        &shelf_id,
-        ChangeLogEntityType::ShelfMetadata,
-        ChangeLogAction::Create,
-        owner_id,
-        &token.session_id,
-    )
-    .await;
+    let shelf_id = service::add_shelf(shelf, request.shelf_id, &token.session_id).await?;
 
     Ok(shelf_id)
 }
@@ -64,17 +54,7 @@ pub async fn update_shelf_handler(
     let lock = LOCKS.get_shelf_lock(&shelf_id).await;
     let _guard = lock.write().await;
 
-    let shelf = service::get_shelf(&shelf_id).await?;
-    service::update_shelf(&shelf_id, &request.name).await?;
-
-    sync::service::log_change(
-        &shelf_id,
-        ChangeLogEntityType::ShelfMetadata,
-        ChangeLogAction::Update,
-        &shelf.owner_id,
-        &token.session_id,
-    )
-    .await;
+    service::update_shelf(&shelf_id, &request.name, &token.session_id).await?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -86,17 +66,7 @@ pub async fn delete_shelf_handler(
     let lock = LOCKS.get_shelf_lock(&shelf_id).await;
     let _guard = lock.write().await;
 
-    let shelf = service::get_shelf(&shelf_id).await?;
-    service::delete_shelf(&shelf_id).await?;
-
-    sync::service::log_change(
-        &shelf_id,
-        ChangeLogEntityType::ShelfMetadata,
-        ChangeLogAction::Delete,
-        &shelf.owner_id,
-        &token.session_id,
-    )
-    .await;
+    service::delete_shelf(&shelf_id, &token.session_id).await?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -143,18 +113,7 @@ pub async fn add_book_to_shelf_handler(
     let shelf_lock = LOCKS.get_shelf_lock(&shelf_id).await;
     let _shelf_guard = shelf_lock.write().await;
 
-    let shelf = service::get_shelf(&shelf_id).await?;
-
-    service::add_book_to_shelf(&shelf_id, &request.book_id).await?;
-
-    sync::service::log_change(
-        &shelf_id,
-        ChangeLogEntityType::ShelfContent,
-        ChangeLogAction::Create,
-        &shelf.owner_id,
-        &token.session_id,
-    )
-    .await;
+    service::add_book_to_shelf(&shelf_id, &request.book_id, &token.session_id).await?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -178,18 +137,7 @@ pub async fn remove_book_from_shelf_handler(
     let shelf_lock = LOCKS.get_shelf_lock(&shelf_id).await;
     let _shelf_guard = shelf_lock.write().await;
 
-    let shelf = service::get_shelf(&shelf_id).await?;
-
-    service::delete_book_from_shelf(&shelf_id, &book_id).await?;
-
-    sync::service::log_change(
-        &shelf_id,
-        ChangeLogEntityType::ShelfContent,
-        ChangeLogAction::Delete,
-        &shelf.owner_id,
-        &token.session_id,
-    )
-    .await;
+    service::delete_book_from_shelf(&shelf_id, &book_id, &token.session_id).await?;
 
     Ok(StatusCode::NO_CONTENT)
 }
