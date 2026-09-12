@@ -181,3 +181,10 @@ pub struct RefreshToken {
     pub refresh_token_hash: String,
     pub expiration: DateTime<Utc>,
 }
+
+#[derive(Serialize)]
+pub struct AuthenticationResponse {
+    pub jwt_token: String,
+    pub refresh_token: String,
+    pub user_id: String,
+}

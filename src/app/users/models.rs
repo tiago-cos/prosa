@@ -205,13 +205,6 @@ pub struct CreateApiKeyResponse {
     pub key: String,
 }
 
-#[derive(Serialize)]
-pub struct AuthenticationResponse {
-    pub jwt_token: String,
-    pub refresh_token: String,
-    pub user_id: String,
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct UserProfile {
     pub username: String,

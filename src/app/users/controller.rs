@@ -3,10 +3,10 @@ use super::models::{
     RegisterUserRequest,
 };
 use crate::app::{
-    authentication,
+    authentication::{self, models::AuthenticationResponse},
     error::ProsaError,
     users::{
-        models::{AuthenticationResponse, RefreshTokenRequest, UserProfile},
+        models::{RefreshTokenRequest, UserProfile},
         service,
     },
 };
@@ -24,38 +24,18 @@ pub async fn register_user_handler(
     authentication::service::can_register(body.admin, admin_key)?;
 
     let user_id = service::register_user(&body.username, &body.password, body.admin, body.user_id).await?;
+    let session = authentication::service::establish_session(&user_id, body.admin).await;
 
-    let session_id = authentication::service::generate_new_session();
-    let jwt_token = authentication::service::generate_jwt(&user_id, &session_id, body.admin);
-    let refresh_token = authentication::service::generate_refresh_token(&user_id, &session_id).await;
-
-    let response = AuthenticationResponse {
-        jwt_token,
-        refresh_token,
-        user_id,
-    };
-
-    Ok(Json(response))
+    Ok(Json(session))
 }
 
 pub async fn login_user_handler(
     Json(body): Json<LoginUserRequest>,
 ) -> Result<Json<AuthenticationResponse>, ProsaError> {
     let user = service::login_user(&body.username, &body.password).await?;
+    let session = authentication::service::establish_session(&user.user_id, user.is_admin).await;
 
-    let session_id = authentication::service::generate_new_session();
-
-    let jwt_token = authentication::service::generate_jwt(&user.user_id, &session_id, user.is_admin);
-
-    let refresh_token = authentication::service::generate_refresh_token(&user.user_id, &session_id).await;
-
-    let response = AuthenticationResponse {
-        jwt_token,
-        refresh_token,
-        user_id: user.user_id,
-    };
-
-    Ok(Json(response))
+    Ok(Json(session))
 }
 
 pub async fn logout_user_handler(Json(body): Json<RefreshTokenRequest>) -> Result<StatusCode, ProsaError> {
@@ -67,20 +47,8 @@ pub async fn logout_user_handler(Json(body): Json<RefreshTokenRequest>) -> Resul
 pub async fn refresh_token_handler(
     Json(body): Json<RefreshTokenRequest>,
 ) -> Result<Json<AuthenticationResponse>, ProsaError> {
-    let (token, encoded_refresh_token) =
-        authentication::service::renew_refresh_token(&body.refresh_token).await?;
-
-    let user = service::get_user(&token.user_id).await?;
-
-    let jwt_token = authentication::service::generate_jwt(&user.user_id, &token.session_id, user.is_admin);
-
-    let response = AuthenticationResponse {
-        jwt_token,
-        refresh_token: encoded_refresh_token,
-        user_id: user.user_id,
-    };
-
-    Ok(Json(response))
+    let session = authentication::service::resume_session(&body.refresh_token).await?;
+    Ok(Json(session))
 }
 
 pub async fn create_api_key_handler(

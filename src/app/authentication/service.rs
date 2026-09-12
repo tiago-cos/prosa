@@ -1,4 +1,5 @@
 use super::models::{AuthRole, AuthToken, AuthType, CAPABILITIES, JWTClaims};
+use crate::app::authentication::models::AuthenticationResponse;
 use crate::app::core::ids;
 use crate::app::server::LOCKS;
 use crate::database::pool;
@@ -43,7 +44,7 @@ const PROVIDER_API_KEY_LENGTH: usize = 32;
 const PROVIDER_API_NONCE_LENGTH: usize = 24;
 
 #[rustfmt::skip]
-pub fn generate_jwt( user_id: &str, session_id: &str, is_admin: bool) -> String {
+fn generate_jwt( user_id: &str, session_id: &str, is_admin: bool) -> String {
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Failed to get time since epoch")
@@ -129,7 +130,7 @@ fn is_valid_capabilities(capabilities: &[String]) -> bool {
     })
 }
 
-pub async fn generate_refresh_token(user_id: &str, session_id: &str) -> String {
+async fn generate_refresh_token(user_id: &str, session_id: &str) -> String {
     let mut token = [0u8; 128];
     OsRng.fill_bytes(&mut token);
     let encoded_token = BASE64_STANDARD.encode(token);
@@ -196,7 +197,7 @@ pub async fn verify_api_key(key: &str) -> Result<AuthToken, ApiKeyError> {
     })
 }
 
-pub async fn renew_refresh_token(token: &str) -> Result<(RefreshToken, String), AuthTokenError> {
+async fn renew_refresh_token(token: &str) -> Result<(RefreshToken, String), AuthTokenError> {
     let token = BASE64_STANDARD
         .decode(token)
         .or(Err(AuthTokenError::InvalidToken))?;
@@ -273,8 +274,29 @@ pub fn can_register(as_admin: bool, admin_key: Option<&str>) -> Result<(), AuthE
     Err(AuthError::MissingAdminKey)
 }
 
-pub fn generate_new_session() -> String {
+fn generate_new_session() -> String {
     Uuid::new_v4().to_string()
+}
+
+pub async fn establish_session(user_id: &str, is_admin: bool) -> AuthenticationResponse {
+    let session_id = generate_new_session();
+
+    AuthenticationResponse {
+        jwt_token: generate_jwt(user_id, &session_id, is_admin),
+        refresh_token: generate_refresh_token(user_id, &session_id).await,
+        user_id: user_id.to_string(),
+    }
+}
+
+pub async fn resume_session(refresh_token: &str) -> Result<AuthenticationResponse, ProsaError> {
+    let (token, refresh_token) = renew_refresh_token(refresh_token).await?;
+    let user = users::service::get_user(&token.user_id).await?;
+
+    Ok(AuthenticationResponse {
+        jwt_token: generate_jwt(&user.user_id, &token.session_id, user.is_admin),
+        refresh_token,
+        user_id: user.user_id,
+    })
 }
 
 pub fn generate_jwks() -> JwkSet {
