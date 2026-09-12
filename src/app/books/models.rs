@@ -82,3 +82,8 @@ pub struct BookFileMetadataResponse {
     pub owner_id: String,
     pub file_size: u32,
 }
+
+pub struct OrphanedFiles {
+    pub epub_id: Option<String>,
+    pub cover_id: Option<String>,
+}

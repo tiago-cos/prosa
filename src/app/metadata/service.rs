@@ -1,4 +1,6 @@
 use super::models::{Metadata, MetadataError};
+use crate::app::sync::models::{ChangeLogAction, ChangeLogEntityType};
+use crate::app::{books, sync};
 use crate::app::{error::ProsaError, metadata::repository};
 use crate::database::pool;
 use merge::Merge;
@@ -45,5 +47,28 @@ pub async fn update_metadata(book_id: &str, metadata: Metadata) -> Result<(), Pr
     }
 
     repository::update_metadata(pool(), book_id, &metadata).await?;
+    Ok(())
+}
+
+pub async fn store_metadata(book_id: &str, metadata: Metadata, session_id: &str) -> Result<(), ProsaError> {
+    let book = books::service::get_book(book_id).await?;
+
+    let action = if metadata_exists(book_id).await {
+        update_metadata(book_id, metadata).await?;
+        ChangeLogAction::Update
+    } else {
+        add_metadata(book_id, metadata).await?;
+        ChangeLogAction::Create
+    };
+
+    sync::service::log_change(
+        book_id,
+        ChangeLogEntityType::BookMetadata,
+        action,
+        &book.owner_id,
+        session_id,
+    )
+    .await;
+
     Ok(())
 }

@@ -1,8 +1,9 @@
 use super::models::{BookEntity, BookError, PaginatedBookResponse};
 use crate::app::{
-    books::repository,
+    books::{models::OrphanedFiles, repository},
     core::ids,
-    covers, epubs,
+    covers::{self, models::CoverError},
+    epubs,
     error::ProsaError,
     state,
     sync::{
@@ -59,33 +60,30 @@ pub async fn update_book(book_id: &str, book: &BookEntity) -> Result<(), ProsaEr
     Ok(())
 }
 
-pub struct OrphanedFiles {
-    pub epub_id: Option<String>,
-    pub cover_id: Option<String>,
-}
-
 pub async fn delete_book_cascade(book_id: &str, session_id: &str) -> Result<OrphanedFiles, ProsaError> {
     let mut tx = pool().begin().await.map_err(BookError::from)?;
 
     let book = repository::get_book(&mut *tx, book_id).await?;
     repository::delete_book(&mut *tx, book_id).await?;
 
-    let mut epub_id = None;
-    if repository::get_books_by_epub(&mut *tx, &book.epub_id)
+    let epub_id = if repository::get_books_by_epub(&mut *tx, &book.epub_id)
         .await
         .is_empty()
     {
         epubs::repository::delete_epub(&mut *tx, &book.epub_id).await?;
-        epub_id = Some(book.epub_id.clone());
-    }
+        Some(book.epub_id.clone())
+    } else {
+        None
+    };
 
-    let mut cover_id = None;
-    if let Some(id) = &book.cover_id
+    let cover_id = if let Some(id) = &book.cover_id
         && repository::get_books_by_cover(&mut *tx, id).await.is_empty()
     {
         covers::repository::delete_cover(&mut *tx, id).await?;
-        cover_id = Some(id.clone());
-    }
+        Some(id.clone())
+    } else {
+        None
+    };
 
     sync::service::log_change_in(
         &mut tx,
@@ -118,6 +116,103 @@ pub async fn search_books(
 
     let result = repository::get_paginated_books(pool(), page, page_size, username, title, author).await;
     Ok(result)
+}
+
+pub async fn get_cover(book_id: &str) -> Result<Vec<u8>, ProsaError> {
+    let book = get_book(book_id).await?;
+
+    let Some(cover_id) = book.cover_id else {
+        return Err(CoverError::CoverNotFound.into());
+    };
+
+    let cover = covers::service::read_cover(&cover_id).await?;
+    Ok(cover)
+}
+
+pub async fn attach_cover(book_id: &str, cover_data: &[u8], session_id: &str) -> Result<(), ProsaError> {
+    let book = get_book(book_id).await?;
+
+    if book.cover_id.is_some() {
+        return Err(CoverError::CoverConflict.into());
+    }
+
+    store_cover(book_id, book, cover_data, session_id).await
+}
+
+pub async fn replace_cover(book_id: &str, cover_data: &[u8], session_id: &str) -> Result<(), ProsaError> {
+    let book = get_book(book_id).await?;
+
+    if book.cover_id.is_none() {
+        return Err(CoverError::CoverNotFound.into());
+    }
+
+    store_cover(book_id, book, cover_data, session_id).await
+}
+
+pub async fn set_cover(book_id: &str, cover_data: &[u8], session_id: &str) -> Result<(), ProsaError> {
+    let book = get_book(book_id).await?;
+    store_cover(book_id, book, cover_data, session_id).await
+}
+
+pub async fn detach_cover(book_id: &str, session_id: &str) -> Result<(), ProsaError> {
+    let mut book = get_book(book_id).await?;
+
+    let Some(previous) = book.cover_id.take() else {
+        return Err(CoverError::CoverNotFound.into());
+    };
+
+    update_book(book_id, &book).await?;
+    discard_cover(&previous).await?;
+
+    sync::service::log_change(
+        book_id,
+        ChangeLogEntityType::BookCover,
+        ChangeLogAction::Delete,
+        &book.owner_id,
+        session_id,
+    )
+    .await;
+
+    Ok(())
+}
+
+async fn store_cover(
+    book_id: &str,
+    mut book: BookEntity,
+    cover_data: &[u8],
+    session_id: &str,
+) -> Result<(), ProsaError> {
+    let previous = book.cover_id.take();
+
+    book.cover_id = Some(covers::service::write_cover(&cover_data.to_vec()).await?);
+    update_book(book_id, &book).await?;
+
+    let action = match previous {
+        Some(previous) => {
+            discard_cover(&previous).await?;
+            ChangeLogAction::Update
+        }
+        None => ChangeLogAction::Create,
+    };
+
+    sync::service::log_change(
+        book_id,
+        ChangeLogEntityType::BookCover,
+        action,
+        &book.owner_id,
+        session_id,
+    )
+    .await;
+
+    Ok(())
+}
+
+async fn discard_cover(cover_id: &str) -> Result<(), ProsaError> {
+    if !cover_is_in_use(cover_id).await {
+        covers::service::delete_cover(cover_id).await?;
+    }
+
+    Ok(())
 }
 
 pub async fn cover_is_in_use(cover_id: &str) -> bool {

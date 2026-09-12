@@ -1,22 +1,19 @@
 use super::fetcher::MetadataFetcher;
 use crate::app::{
-    books, covers, epubs,
-    error::ProsaError,
+    books, epubs,
     metadata::{
         self,
         models::{Metadata, MetadataError},
     },
     server::LOCKS,
-    sync::{
-        self,
-        models::{ChangeLogAction, ChangeLogEntityType},
-    },
     users,
 };
 use log::warn;
 use serde::Serialize;
 use std::{collections::VecDeque, sync::Arc};
 use tokio::sync::{Notify, RwLock};
+
+const SESSION: &str = "prosa";
 
 #[derive(Clone, Serialize, PartialEq, Eq)]
 pub struct MetadataFetcherRequest {
@@ -126,106 +123,22 @@ impl MetadataFetcherService {
         self.fetcher.fetch_metadata(&epub_data, &providers).await
     }
 
-    async fn store_metadata(&self, book_id: &str, metadata: Option<Metadata>, image: Option<Vec<u8>>) -> () {
+    async fn store_metadata(&self, book_id: &str, metadata: Option<Metadata>, image: Option<Vec<u8>>) {
         let lock = LOCKS.get_book_lock(book_id).await;
         let _guard = lock.write().await;
 
-        let Ok(book) = books::service::get_book(book_id).await else {
-            warn!("Background metadata fetching failed for book {book_id}");
-            return;
-        };
-
         let metadata_result = match metadata {
             None => Ok(()),
-            Some(metadata) if metadata::service::metadata_exists(book_id).await => {
-                self.handle_metadata_update(book_id, metadata).await
-            }
-            Some(metadata) => self.handle_metadata_create(book_id, metadata).await,
+            Some(metadata) => metadata::service::store_metadata(book_id, metadata, SESSION).await,
         };
 
-        let cover_result = match (book.cover_id, image) {
-            (_, None) => Ok(()),
-            (Some(_), Some(image)) => self.handle_cover_update(book_id, image).await,
-            (None, Some(image)) => self.handle_cover_create(book_id, image).await,
+        let cover_result = match image {
+            None => Ok(()),
+            Some(image) => books::service::set_cover(book_id, &image, SESSION).await,
         };
 
         if cover_result.is_err() || metadata_result.is_err() {
             warn!("Background metadata fetching failed for book {book_id}");
         }
-    }
-
-    async fn handle_metadata_update(&self, book_id: &str, metadata: Metadata) -> Result<(), ProsaError> {
-        let book = books::service::get_book(book_id).await?;
-        metadata::service::update_metadata(book_id, metadata).await?;
-
-        sync::service::log_change(
-            book_id,
-            ChangeLogEntityType::BookMetadata,
-            ChangeLogAction::Update,
-            &book.owner_id,
-            "prosa",
-        )
-        .await;
-
-        Ok(())
-    }
-
-    async fn handle_metadata_create(&self, book_id: &str, metadata: Metadata) -> Result<(), ProsaError> {
-        let book = books::service::get_book(book_id).await?;
-        metadata::service::add_metadata(book_id, metadata).await?;
-
-        sync::service::log_change(
-            book_id,
-            ChangeLogEntityType::BookMetadata,
-            ChangeLogAction::Create,
-            &book.owner_id,
-            "prosa",
-        )
-        .await;
-
-        Ok(())
-    }
-
-    async fn handle_cover_update(&self, book_id: &str, cover: Vec<u8>) -> Result<(), ProsaError> {
-        let mut book = books::service::get_book(book_id).await?;
-
-        let old_cover_id = book.cover_id.expect("Failed to retrieve old cover id");
-        let new_cover_id = covers::service::write_cover(&cover).await?;
-
-        book.cover_id = Some(new_cover_id);
-        books::service::update_book(book_id, &book).await?;
-
-        if !books::service::cover_is_in_use(&old_cover_id).await {
-            covers::service::delete_cover(&old_cover_id).await?;
-        }
-
-        sync::service::log_change(
-            book_id,
-            ChangeLogEntityType::BookCover,
-            ChangeLogAction::Update,
-            &book.owner_id,
-            "prosa",
-        )
-        .await;
-
-        Ok(())
-    }
-
-    async fn handle_cover_create(&self, book_id: &str, cover: Vec<u8>) -> Result<(), ProsaError> {
-        let mut book = books::service::get_book(book_id).await?;
-        let cover_id = covers::service::write_cover(&cover).await?;
-        book.cover_id = Some(cover_id);
-        books::service::update_book(book_id, &book).await?;
-
-        sync::service::log_change(
-            book_id,
-            ChangeLogEntityType::BookCover,
-            ChangeLogAction::Create,
-            &book.owner_id,
-            "prosa",
-        )
-        .await;
-
-        Ok(())
     }
 }
