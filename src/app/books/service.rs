@@ -1,16 +1,16 @@
 use super::models::{BookEntity, BookError, PaginatedBookResponse};
 use crate::app::{
     books::repository,
+    core::ids,
     covers, epubs,
-    error::ProsaError, state,
+    error::ProsaError,
+    state,
     sync::{
         self,
         models::{ChangeLogAction, ChangeLogEntityType},
     },
 };
 use crate::database::pool;
-use std::str::FromStr;
-use uuid::Uuid;
 
 pub async fn get_book(book_id: &str) -> Result<BookEntity, ProsaError> {
     let book = repository::get_book(pool(), book_id).await?;
@@ -23,12 +23,7 @@ pub async fn create_book(
     book_id: Option<String>,
     session_id: &str,
 ) -> Result<String, ProsaError> {
-    let book_id = book_id
-        .map(|id| Uuid::from_str(&id))
-        .transpose()
-        .map_err(|_| BookError::InvalidBookId)?
-        .unwrap_or_else(Uuid::new_v4)
-        .to_string();
+    let book_id = ids::resolve(book_id).map_err(|_| BookError::InvalidBookId)?;
 
     let mut tx = pool().begin().await.map_err(BookError::from)?;
 

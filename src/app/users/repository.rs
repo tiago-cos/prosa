@@ -322,3 +322,15 @@ pub async fn update_preferences<'a>(
 
     Ok(())
 }
+
+pub async fn user_exists<'e>(db: impl SqliteExecutor<'e>, user_id: &str) -> bool {
+    sqlx::query_scalar(
+        r"
+        SELECT EXISTS(SELECT 1 FROM users WHERE user_id = ?)
+        ",
+    )
+    .bind(user_id)
+    .fetch_one(db)
+    .await
+    .unwrap_or(false)
+}

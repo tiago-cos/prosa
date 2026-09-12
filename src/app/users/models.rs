@@ -36,6 +36,14 @@ pub enum UserError {
     #[strum(props(StatusCode = "400"))]
     PasswordTooBig,
 
+    #[strum(message = "The provided user id is invalid.")]
+    #[strum(props(StatusCode = "400"))]
+    InvalidUserId,
+
+    #[strum(message = "The provided user id is already in use.")]
+    #[strum(props(StatusCode = "409"))]
+    UserIdConflict,
+
     #[strum(message = "Internal server error")]
     #[strum(props(StatusCode = "500"))]
     InternalError,
@@ -127,6 +135,7 @@ pub struct RegisterUserRequest {
     pub password: String,
     #[serde(default)]
     pub admin: bool,
+    pub user_id: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -187,6 +196,7 @@ pub struct CreateApiKeyRequest {
     pub name: String,
     pub capabilities: Vec<String>,
     pub expires_at: Option<i64>,
+    pub key_id: Option<String>,
 }
 
 #[derive(Serialize)]

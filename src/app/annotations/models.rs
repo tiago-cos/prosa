@@ -20,6 +20,12 @@ pub enum AnnotationError {
     #[strum(message = "An annotation in this position already exists.")]
     #[strum(props(StatusCode = "409"))]
     AnnotationConflict,
+    #[strum(message = "The provided annotation id is invalid.")]
+    #[strum(props(StatusCode = "400"))]
+    InvalidAnnotationId,
+    #[strum(message = "The provided annotation id is already in use.")]
+    #[strum(props(StatusCode = "409"))]
+    AnnotationIdConflict,
     #[strum(message = "Internal error")]
     #[strum(props(StatusCode = "500"))]
     InternalError,
@@ -58,6 +64,7 @@ pub struct NewAnnotationRequest {
     pub start_location: String,
     pub end_location: String,
     pub note: Option<String>,
+    pub annotation_id: Option<String>,
 }
 
 #[derive(Deserialize)]

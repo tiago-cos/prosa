@@ -1,19 +1,28 @@
 use super::models::{Annotation, AnnotationError, NewAnnotationRequest};
+use crate::app::core::ids;
 use crate::app::epubs;
-use crate::database::pool;
 use crate::app::{annotations::repository, books, error::ProsaError};
+use crate::database::pool;
 use kepub_rs::validate_epub_location;
 use std::fs::File;
-use uuid::Uuid;
 
-pub async fn add_annotation(book_id: &str, annotation: NewAnnotationRequest) -> Result<String, ProsaError> {
+pub async fn add_annotation(
+    book_id: &str,
+    mut annotation: NewAnnotationRequest,
+) -> Result<String, ProsaError> {
     let epub_id = books::repository::get_book(pool(), book_id).await?.epub_id;
+
+    let annotation_id =
+        ids::resolve(annotation.annotation_id.take()).map_err(|_| AnnotationError::InvalidAnnotationId)?;
+
+    if repository::annotation_exists(pool(), &annotation_id).await {
+        return Err(AnnotationError::AnnotationIdConflict.into());
+    }
 
     if !validate_annotation(&annotation, &epub_id).await {
         return Err(AnnotationError::InvalidAnnotation.into());
     }
 
-    let annotation_id = Uuid::new_v4().to_string();
     repository::add_annotation(pool(), &annotation_id, book_id, &annotation).await?;
 
     Ok(annotation_id)

@@ -1,5 +1,6 @@
 use crate::app::{
     books,
+    core::ids,
     error::ProsaError,
     shelves::{
         models::{PaginatedShelves, Shelf, ShelfError, ShelfMetadata},
@@ -7,7 +8,6 @@ use crate::app::{
     },
 };
 use crate::database::pool;
-use uuid::Uuid;
 
 pub async fn get_shelf(shelf_id: &str) -> Result<Shelf, ProsaError> {
     let shelf = repository::get_shelf(pool(), shelf_id).await?;
@@ -27,8 +27,14 @@ pub async fn get_shelf_metadata(shelf_id: &str) -> Result<ShelfMetadata, ProsaEr
     Ok(metadata)
 }
 
-pub async fn add_shelf(shelf: Shelf) -> Result<String, ProsaError> {
+pub async fn add_shelf(shelf: Shelf, shelf_id: Option<String>) -> Result<String, ProsaError> {
     verify_shelf_name(&shelf.name)?;
+
+    let shelf_id = ids::resolve(shelf_id).map_err(|_| ShelfError::InvalidShelfId)?;
+
+    if repository::shelf_exists(pool(), &shelf_id).await {
+        return Err(ShelfError::ShelfIdConflict.into());
+    }
 
     let old_shelf = repository::get_shelf_by_name_and_owner(pool(), &shelf.name, &shelf.owner_id).await;
 
@@ -36,7 +42,6 @@ pub async fn add_shelf(shelf: Shelf) -> Result<String, ProsaError> {
         return Err(ShelfError::ShelfConflict.into());
     }
 
-    let shelf_id = Uuid::new_v4().to_string();
     repository::add_shelf(pool(), &shelf_id, shelf).await?;
 
     Ok(shelf_id)

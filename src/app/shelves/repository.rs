@@ -245,3 +245,15 @@ pub async fn delete_book_from_shelf<'e>(
 
     Ok(())
 }
+
+pub async fn shelf_exists<'e>(db: impl SqliteExecutor<'e>, shelf_id: &str) -> bool {
+    sqlx::query_scalar(
+        r"
+        SELECT EXISTS(SELECT 1 FROM shelf WHERE shelf_id = ?)
+        ",
+    )
+    .bind(shelf_id)
+    .fetch_one(db)
+    .await
+    .unwrap_or(false)
+}

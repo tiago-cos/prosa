@@ -23,7 +23,7 @@ pub async fn register_user_handler(
     let admin_key = headers.get("admin-key").and_then(|h| h.to_str().ok());
     authentication::service::can_register(body.admin, admin_key)?;
 
-    let user_id = service::register_user(&body.username, &body.password, body.admin).await?;
+    let user_id = service::register_user(&body.username, &body.password, body.admin, body.user_id).await?;
 
     let session_id = authentication::service::generate_new_session();
     let jwt_token = authentication::service::generate_jwt(&user_id, &session_id, body.admin);
@@ -87,9 +87,14 @@ pub async fn create_api_key_handler(
     Path(user_id): Path<String>,
     Json(body): Json<CreateApiKeyRequest>,
 ) -> Result<Json<CreateApiKeyResponse>, ProsaError> {
-    let (key_id, key) =
-        authentication::service::generate_api_key(&user_id, &body.name, body.expires_at, body.capabilities)
-            .await?;
+    let (key_id, key) = authentication::service::generate_api_key(
+        &user_id,
+        &body.name,
+        body.expires_at,
+        body.capabilities,
+        body.key_id,
+    )
+    .await?;
 
     Ok(Json(CreateApiKeyResponse { id: key_id, key }))
 }

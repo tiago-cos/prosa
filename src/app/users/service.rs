@@ -1,6 +1,7 @@
 use super::models::{ApiKey, Preferences, User, UserError};
 use crate::app::{
     authentication,
+    core::ids,
     error::ProsaError,
     users::{
         models::{PROVIDERS, PreferencesError, UserProfile},
@@ -11,13 +12,22 @@ use crate::database::pool;
 use log::warn;
 use merge::Merge;
 use regex::Regex;
-use uuid::Uuid;
 
-pub async fn register_user(username: &str, password: &str, is_admin: bool) -> Result<String, ProsaError> {
+pub async fn register_user(
+    username: &str,
+    password: &str,
+    is_admin: bool,
+    user_id: Option<String>,
+) -> Result<String, ProsaError> {
     verify_username(username)?;
     verify_password(password)?;
 
-    let user_id = Uuid::new_v4().to_string();
+    let user_id = ids::resolve(user_id).map_err(|_| UserError::InvalidUserId)?;
+
+    if repository::user_exists(pool(), &user_id).await {
+        return Err(UserError::UserIdConflict.into());
+    }
+
     let password_hash = authentication::service::hash_secret(password);
     repository::add_user(pool(), username, &user_id, &password_hash, is_admin).await?;
     repository::add_providers(pool(), &user_id).await;

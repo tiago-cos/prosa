@@ -73,6 +73,14 @@ pub enum ApiKeyError {
     #[strum(props(StatusCode = "400"))]
     InvalidTimestamp,
 
+    #[strum(message = "The provided key id is invalid.")]
+    #[strum(props(StatusCode = "400"))]
+    InvalidKeyId,
+
+    #[strum(message = "The provided key id is already in use.")]
+    #[strum(props(StatusCode = "409"))]
+    KeyIdConflict,
+
     #[strum(message = "The requested key does not exist or is not accessible.")]
     #[strum(props(StatusCode = "404"))]
     KeyNotFound,

@@ -31,7 +31,7 @@ pub async fn add_shelf_handler(
         owner_id: owner_id.to_string(),
     };
 
-    let shelf_id = service::add_shelf(shelf).await?;
+    let shelf_id = service::add_shelf(shelf, request.shelf_id).await?;
 
     sync::service::log_change(
         &shelf_id,

@@ -25,6 +25,12 @@ pub enum ShelfError {
     #[strum(message = "The provided shelf request is invalid.")]
     #[strum(props(StatusCode = "400"))]
     InvalidShelfRequest,
+    #[strum(message = "The provided shelf id is invalid.")]
+    #[strum(props(StatusCode = "400"))]
+    InvalidShelfId,
+    #[strum(message = "The provided shelf id is already in use.")]
+    #[strum(props(StatusCode = "409"))]
+    ShelfIdConflict,
     #[strum(message = "Internal error")]
     #[strum(props(StatusCode = "500"))]
     InternalError,
@@ -107,6 +113,7 @@ pub struct PaginatedShelves {
 pub struct CreateShelfRequest {
     pub name: String,
     pub owner_id: Option<String>,
+    pub shelf_id: Option<String>,
 }
 
 #[derive(Deserialize)]

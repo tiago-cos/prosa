@@ -163,3 +163,15 @@ pub async fn delete_api_key<'e>(
 
     Ok(())
 }
+
+pub async fn key_exists<'e>(db: impl SqliteExecutor<'e>, key_id: &str) -> bool {
+    sqlx::query_scalar(
+        r"
+        SELECT EXISTS(SELECT 1 FROM api_keys WHERE key_id = ?)
+        ",
+    )
+    .bind(key_id)
+    .fetch_one(db)
+    .await
+    .unwrap_or(false)
+}

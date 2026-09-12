@@ -102,3 +102,15 @@ pub async fn patch_annotation<'e>(
 
     Ok(())
 }
+
+pub async fn annotation_exists<'e>(db: impl SqliteExecutor<'e>, annotation_id: &str) -> bool {
+    sqlx::query_scalar(
+        r"
+        SELECT EXISTS(SELECT 1 FROM annotations WHERE annotation_id = ?)
+        ",
+    )
+    .bind(annotation_id)
+    .fetch_one(db)
+    .await
+    .unwrap_or(false)
+}

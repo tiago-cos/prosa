@@ -1,4 +1,5 @@
 use super::models::{AuthRole, AuthToken, AuthType, CAPABILITIES, JWTClaims};
+use crate::app::core::ids;
 use crate::database::pool;
 use crate::{
     CONFIG,
@@ -74,9 +75,16 @@ pub async fn generate_api_key(
     key_name: &str,
     expiration: Option<i64>,
     capabilities: Vec<String>,
+    key_id: Option<String>,
 ) -> Result<(String, String), ApiKeyError> {
     if capabilities.is_empty() {
         return Err(ApiKeyError::InvalidCapabilities);
+    }
+
+    let key_id = ids::resolve(key_id).map_err(|_| ApiKeyError::InvalidKeyId)?;
+
+    if repository::key_exists(pool(), &key_id).await {
+        return Err(ApiKeyError::KeyIdConflict);
     }
 
     let expiration = expiration
@@ -88,7 +96,6 @@ pub async fn generate_api_key(
         return Err(ApiKeyError::InvalidTimestamp);
     }
 
-    let key_id = Uuid::new_v4().to_string();
     let mut key_bytes = [0u8; 32];
     OsRng.fill_bytes(&mut key_bytes);
     let key_hash = BASE64_STANDARD.encode(Sha256::digest(key_bytes));
