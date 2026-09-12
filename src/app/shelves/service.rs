@@ -2,6 +2,7 @@ use crate::app::{
     books,
     core::ids,
     error::ProsaError,
+    server::LOCKS,
     shelves::{
         models::{PaginatedShelves, Shelf, ShelfError, ShelfMetadata},
         repository,
@@ -31,6 +32,9 @@ pub async fn add_shelf(shelf: Shelf, shelf_id: Option<String>) -> Result<String,
     verify_shelf_name(&shelf.name)?;
 
     let shelf_id = ids::resolve(shelf_id).map_err(|_| ShelfError::InvalidShelfId)?;
+
+    let lock = LOCKS.get_shelf_lock(&shelf_id).await;
+    let _guard = lock.write().await;
 
     if repository::shelf_exists(pool(), &shelf_id).await {
         return Err(ShelfError::ShelfIdConflict.into());

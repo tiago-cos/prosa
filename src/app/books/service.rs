@@ -12,6 +12,10 @@ use crate::app::{
 };
 use crate::database::pool;
 
+pub fn resolve_book_id(book_id: Option<String>) -> Result<String, ProsaError> {
+    ids::resolve(book_id).map_err(|_| BookError::InvalidBookId.into())
+}
+
 pub async fn get_book(book_id: &str) -> Result<BookEntity, ProsaError> {
     let book = repository::get_book(pool(), book_id).await?;
     Ok(book)
@@ -20,11 +24,9 @@ pub async fn get_book(book_id: &str) -> Result<BookEntity, ProsaError> {
 pub async fn create_book(
     owner_id: &str,
     epub_id: String,
-    book_id: Option<String>,
+    book_id: &str,
     session_id: &str,
-) -> Result<String, ProsaError> {
-    let book_id = ids::resolve(book_id).map_err(|_| BookError::InvalidBookId)?;
-
+) -> Result<(), ProsaError> {
     let mut tx = pool().begin().await.map_err(BookError::from)?;
 
     let book = BookEntity {
@@ -33,13 +35,13 @@ pub async fn create_book(
         cover_id: None,
     };
 
-    repository::add_book(&mut *tx, &book_id, &book).await?;
+    repository::add_book(&mut *tx, book_id, &book).await?;
 
-    state::service::initialize_state(&mut tx, &book_id).await;
+    state::service::initialize_state(&mut tx, book_id).await;
 
     sync::service::log_change_in(
         &mut tx,
-        &book_id,
+        book_id,
         ChangeLogEntityType::BookFile,
         ChangeLogAction::Create,
         owner_id,
@@ -49,7 +51,7 @@ pub async fn create_book(
 
     tx.commit().await.map_err(BookError::from)?;
 
-    Ok(book_id)
+    Ok(())
 }
 
 pub async fn update_book(book_id: &str, book: &BookEntity) -> Result<(), ProsaError> {

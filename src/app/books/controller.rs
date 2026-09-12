@@ -50,9 +50,12 @@ pub async fn upload_book_handler(
     Extension(token): Extension<AuthToken>,
     TypedMultipart(data): TypedMultipart<UploadBookRequest>,
 ) -> Result<String, ProsaError> {
-    if let Some(id) = &data.book_id
-        && service::book_exists(id).await
-    {
+    let book_id = service::resolve_book_id(data.book_id)?;
+
+    let lock = LOCKS.get_book_lock(&book_id).await;
+    let _guard = lock.write().await;
+
+    if service::book_exists(&book_id).await {
         return Err(BookError::BookIdConflict.into());
     }
 
@@ -68,10 +71,7 @@ pub async fn upload_book_handler(
         return Err(BookError::BookConflict.into());
     }
 
-    let book_id = service::create_book(owner_id, epub_id, data.book_id, &token.session_id).await?;
-
-    let lock = LOCKS.get_book_lock(&book_id).await;
-    let _guard = lock.write().await;
+    service::create_book(owner_id, epub_id, &book_id, &token.session_id).await?;
 
     let automatic_metadata = preferences
         .automatic_metadata

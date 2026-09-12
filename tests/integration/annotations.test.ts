@@ -3,6 +3,7 @@ import { BOOK_NOT_FOUND, uploadBook } from '../utils/books.js';
 import { registerUser } from '../utils/users.js';
 import { describeAuthContract } from '../utils/auth-contract.js';
 import { randomUUID } from 'crypto';
+import { raceCreations } from '../utils/common.js';
 
 describe('Add annotation', () => {
   test('Simple', async () => {
@@ -64,6 +65,34 @@ describe('Add annotation', () => {
     expect(addAnnotationResponse.status).toBe(409);
     expect(addAnnotationResponse.text).toBe(ANNOTATION_ID_CONFLICT);
   });
+
+  test('Simultaneous creations with the same annotation id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    expect(uploadResponse.status).toBe(200);
+
+    const annotationId = randomUUID();
+
+    const { succeeded, rejected } = await raceCreations(12, (index) => {
+      const annotation = {
+        ...ALICE_NOTE,
+        end_location: `OEBPS/229714655232534212_11-h-10.htm.xhtml#0/2/t0:${30 + index}`,
+        annotation_id: annotationId
+      };
+      return addAnnotation(uploadResponse.text, annotation, { jwt: registerResponse.body.jwt_token });
+    });
+
+    expect(succeeded).toHaveLength(1);
+    expect(succeeded[0].text).toBe(annotationId);
+
+    for (const response of rejected) {
+      expect(response.status).toBe(409);
+      expect(response.text).toBe(ANNOTATION_ID_CONFLICT);
+    }
+  }, 30000);
 
   test('Non-existent book', async () => {
     const { response: registerResponse } = await registerUser();

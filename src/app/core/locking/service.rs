@@ -32,6 +32,21 @@ impl LockService {
         self.get_lock(&key).await
     }
 
+    pub async fn get_annotation_lock(&self, key: &str) -> Arc<RwLock<()>> {
+        let key = format!("annotation:{key}");
+        self.get_lock(&key).await
+    }
+
+    pub async fn get_user_lock(&self, key: &str) -> Arc<RwLock<()>> {
+        let key = format!("user:{key}");
+        self.get_lock(&key).await
+    }
+
+    pub async fn get_key_lock(&self, key: &str) -> Arc<RwLock<()>> {
+        let key = format!("key:{key}");
+        self.get_lock(&key).await
+    }
+
     async fn get_lock(&self, key: &str) -> Arc<RwLock<()>> {
         let mut map = self.locks.lock().await;
 

@@ -3,6 +3,7 @@ use crate::app::{
     authentication,
     core::ids,
     error::ProsaError,
+    server::LOCKS,
     users::{
         models::{PROVIDERS, PreferencesError, UserProfile},
         repository,
@@ -23,6 +24,9 @@ pub async fn register_user(
     verify_password(password)?;
 
     let user_id = ids::resolve(user_id).map_err(|_| UserError::InvalidUserId)?;
+
+    let lock = LOCKS.get_user_lock(&user_id).await;
+    let _guard = lock.write().await;
 
     if repository::user_exists(pool(), &user_id).await {
         return Err(UserError::UserIdConflict.into());

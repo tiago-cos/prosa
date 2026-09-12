@@ -1,5 +1,5 @@
 import request from 'supertest';
-import { FORBIDDEN, randomString, SERVER_URL, UNAUTHORIZED } from '../utils/common.js';
+import { FORBIDDEN, raceCreations, randomString, SERVER_URL, UNAUTHORIZED } from '../utils/common.js';
 import {
   API_KEY_NOT_FOUND,
   createApiKey,
@@ -82,6 +82,20 @@ describe('Register', () => {
     expect(registerResponse.status).toBe(409);
     expect(registerResponse.text).toBe(USER_ID_CONFLICT);
   });
+
+  test('Simultaneous registrations with the same user id', async () => {
+    const userId = randomUUID();
+
+    const { succeeded, rejected } = await raceCreations(12, () => registerUser(undefined, undefined, false, undefined, userId).then((r) => r.response));
+
+    expect(succeeded).toHaveLength(1);
+    expect(succeeded[0].body.user_id).toBe(userId);
+
+    for (const response of rejected) {
+      expect(response.status).toBe(409);
+      expect(response.text).toBe(USER_ID_CONFLICT);
+    }
+  }, 30000);
 
   test('Invalid username and password', async () => {
     const { response: registerResponse } = await registerUser('invalid username');
@@ -299,6 +313,24 @@ describe('Create api key', () => {
     expect(createApiKeyResponse.status).toBe(409);
     expect(createApiKeyResponse.text).toBe(KEY_ID_CONFLICT);
   });
+
+  test('Simultaneous creations with the same key id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const keyId = randomUUID();
+
+    const { succeeded, rejected } = await raceCreations(12, (index) => createApiKey(userId, `Key ${index}`, ['Read'], undefined, { jwt: registerResponse.body.jwt_token }, keyId));
+
+    expect(succeeded).toHaveLength(1);
+    expect(succeeded[0].body.id).toBe(keyId);
+
+    for (const response of rejected) {
+      expect(response.status).toBe(409);
+      expect(response.text).toBe(KEY_ID_CONFLICT);
+    }
+  }, 30000);
 
   test('Non-existent user', async () => {
     const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);

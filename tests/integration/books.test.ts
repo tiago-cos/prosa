@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { addAnnotation, ALICE_NOTE, getAnnotation } from '../utils/annotations.js';
 import { BOOK_CONFLICT, BOOK_ID_CONFLICT, BOOK_NOT_FOUND, deleteBook, downloadBook, getBookFileMetadata, INVALID_BOOK, INVALID_BOOK_ID, INVALID_PAGINATION, searchBooks, uploadBook } from '../utils/books.js';
-import { BOOK_DIR, FORBIDDEN, wait } from '../utils/common.js';
+import { BOOK_DIR, FORBIDDEN, raceCreations, wait } from '../utils/common.js';
 import { getCover } from '../utils/covers.js';
 import { getMetadata } from '../utils/metadata.js';
 import { registerUser, USER_NOT_FOUND } from '../utils/users.js';
@@ -71,6 +71,25 @@ describe('Upload book', () => {
     expect(uploadResponse.status).toBe(409);
     expect(uploadResponse.text).toBe(BOOK_ID_CONFLICT);
   });
+
+  test('Simultaneous uploads with the same book id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const bookId = randomUUID();
+    const epubs = ['The_Great_Gatsby.epub', 'The_Wonderful_Wizard_of_Oz.epub', 'Alices_Adventures_in_Wonderland.epub', 'Legacy_Roles.epub'];
+
+    const { succeeded, rejected } = await raceCreations(12, (index) => uploadBook(userId, epubs[index % epubs.length], { jwt: registerResponse.body.jwt_token }, bookId));
+
+    expect(succeeded).toHaveLength(1);
+    expect(succeeded[0].text).toBe(bookId);
+
+    for (const response of rejected) {
+      expect(response.status).toBe(409);
+      expect(response.text).toBe(BOOK_ID_CONFLICT);
+    }
+  }, 30000);
 
   test('Implicit owner', async () => {
     const { response: registerResponse } = await registerUser();

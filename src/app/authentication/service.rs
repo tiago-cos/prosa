@@ -1,5 +1,6 @@
 use super::models::{AuthRole, AuthToken, AuthType, CAPABILITIES, JWTClaims};
 use crate::app::core::ids;
+use crate::app::server::LOCKS;
 use crate::database::pool;
 use crate::{
     CONFIG,
@@ -82,6 +83,9 @@ pub async fn generate_api_key(
     }
 
     let key_id = ids::resolve(key_id).map_err(|_| ApiKeyError::InvalidKeyId)?;
+
+    let lock = LOCKS.get_key_lock(&key_id).await;
+    let _guard = lock.write().await;
 
     if repository::key_exists(pool(), &key_id).await {
         return Err(ApiKeyError::KeyIdConflict);

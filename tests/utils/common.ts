@@ -19,3 +19,12 @@ export function randomString(length: number) {
 export function wait(seconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
 }
+
+export async function raceCreations(count: number, create: (index: number) => Promise<any>) {
+  const responses = await Promise.all(Array.from({ length: count }, (_, index) => create(index)));
+
+  return {
+    succeeded: responses.filter((response) => response.status === 200 || response.status === 204),
+    rejected: responses.filter((response) => response.status !== 200 && response.status !== 204)
+  };
+}

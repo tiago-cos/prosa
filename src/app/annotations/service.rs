@@ -1,6 +1,7 @@
 use super::models::{Annotation, AnnotationError, NewAnnotationRequest};
 use crate::app::core::ids;
 use crate::app::epubs;
+use crate::app::server::LOCKS;
 use crate::app::{annotations::repository, books, error::ProsaError};
 use crate::database::pool;
 use kepub_rs::validate_epub_location;
@@ -14,6 +15,9 @@ pub async fn add_annotation(
 
     let annotation_id =
         ids::resolve(annotation.annotation_id.take()).map_err(|_| AnnotationError::InvalidAnnotationId)?;
+
+    let lock = LOCKS.get_annotation_lock(&annotation_id).await;
+    let _guard = lock.write().await;
 
     if repository::annotation_exists(pool(), &annotation_id).await {
         return Err(AnnotationError::AnnotationIdConflict.into());

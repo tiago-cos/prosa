@@ -1,5 +1,5 @@
 import { BOOK_NOT_FOUND, INVALID_PAGINATION, uploadBook } from '../utils/books.js';
-import { FORBIDDEN, randomString } from '../utils/common.js';
+import { FORBIDDEN, raceCreations, randomString } from '../utils/common.js';
 import {
   addBookToShelf,
   createShelf,
@@ -75,6 +75,24 @@ describe('Create shelf', () => {
     expect(createShelfResponse.status).toBe(409);
     expect(createShelfResponse.text).toBe(SHELF_ID_CONFLICT);
   });
+
+  test('Simultaneous creations with the same shelf id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const shelfId = randomUUID();
+
+    const { succeeded, rejected } = await raceCreations(12, (index) => createShelf(`shelf-${index}`, userId, shelfId, { jwt: registerResponse.body.jwt_token }));
+
+    expect(succeeded).toHaveLength(1);
+    expect(succeeded[0].text).toBe(shelfId);
+
+    for (const response of rejected) {
+      expect(response.status).toBe(409);
+      expect(response.text).toBe(SHELF_ID_CONFLICT);
+    }
+  }, 30000);
 
   test('Implicit owner', async () => {
     const { response: registerResponse } = await registerUser();
