@@ -78,7 +78,7 @@ pub async fn generate_api_key(
     capabilities: Vec<String>,
     key_id: Option<String>,
 ) -> Result<(String, String), ApiKeyError> {
-    if capabilities.is_empty() {
+    if !is_valid_capabilities(&capabilities) {
         return Err(ApiKeyError::InvalidCapabilities);
     }
 
@@ -117,6 +117,16 @@ pub async fn generate_api_key(
     .await?;
 
     Ok((key_id, encoded_key))
+}
+
+fn is_valid_capabilities(capabilities: &[String]) -> bool {
+    if capabilities.is_empty() {
+        return false;
+    }
+
+    capabilities.iter().enumerate().all(|(index, capability)| {
+        CAPABILITIES.contains(&capability.as_str()) && !capabilities[..index].contains(capability)
+    })
 }
 
 pub async fn generate_refresh_token(user_id: &str, session_id: &str) -> String {

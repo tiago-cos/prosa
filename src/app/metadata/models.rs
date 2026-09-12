@@ -9,6 +9,8 @@ use sqlx::{
 };
 use strum_macros::{EnumMessage, EnumProperty};
 
+use crate::app::error::unmapped;
+
 type SqlxError = sqlx::Error;
 
 #[derive(EnumMessage, EnumProperty, Debug)]
@@ -35,10 +37,10 @@ pub enum MetadataError {
 
 impl From<SqlxError> for MetadataError {
     fn from(error: SqlxError) -> Self {
-        match error {
+        match &error {
             SqlxError::RowNotFound => MetadataError::MetadataNotFound,
-            SqlxError::Database(error) => error.downcast_ref::<SqliteError>().into(),
-            _ => MetadataError::InternalError,
+            SqlxError::Database(database) => database.downcast_ref::<SqliteError>().into(),
+            _ => unmapped(&error, MetadataError::InternalError),
         }
     }
 }
@@ -48,7 +50,7 @@ impl From<&SqliteError> for MetadataError {
         match error.kind() {
             ErrorKind::UniqueViolation => MetadataError::MetadataConflict,
             ErrorKind::ForeignKeyViolation => MetadataError::MetadataNotFound,
-            _ => MetadataError::InternalError,
+            _ => unmapped(error, MetadataError::InternalError),
         }
     }
 }

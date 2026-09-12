@@ -8,6 +8,8 @@ use sqlx::{
 };
 use strum_macros::{EnumMessage, EnumProperty};
 
+use crate::app::error::unmapped;
+
 type SqlxError = sqlx::Error;
 
 #[derive(EnumMessage, EnumProperty, Debug)]
@@ -34,10 +36,10 @@ pub enum BookError {
 
 impl From<SqlxError> for BookError {
     fn from(error: SqlxError) -> Self {
-        match error {
+        match &error {
             SqlxError::RowNotFound => BookError::BookNotFound,
-            SqlxError::Database(error) => error.downcast_ref::<SqliteError>().into(),
-            _ => BookError::InternalError,
+            SqlxError::Database(database) => database.downcast_ref::<SqliteError>().into(),
+            _ => unmapped(&error, BookError::InternalError),
         }
     }
 }
@@ -46,7 +48,7 @@ impl From<&SqliteError> for BookError {
     fn from(error: &SqliteError) -> Self {
         match error.kind() {
             ErrorKind::UniqueViolation => BookError::BookConflict,
-            _ => BookError::InternalError,
+            _ => unmapped(error, BookError::InternalError),
         }
     }
 }

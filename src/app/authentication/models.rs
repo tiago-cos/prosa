@@ -4,6 +4,8 @@ use sqlx::error::DatabaseError;
 use sqlx::{FromRow, sqlite::SqliteError};
 use strum_macros::{EnumMessage, EnumProperty};
 
+use crate::app::error::unmapped;
+
 type JwtError = jsonwebtoken::errors::Error;
 type JwtErrorKind = jsonwebtoken::errors::ErrorKind;
 type SqlxError = sqlx::error::Error;
@@ -108,10 +110,10 @@ impl From<JwtError> for AuthTokenError {
 
 impl From<SqlxError> for ApiKeyError {
     fn from(error: SqlxError) -> Self {
-        match error {
+        match &error {
             SqlxError::RowNotFound => ApiKeyError::KeyNotFound,
-            SqlxError::Database(error) => error.downcast_ref::<SqliteError>().into(),
-            _ => ApiKeyError::InternalError,
+            SqlxError::Database(database) => database.downcast_ref::<SqliteError>().into(),
+            _ => unmapped(&error, ApiKeyError::InternalError),
         }
     }
 }
@@ -121,9 +123,8 @@ impl From<&SqliteError> for ApiKeyError {
         match error.kind() {
             SqlxErrorKind::UniqueViolation => ApiKeyError::InvalidCapabilities,
             SqlxErrorKind::CheckViolation => ApiKeyError::InvalidCapabilities,
-            SqlxErrorKind::Other => ApiKeyError::InvalidCapabilities,
             SqlxErrorKind::ForeignKeyViolation => ApiKeyError::UserNotFound,
-            _ => ApiKeyError::InternalError,
+            _ => unmapped(error, ApiKeyError::InternalError),
         }
     }
 }

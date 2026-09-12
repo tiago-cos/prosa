@@ -7,6 +7,8 @@ use sqlx::{
 };
 use strum_macros::{EnumMessage, EnumProperty};
 
+use crate::app::error::unmapped;
+
 type SqlxError = sqlx::Error;
 
 #[derive(EnumMessage, EnumProperty, Debug)]
@@ -33,10 +35,10 @@ pub enum AnnotationError {
 
 impl From<SqlxError> for AnnotationError {
     fn from(error: SqlxError) -> Self {
-        match error {
+        match &error {
             SqlxError::RowNotFound => AnnotationError::AnnotationNotFound,
-            SqlxError::Database(error) => error.downcast_ref::<SqliteError>().into(),
-            _ => AnnotationError::InternalError,
+            SqlxError::Database(database) => database.downcast_ref::<SqliteError>().into(),
+            _ => unmapped(&error, AnnotationError::InternalError),
         }
     }
 }
@@ -45,7 +47,7 @@ impl From<&SqliteError> for AnnotationError {
     fn from(error: &SqliteError) -> Self {
         match error.kind() {
             ErrorKind::UniqueViolation => AnnotationError::AnnotationConflict,
-            _ => AnnotationError::InternalError,
+            _ => unmapped(error, AnnotationError::InternalError),
         }
     }
 }

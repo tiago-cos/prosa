@@ -2,7 +2,8 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
-use std::fmt::Debug;
+use log::error;
+use std::fmt::{Debug, Display};
 use std::str::FromStr;
 use strum::{EnumMessage, EnumProperty};
 
@@ -17,6 +18,11 @@ where
     fn from(value: T) -> Self {
         Box::new(value)
     }
+}
+
+pub fn unmapped<E>(error: &dyn Display, reported: E) -> E {
+    error!("Unhandled database error: {error}");
+    reported
 }
 
 impl IntoResponse for ProsaError {

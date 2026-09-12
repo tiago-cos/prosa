@@ -6,6 +6,8 @@ use sqlx::{
 };
 use strum_macros::{EnumMessage, EnumProperty};
 
+use crate::app::error::unmapped;
+
 type SqlxError = sqlx::Error;
 
 #[derive(EnumMessage, EnumProperty, Debug)]
@@ -38,10 +40,10 @@ pub enum ShelfError {
 
 impl From<SqlxError> for ShelfError {
     fn from(error: SqlxError) -> Self {
-        match error {
+        match &error {
             SqlxError::RowNotFound => ShelfError::ShelfNotFound,
-            SqlxError::Database(error) => error.downcast_ref::<SqliteError>().into(),
-            _ => ShelfError::InternalError,
+            SqlxError::Database(database) => database.downcast_ref::<SqliteError>().into(),
+            _ => unmapped(&error, ShelfError::InternalError),
         }
     }
 }
@@ -50,7 +52,7 @@ impl From<&SqliteError> for ShelfError {
     fn from(error: &SqliteError) -> Self {
         match error.kind() {
             ErrorKind::UniqueViolation => ShelfError::ShelfConflict,
-            _ => ShelfError::InternalError,
+            _ => unmapped(error, ShelfError::InternalError),
         }
     }
 }
@@ -70,10 +72,10 @@ pub enum ShelfBookError {
 
 impl From<SqlxError> for ShelfBookError {
     fn from(error: SqlxError) -> Self {
-        match error {
+        match &error {
             SqlxError::RowNotFound => ShelfBookError::ShelfBookNotFound,
-            SqlxError::Database(error) => error.downcast_ref::<SqliteError>().into(),
-            _ => ShelfBookError::InternalError,
+            SqlxError::Database(database) => database.downcast_ref::<SqliteError>().into(),
+            _ => unmapped(&error, ShelfBookError::InternalError),
         }
     }
 }
@@ -82,7 +84,7 @@ impl From<&SqliteError> for ShelfBookError {
     fn from(error: &SqliteError) -> Self {
         match error.kind() {
             ErrorKind::UniqueViolation => ShelfBookError::ShelfBookConflict,
-            _ => ShelfBookError::InternalError,
+            _ => unmapped(error, ShelfBookError::InternalError),
         }
     }
 }

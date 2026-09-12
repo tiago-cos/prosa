@@ -7,6 +7,8 @@ use serde_with::skip_serializing_none;
 use sqlx::{error::DatabaseError, prelude::FromRow, sqlite::SqliteError};
 use strum_macros::{EnumMessage, EnumProperty};
 
+use crate::app::error::unmapped;
+
 type SqlxError = sqlx::error::Error;
 type SqlxErrorKind = sqlx::error::ErrorKind;
 
@@ -51,10 +53,10 @@ pub enum UserError {
 
 impl From<SqlxError> for UserError {
     fn from(error: SqlxError) -> Self {
-        match error {
+        match &error {
             SqlxError::RowNotFound => UserError::UserNotFound,
-            SqlxError::Database(error) => error.downcast_ref::<SqliteError>().into(),
-            _ => UserError::InternalError,
+            SqlxError::Database(database) => database.downcast_ref::<SqliteError>().into(),
+            _ => unmapped(&error, UserError::InternalError),
         }
     }
 }
@@ -63,7 +65,7 @@ impl From<&SqliteError> for UserError {
     fn from(error: &SqliteError) -> Self {
         match error.kind() {
             SqlxErrorKind::UniqueViolation => UserError::UserConflict,
-            _ => UserError::InternalError,
+            _ => unmapped(error, UserError::InternalError),
         }
     }
 }
@@ -101,9 +103,9 @@ pub enum PreferencesError {
 
 impl From<SqlxError> for PreferencesError {
     fn from(error: SqlxError) -> Self {
-        match error {
-            SqlxError::Database(error) => error.downcast_ref::<SqliteError>().into(),
-            _ => PreferencesError::InternalError,
+        match &error {
+            SqlxError::Database(database) => database.downcast_ref::<SqliteError>().into(),
+            _ => unmapped(&error, PreferencesError::InternalError),
         }
     }
 }
@@ -112,10 +114,8 @@ impl From<&SqliteError> for PreferencesError {
     fn from(error: &SqliteError) -> Self {
         match error.kind() {
             SqlxErrorKind::UniqueViolation => PreferencesError::InvalidMetadataProvider,
-            SqlxErrorKind::CheckViolation => PreferencesError::InvalidMetadataProvider,
-            SqlxErrorKind::Other => PreferencesError::InvalidMetadataProvider,
             SqlxErrorKind::ForeignKeyViolation => PreferencesError::UserNotFound,
-            _ => PreferencesError::InternalError,
+            _ => unmapped(error, PreferencesError::InternalError),
         }
     }
 }
