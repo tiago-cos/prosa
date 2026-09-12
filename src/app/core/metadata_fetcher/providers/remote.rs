@@ -59,20 +59,29 @@ impl RemoteProvider {
         self.provider_id
     }
 
-    pub async fn fetch(&self, query: &MetadataQuery, api_key: Option<&str>) -> Option<BookMetadata> {
+    pub async fn search(&self, queries: &[MetadataQuery], api_key: Option<&str>) -> Option<BookMetadata> {
         let provider = (self.build)(api_key)?;
 
-        if !provider.supports(query) {
-            return None;
+        let mut last_error = None;
+
+        for query in queries {
+            if !provider.supports(query) {
+                continue;
+            }
+
+            self.rate_limiter.lock().await.cooldown().await;
+
+            match provider.fetch(query).await {
+                Ok(metadata) => return Some(metadata),
+                Err(e) => last_error = Some(e),
+            }
         }
 
-        self.rate_limiter.lock().await.cooldown().await;
+        if let Some(e) = last_error {
+            warn!("Provider {} returned no metadata: {e}", self.provider_id);
+        }
 
-        provider
-            .fetch(query)
-            .await
-            .inspect_err(|e| warn!("Provider {} returned no metadata: {e}", self.provider_id))
-            .ok()
+        None
     }
 }
 

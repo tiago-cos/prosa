@@ -1,7 +1,7 @@
 import { BOOK_NOT_FOUND, uploadBook } from '../utils/books.js';
 import { FORBIDDEN, wait } from '../utils/common.js';
 import { addMetadata, addMetadataRequest, ALICE_METADATA, deleteMetadata, EXAMPLE_METADATA, getMetadata, INVALID_METADATA, listMetadataRequests, METADATA_CONFLICT, METADATA_NOT_FOUND, patchMetadata, updateMetadata } from '../utils/metadata.js';
-import { INVALID_PROVIDERS, MISSING_PROVIDER_KEY, patchPreferences, registerUser } from '../utils/users.js';
+import { DUPLICATE_PROVIDERS, INVALID_PROVIDERS, MISSING_PROVIDER_KEY, patchPreferences, registerUser } from '../utils/users.js';
 import { describeAuthContract } from '../utils/auth-contract.js';
 
 describe('Get metadata', () => {
@@ -134,6 +134,29 @@ describe('Extracted metadata', () => {
     expect(getResponse.body.publication_date).toBeUndefined();
 
     expect(getResponse.body.series).toEqual({ title: 'Nonsense Cycle' });
+  });
+
+  test('Roles in the EPUB 2 attribute syntax', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const uploadResponse = await uploadBook(userId, 'Legacy_Roles.epub', { jwt: registerResponse.body.jwt_token });
+    expect(uploadResponse.status).toBe(200);
+
+    // Wait for metadata to be extracted
+    await wait(1);
+
+    const getResponse = await getMetadata(uploadResponse.text, { jwt: registerResponse.body.jwt_token });
+    expect(getResponse.status).toBe(200);
+
+    expect(getResponse.body.contributors).toEqual([
+      { name: 'Ada Writer', role: 'Author' },
+      { name: 'Bob Editor', role: 'Editor' }
+    ]);
+
+    expect(getResponse.body.isbn).toBe('9780441013593');
+    expect(getResponse.body.language).toBe('Portuguese');
   });
 
   test('A book with unparsable fields does not stop later extractions', async () => {
@@ -659,6 +682,22 @@ describe('Add metadata request', () => {
     const addResponse = await addMetadataRequest(uploadResponse.text, ['invalid'], { jwt: registerResponse.body.jwt_token });
     expect(addResponse.status).toBe(400);
     expect(addResponse.text).toBe(INVALID_PROVIDERS);
+  });
+
+  test('Repeated providers', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const patchPreferencesResponse = await patchPreferences(userId, undefined, false, { jwt: registerResponse.body.jwt_token });
+    expect(patchPreferencesResponse.status).toBe(204);
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    expect(uploadResponse.status).toBe(200);
+
+    const addResponse = await addMetadataRequest(uploadResponse.text, ['epub_metadata_extractor', 'openlibrary', 'epub_metadata_extractor'], { jwt: registerResponse.body.jwt_token });
+    expect(addResponse.status).toBe(400);
+    expect(addResponse.text).toBe(DUPLICATE_PROVIDERS);
   });
 
   test('Provider without a stored key', async () => {

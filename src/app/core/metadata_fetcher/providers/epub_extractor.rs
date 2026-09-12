@@ -4,6 +4,8 @@ use epub::doc::{EpubDoc, MetadataItem};
 use log::warn;
 use std::io::Cursor;
 
+const BOOK_PRODUCER: &str = "bkp";
+
 pub fn extract(epub_data: &[u8]) -> (Option<Metadata>, Option<Vec<u8>>) {
     let Ok(mut epub) = EpubDoc::from_reader(Cursor::new(epub_data)) else {
         warn!("Skipping metadata extraction: the book could not be opened as an EPUB");
@@ -101,6 +103,10 @@ fn contributors(metadata: &[MetadataItem]) -> Option<Vec<Contributor>> {
     let contributors: Vec<Contributor> = metadata
         .iter()
         .filter(|item| item.property == "creator" || item.property == "contributor")
+        .filter(|item| {
+            item.refinement("role")
+                .is_none_or(|role| !role.value.trim().eq_ignore_ascii_case(BOOK_PRODUCER))
+        })
         .map(|item| Contributor {
             name: item.value.clone(),
             role: item.refinement("role").map_or_else(

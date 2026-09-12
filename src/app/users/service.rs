@@ -154,6 +154,10 @@ async fn store_preferences(user_id: &str, mut preferences: Preferences) -> Resul
         return Err(PreferencesError::InvalidMetadataProvider.into());
     }
 
+    if has_duplicate_providers(&providers) {
+        return Err(PreferencesError::DuplicateMetadataProvider.into());
+    }
+
     let submitted = preferences.provider_keys.take().unwrap_or_default();
 
     if !submitted.keys().all(|p| is_valid_provider(p)) {
@@ -217,4 +221,11 @@ pub fn requires_api_key(provider: &str) -> bool {
     PROVIDERS
         .iter()
         .any(|(name, requires)| *name == provider && *requires)
+}
+
+pub fn has_duplicate_providers(providers: &[String]) -> bool {
+    providers
+        .iter()
+        .enumerate()
+        .any(|(index, provider)| providers[..index].contains(provider))
 }

@@ -78,6 +78,10 @@ pub enum PreferencesError {
     #[strum(props(StatusCode = "400"))]
     MissingProviderKey,
 
+    #[strum(message = "The same metadata provider must not be selected more than once.")]
+    #[strum(props(StatusCode = "400"))]
+    DuplicateMetadataProvider,
+
     #[strum(message = "The requested user does not exist or is not accessible.")]
     #[strum(props(StatusCode = "404"))]
     UserNotFound,

@@ -4,6 +4,7 @@ import {
   API_KEY_NOT_FOUND,
   createApiKey,
   deleteApiKey,
+  DUPLICATE_PROVIDERS,
   getApiKey,
   getApiKeys,
   getPreferences,
@@ -749,6 +750,25 @@ describe('Update preferences', () => {
     expect(updatePreferencesResponse.text).toBe(INVALID_PROVIDERS);
   });
 
+  test('Repeated providers', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    let updatePreferencesResponse = await updatePreferences(userId, ['epub_metadata_extractor', 'epub_metadata_extractor'], true, { jwt: registerResponse.body.jwt_token });
+    expect(updatePreferencesResponse.status).toBe(400);
+    expect(updatePreferencesResponse.text).toBe(DUPLICATE_PROVIDERS);
+
+    updatePreferencesResponse = await updatePreferences(userId, ['epub_metadata_extractor', 'openlibrary', 'epub_metadata_extractor'], true, { jwt: registerResponse.body.jwt_token });
+    expect(updatePreferencesResponse.status).toBe(400);
+    expect(updatePreferencesResponse.text).toBe(DUPLICATE_PROVIDERS);
+
+    // The selection is left as it was.
+    const getPreferencesResponse = await getPreferences(userId, { jwt: registerResponse.body.jwt_token });
+    expect(getPreferencesResponse.status).toBe(200);
+    expect(getPreferencesResponse.body.metadata_providers).toEqual(['epub_metadata_extractor']);
+  });
+
   test('Missing metadata preference', async () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
@@ -953,6 +973,16 @@ describe('Patch preferences', () => {
     const patchPreferencesResponse = await patchPreferences(userId, ['invalid provider'], undefined, { jwt: registerResponse.body.jwt_token });
     expect(patchPreferencesResponse.status).toBe(400);
     expect(patchPreferencesResponse.text).toBe(INVALID_PROVIDERS);
+  });
+
+  test('Repeated providers', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const patchPreferencesResponse = await patchPreferences(userId, ['epub_metadata_extractor', 'openlibrary', 'epub_metadata_extractor'], undefined, { jwt: registerResponse.body.jwt_token });
+    expect(patchPreferencesResponse.status).toBe(400);
+    expect(patchPreferencesResponse.text).toBe(DUPLICATE_PROVIDERS);
   });
 
   test('Empty body', async () => {

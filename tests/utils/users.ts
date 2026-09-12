@@ -14,6 +14,7 @@ export const INVALID_CAPABILITIES = 'Invalid or unsupported capabilities provide
 export const INVALID_TIMESTAMP = 'Expiration timestamp is invalid or incorrectly formatted.';
 export const INVALID_PROVIDERS = 'Invalid or unsupported metadata provider selection.';
 export const MISSING_PROVIDER_KEY = 'This metadata provider requires an API key.';
+export const DUPLICATE_PROVIDERS = 'The same metadata provider must not be selected more than once.';
 export const MISSING_METADATA_PREFERENCE = 'Automatic metadata preference must be present.';
 export const INVALID_PREFERENCES = 'Invalid or unsupported preferences provided.';
 export const INVALID_TOKEN = 'The provided token is invalid.';

@@ -1,8 +1,5 @@
-use crate::app::{
-    core::metadata_fetcher::providers::{epub_extractor, remote::RemoteProvider},
-    metadata::models::Metadata,
-    users::models::DEFAULT_PROVIDER,
-};
+use super::providers::{epub_extractor, remote::RemoteProvider};
+use crate::app::{metadata::models::Metadata, users::models::DEFAULT_PROVIDER};
 use book_metadata::MetadataQuery;
 use log::warn;
 use merge::Merge;
@@ -25,8 +22,8 @@ impl MetadataFetcher {
     ) -> (Option<Metadata>, Option<Vec<u8>>) {
         let (local, local_cover) = epub_extractor::extract(epub_data);
 
-        let query = local.as_ref().and_then(identify);
-        if query.is_none() && providers.iter().any(|(id, _)| id != DEFAULT_PROVIDER) {
+        let queries = local.as_ref().map(identify).unwrap_or_default();
+        if queries.is_empty() && providers.iter().any(|(id, _)| id != DEFAULT_PROVIDER) {
             warn!("The book carries no ISBN, title or author, so no catalogue can be searched");
         }
 
@@ -46,12 +43,11 @@ impl MetadataFetcher {
                 continue;
             }
 
-            let Some(query) = query.as_ref() else { continue };
             let Some(provider) = self.remote.iter().find(|p| p.provider_id() == provider_id) else {
                 continue;
             };
 
-            let Some(found) = provider.fetch(query, api_key.as_deref()).await else {
+            let Some(found) = provider.search(&queries, api_key.as_deref()).await else {
                 continue;
             };
 
@@ -72,26 +68,28 @@ impl MetadataFetcher {
     }
 }
 
-fn identify(local: &Metadata) -> Option<MetadataQuery> {
-    if let Some(isbn) = local.isbn.as_ref() {
-        let query = MetadataQuery::isbn(isbn);
-        if query.validate().is_ok() {
-            return Some(query);
-        }
-    }
-
-    let title = local.title.as_ref()?;
-    let author = local
-        .contributors
+fn identify(local: &Metadata) -> Vec<MetadataQuery> {
+    let isbn = local
+        .isbn
         .as_ref()
-        .and_then(|c| c.iter().find(|c| c.role == "Author"));
+        .map(MetadataQuery::isbn)
+        .filter(|query| query.validate().is_ok());
 
-    let query = author.map_or_else(
-        || MetadataQuery::title(title),
-        |author| MetadataQuery::title(title).with_author(&author.name),
-    );
+    let title = local.title.as_ref().and_then(|title| {
+        let author = local
+            .contributors
+            .as_ref()
+            .and_then(|c| c.iter().find(|c| c.role == "Author"));
 
-    query.validate().is_ok().then_some(query)
+        let query = author.map_or_else(
+            || MetadataQuery::title(title),
+            |author| MetadataQuery::title(title).with_author(&author.name),
+        );
+
+        query.validate().is_ok().then_some(query)
+    });
+
+    isbn.into_iter().chain(title).collect()
 }
 
 async fn download_cover(url: &str) -> Option<Vec<u8>> {

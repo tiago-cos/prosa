@@ -6,7 +6,7 @@ use crate::app::metadata::service;
 use crate::app::server::{LOCKS, METADATA_FETCHER};
 use crate::app::sync::models::{ChangeLogAction, ChangeLogEntityType};
 use crate::app::users::models::PreferencesError;
-use crate::app::users::service::is_valid_provider;
+use crate::app::users::service::{has_duplicate_providers, is_valid_provider};
 use crate::app::{books, sync, users};
 use axum::extract::{Path, Query};
 use axum::http::StatusCode;
@@ -135,6 +135,10 @@ pub async fn add_metadata_request_handler(
 
     if !providers.iter().all(|p| is_valid_provider(p)) {
         return Err(PreferencesError::InvalidMetadataProvider.into());
+    }
+
+    if has_duplicate_providers(&providers) {
+        return Err(PreferencesError::DuplicateMetadataProvider.into());
     }
 
     if !users::service::providers_are_usable(&book.owner_id, &providers).await? {
