@@ -12,11 +12,14 @@ import {
   INVALID_ADMIN_KEY,
   INVALID_CAPABILITIES,
   INVALID_CREDENTIALS,
+  INVALID_KEY_ID,
   INVALID_PREFERENCES,
   INVALID_PROVIDERS,
   INVALID_TIMESTAMP,
   INVALID_TOKEN,
+  INVALID_USER_ID,
   INVALID_USERNAME_PASSWORD,
+  KEY_ID_CONFLICT,
   loginUser,
   logoutUser,
   MISSING_ADMIN_KEY,
@@ -29,10 +32,12 @@ import {
   TOKEN_NOT_FOUND,
   updatePreferences,
   updateUserProfile,
+  USER_ID_CONFLICT,
   USER_NOT_FOUND,
   USERNAME_IN_USE,
   USERNAME_TOO_BIG
 } from '../utils/users.js';
+import { randomUUID } from 'crypto';
 
 describe('Register', () => {
   test('Regular user', async () => {
@@ -49,6 +54,33 @@ describe('Register', () => {
 
     const loginResponse = await loginUser(username, password);
     expect(loginResponse.status).toBe(200);
+  });
+
+  test('Provided user id', async () => {
+    const userId = randomUUID();
+    const { response: registerResponse, username, password } = await registerUser(undefined, undefined, false, undefined, userId);
+    expect(registerResponse.status).toBe(200);
+    expect(registerResponse.body.user_id).toBe(userId);
+
+    const loginResponse = await loginUser(username, password);
+    expect(loginResponse.status).toBe(200);
+    expect(loginResponse.body.user_id).toBe(userId);
+  });
+
+  test('Invalid user id', async () => {
+    const { response: registerResponse } = await registerUser(undefined, undefined, false, undefined, 'invalid');
+    expect(registerResponse.status).toBe(400);
+    expect(registerResponse.text).toBe(INVALID_USER_ID);
+  });
+
+  test('Repeated user id', async () => {
+    const userId = randomUUID();
+    let { response: registerResponse } = await registerUser(undefined, undefined, false, undefined, userId);
+    expect(registerResponse.status).toBe(200);
+
+    ({ response: registerResponse } = await registerUser(undefined, undefined, false, undefined, userId));
+    expect(registerResponse.status).toBe(409);
+    expect(registerResponse.text).toBe(USER_ID_CONFLICT);
   });
 
   test('Invalid username and password', async () => {
@@ -227,6 +259,45 @@ describe('Create api key', () => {
     expect(getApiKeyResponse.body.name).toBe('Test Key');
     expect(getApiKeyResponse.body.capabilities).toEqual(['Create', 'Read']);
     expect(getApiKeyResponse.body.expires_at).toBe(date);
+  });
+
+  test('Provided key id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const keyId = randomUUID();
+    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token }, keyId);
+    expect(createApiKeyResponse.status).toBe(200);
+    expect(createApiKeyResponse.body.id).toBe(keyId);
+
+    const getApiKeyResponse = await getApiKey(userId, keyId, { jwt: registerResponse.body.jwt_token });
+    expect(getApiKeyResponse.status).toBe(200);
+    expect(getApiKeyResponse.body.name).toBe('Test Key');
+  });
+
+  test('Invalid key id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token }, 'invalid');
+    expect(createApiKeyResponse.status).toBe(400);
+    expect(createApiKeyResponse.text).toBe(INVALID_KEY_ID);
+  });
+
+  test('Repeated key id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const keyId = randomUUID();
+    let createApiKeyResponse = await createApiKey(userId, 'Test Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token }, keyId);
+    expect(createApiKeyResponse.status).toBe(200);
+
+    createApiKeyResponse = await createApiKey(userId, 'Another Key', ['Read'], undefined, { jwt: registerResponse.body.jwt_token }, keyId);
+    expect(createApiKeyResponse.status).toBe(409);
+    expect(createApiKeyResponse.text).toBe(KEY_ID_CONFLICT);
   });
 
   test('Non-existent user', async () => {

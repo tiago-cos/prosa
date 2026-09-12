@@ -4,6 +4,8 @@ import { SERVER_URL } from './common.js';
 export const INVALID_ANNOTATION = 'The provided annotation is invalid.';
 export const ANNOTATION_NOT_FOUND = 'The requested annotation does not exist or is not accessible.';
 export const ANNOTATION_CONFLICT = 'An annotation in this position already exists.';
+export const INVALID_ANNOTATION_ID = 'The provided annotation id is invalid.';
+export const ANNOTATION_ID_CONFLICT = 'The provided annotation id is already in use.';
 
 // EPUB locations: content document, element path from <body>, text run and
 // character offset. Verified against the test book with the same validator the

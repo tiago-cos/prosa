@@ -6,17 +6,20 @@ import {
   deleteBookFromShelf,
   deleteShelf,
   getShelfMetadata,
+  INVALID_SHELF_ID,
   INVALID_SHELF_NAME,
   listBooksFromShelf,
   searchShelves,
   SHELF_BOOK_CONFLICT,
   SHELF_BOOK_NOT_FOUND,
+  SHELF_ID_CONFLICT,
   SHELF_NAME_CONFLICT,
   SHELF_NOT_FOUND,
   updateShelf
 } from '../utils/shelves.js';
 import { registerUser, USER_NOT_FOUND } from '../utils/users.js';
 import { describeAuthContract } from '../utils/auth-contract.js';
+import { randomUUID } from 'crypto';
 
 describe('Create shelf', () => {
   test('Simple', async () => {
@@ -24,7 +27,7 @@ describe('Create shelf', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     const getShelfMetadataResponse = await getShelfMetadata(createShelfResponse.text, { jwt: registerResponse.body.jwt_token });
@@ -34,12 +37,51 @@ describe('Create shelf', () => {
     expect(getShelfMetadataResponse.body.book_count).toBe(0);
   });
 
+  test('Provided shelf id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const shelfId = randomUUID();
+    const createShelfResponse = await createShelf('shelf!', userId, shelfId, { jwt: registerResponse.body.jwt_token });
+    expect(createShelfResponse.status).toBe(200);
+    expect(createShelfResponse.text).toBe(shelfId);
+
+    const getShelfMetadataResponse = await getShelfMetadata(shelfId, { jwt: registerResponse.body.jwt_token });
+    expect(getShelfMetadataResponse.status).toBe(200);
+    expect(getShelfMetadataResponse.body.name).toBe('shelf!');
+  });
+
+  test('Invalid shelf id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const createShelfResponse = await createShelf('shelf!', userId, 'invalid', { jwt: registerResponse.body.jwt_token });
+    expect(createShelfResponse.status).toBe(400);
+    expect(createShelfResponse.text).toBe(INVALID_SHELF_ID);
+  });
+
+  test('Repeated shelf id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const shelfId = randomUUID();
+    let createShelfResponse = await createShelf('shelf!', userId, shelfId, { jwt: registerResponse.body.jwt_token });
+    expect(createShelfResponse.status).toBe(200);
+
+    createShelfResponse = await createShelf('another shelf!', userId, shelfId, { jwt: registerResponse.body.jwt_token });
+    expect(createShelfResponse.status).toBe(409);
+    expect(createShelfResponse.text).toBe(SHELF_ID_CONFLICT);
+  });
+
   test('Implicit owner', async () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const createShelfResponse = await createShelf('shelf!', undefined, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', undefined, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     const getShelfMetadataResponse = await getShelfMetadata(createShelfResponse.text, { jwt: registerResponse.body.jwt_token });
@@ -56,7 +98,7 @@ describe('Create shelf', () => {
 
     const shelfName = randomString(31);
 
-    const createShelfResponse = await createShelf(shelfName, userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf(shelfName, userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(400);
     expect(createShelfResponse.text).toBe(INVALID_SHELF_NAME);
   });
@@ -68,10 +110,10 @@ describe('Create shelf', () => {
 
     const shelfName = randomString(20);
 
-    let createShelfResponse = await createShelf(shelfName, userId, { jwt: registerResponse.body.jwt_token });
+    let createShelfResponse = await createShelf(shelfName, userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
-    createShelfResponse = await createShelf(shelfName, userId, { jwt: registerResponse.body.jwt_token });
+    createShelfResponse = await createShelf(shelfName, userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(409);
     expect(createShelfResponse.text).toBe(SHELF_NAME_CONFLICT);
   });
@@ -86,7 +128,7 @@ describe('Create shelf', () => {
 
     const shelfName = randomString(20);
 
-    const createShelfResponse = await createShelf(shelfName, userId, { jwt: registerResponse2.body.jwt_token });
+    const createShelfResponse = await createShelf(shelfName, userId, undefined, { jwt: registerResponse2.body.jwt_token });
     expect(createShelfResponse.status).toBe(403);
     expect(createShelfResponse.text).toBe(FORBIDDEN);
   });
@@ -101,7 +143,7 @@ describe('Create shelf', () => {
 
     const shelfName = randomString(20);
 
-    const createShelfResponse = await createShelf(shelfName, userId, { jwt: registerResponse2.body.jwt_token });
+    const createShelfResponse = await createShelf(shelfName, userId, undefined, { jwt: registerResponse2.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
   });
 
@@ -109,7 +151,7 @@ describe('Create shelf', () => {
     const { response: registerResponse } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse.status).toBe(200);
 
-    const createShelfResponse = await createShelf('shelf', 'non-existent', { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf', 'non-existent', undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(404);
     expect(createShelfResponse.text).toBe(USER_NOT_FOUND);
   });
@@ -130,7 +172,7 @@ describe('Get shelf metadata', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     const { response: registerResponse2 } = await registerUser();
@@ -146,7 +188,7 @@ describe('Get shelf metadata', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
@@ -163,7 +205,7 @@ describe('Update shelf', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     let getShelfMetadataResponse = await getShelfMetadata(createShelfResponse.text, { jwt: registerResponse.body.jwt_token });
@@ -183,7 +225,7 @@ describe('Update shelf', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     const invalidName = randomString(31);
@@ -200,10 +242,10 @@ describe('Update shelf', () => {
 
     const shelfName = randomString(20);
 
-    let createShelfResponse = await createShelf(shelfName, userId, { jwt: registerResponse.body.jwt_token });
+    let createShelfResponse = await createShelf(shelfName, userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
-    createShelfResponse = await createShelf('to-update', userId, { jwt: registerResponse.body.jwt_token });
+    createShelfResponse = await createShelf('to-update', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     const updateShelfResponse = await updateShelf(createShelfResponse.text, shelfName, { jwt: registerResponse.body.jwt_token });
@@ -218,7 +260,7 @@ describe('Update shelf', () => {
 
     const shelfName = randomString(20);
 
-    const createShelfResponse = await createShelf(shelfName, userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf(shelfName, userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     const { response: registerResponse2 } = await registerUser();
@@ -236,7 +278,7 @@ describe('Update shelf', () => {
 
     const shelfName = randomString(20);
 
-    const createShelfResponse = await createShelf(shelfName, userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf(shelfName, userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
@@ -266,7 +308,7 @@ describe('Delete shelf', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     let getShelfMetadataResponse = await getShelfMetadata(createShelfResponse.text, { jwt: registerResponse.body.jwt_token });
@@ -287,7 +329,7 @@ describe('Delete shelf', () => {
     const uploadBookResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadBookResponse.status).toBe(200);
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     const addBookToShelfResponse = await addBookToShelf(createShelfResponse.text, uploadBookResponse.text, { jwt: registerResponse.body.jwt_token });
@@ -323,7 +365,7 @@ describe('Delete shelf', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     const { response: registerResponse2 } = await registerUser();
@@ -339,7 +381,7 @@ describe('Delete shelf', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
@@ -356,7 +398,7 @@ describe('Search shelves', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     const searchResponse = await searchShelves(username, undefined, undefined, undefined, { jwt: registerResponse.body.jwt_token });
@@ -378,10 +420,10 @@ describe('Search shelves', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const createShelfResponse = await createShelf('Favorite Fantasy', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('Favorite Fantasy', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
-    const createShelfResponse2 = await createShelf('Comic Books', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse2 = await createShelf('Comic Books', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse2.status).toBe(200);
 
     let searchResponse = await searchShelves(username, undefined, undefined, undefined, { jwt: registerResponse.body.jwt_token });
@@ -406,10 +448,10 @@ describe('Search shelves', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const createShelfResponse = await createShelf('Favorite Fantasy', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('Favorite Fantasy', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
-    const createShelfResponse2 = await createShelf('Comic Books', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse2 = await createShelf('Comic Books', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse2.status).toBe(200);
 
     let searchResponse = await searchShelves(username, undefined, undefined, undefined, { jwt: registerResponse.body.jwt_token });
@@ -454,10 +496,10 @@ describe('Search shelves', () => {
     expect(registerResponse2.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
-    const createShelfResponse = await createShelf('Favorite Fantasy', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('Favorite Fantasy', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
-    const createShelfResponse2 = await createShelf('Favorite Fantasy', userId2, { jwt: registerResponse2.body.jwt_token });
+    const createShelfResponse2 = await createShelf('Favorite Fantasy', userId2, undefined, { jwt: registerResponse2.body.jwt_token });
     expect(createShelfResponse2.status).toBe(200);
 
     let searchResponse = await searchShelves(username, undefined, undefined, undefined, { jwt: registerResponse.body.jwt_token });
@@ -474,7 +516,7 @@ describe('Search shelves', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const createShelfResponse = await createShelf('Favorite Fantasy', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('Favorite Fantasy', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     let searchResponse = await searchShelves(username, undefined, -1, undefined, { jwt: registerResponse.body.jwt_token });
@@ -552,10 +594,10 @@ describe('Search shelves', () => {
     expect(registerResponse.status).toBe(200);
     const userId2 = registerResponse2.body.user_id;
 
-    const createShelfResponse = await createShelf('Favorite Fantasy', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('Favorite Fantasy', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
-    const createShelfResponse2 = await createShelf('Comic Books', userId2, { jwt: registerResponse2.body.jwt_token });
+    const createShelfResponse2 = await createShelf('Comic Books', userId2, undefined, { jwt: registerResponse2.body.jwt_token });
     expect(createShelfResponse2.status).toBe(200);
 
     let searchResponse = await searchShelves(undefined, undefined, undefined, 1000, { jwt: registerResponse.body.jwt_token });
@@ -575,7 +617,7 @@ describe('Add book to shelf', () => {
     const uploadBookResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadBookResponse.status).toBe(200);
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     let getShelfMetadataResponse = await getShelfMetadata(createShelfResponse.text, { jwt: registerResponse.body.jwt_token });
@@ -616,7 +658,7 @@ describe('Add book to shelf', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     const addBookToShelfResponse = await addBookToShelf(createShelfResponse.text, 'non-existent', { jwt: registerResponse.body.jwt_token });
@@ -632,7 +674,7 @@ describe('Add book to shelf', () => {
     const uploadBookResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadBookResponse.status).toBe(200);
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     let addBookToShelfResponse = await addBookToShelf(createShelfResponse.text, uploadBookResponse.text, { jwt: registerResponse.body.jwt_token });
@@ -658,10 +700,10 @@ describe('Add book to shelf', () => {
     const uploadBookResponse2 = await uploadBook(userId2, 'The_Great_Gatsby.epub', { jwt: registerResponse2.body.jwt_token });
     expect(uploadBookResponse2.status).toBe(200);
 
-    const createShelfResponse1 = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse1 = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse1.status).toBe(200);
 
-    const createShelfResponse2 = await createShelf('shelf!', userId2, { jwt: registerResponse2.body.jwt_token });
+    const createShelfResponse2 = await createShelf('shelf!', userId2, undefined, { jwt: registerResponse2.body.jwt_token });
     expect(createShelfResponse2.status).toBe(200);
 
     let addBookToShelfResponse = await addBookToShelf(createShelfResponse2.text, uploadBookResponse2.text, { jwt: registerResponse.body.jwt_token });
@@ -692,10 +734,10 @@ describe('Add book to shelf', () => {
     const uploadBookResponse2 = await uploadBook(userId2, 'The_Great_Gatsby.epub', { jwt: registerResponse2.body.jwt_token });
     expect(uploadBookResponse2.status).toBe(200);
 
-    const createShelfResponse1 = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse1 = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse1.status).toBe(200);
 
-    const createShelfResponse2 = await createShelf('shelf!', userId2, { jwt: registerResponse2.body.jwt_token });
+    const createShelfResponse2 = await createShelf('shelf!', userId2, undefined, { jwt: registerResponse2.body.jwt_token });
     expect(createShelfResponse2.status).toBe(200);
 
     let addBookToShelfResponse = await addBookToShelf(createShelfResponse2.text, uploadBookResponse2.text, { jwt: registerResponse.body.jwt_token });
@@ -724,7 +766,7 @@ describe('List shelf books', () => {
     const uploadBookResponse2 = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadBookResponse2.status).toBe(200);
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     let listShelfBooksResponse = await listBooksFromShelf(createShelfResponse.text, { jwt: registerResponse.body.jwt_token });
@@ -764,7 +806,7 @@ describe('List shelf books', () => {
     const { response: registerResponse2 } = await registerUser();
     expect(registerResponse2.status).toBe(200);
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     let listShelfBooksResponse = await listBooksFromShelf(createShelfResponse.text, { jwt: registerResponse2.body.jwt_token });
@@ -780,7 +822,7 @@ describe('List shelf books', () => {
     const { response: registerResponse2 } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
     expect(registerResponse2.status).toBe(200);
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     let listShelfBooksResponse = await listBooksFromShelf(createShelfResponse.text, { jwt: registerResponse2.body.jwt_token });
@@ -798,7 +840,7 @@ describe('Delete book from shelf', () => {
     const uploadBookResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadBookResponse.status).toBe(200);
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     const addBookToShelfResponse = await addBookToShelf(createShelfResponse.text, uploadBookResponse.text, { jwt: registerResponse.body.jwt_token });
@@ -842,7 +884,7 @@ describe('Delete book from shelf', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     const deleteBookFromShelfResponse = await deleteBookFromShelf(createShelfResponse.text, 'non-existent', { jwt: registerResponse.body.jwt_token });
@@ -858,7 +900,7 @@ describe('Delete book from shelf', () => {
     const uploadBookResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadBookResponse.status).toBe(200);
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     const deleteBookFromShelfResponse = await deleteBookFromShelf(createShelfResponse.text, uploadBookResponse.text, { jwt: registerResponse.body.jwt_token });
@@ -881,10 +923,10 @@ describe('Delete book from shelf', () => {
     const uploadBookResponse2 = await uploadBook(userId2, 'The_Great_Gatsby.epub', { jwt: registerResponse2.body.jwt_token });
     expect(uploadBookResponse2.status).toBe(200);
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
-    const createShelfResponse2 = await createShelf('shelf!', userId2, { jwt: registerResponse2.body.jwt_token });
+    const createShelfResponse2 = await createShelf('shelf!', userId2, undefined, { jwt: registerResponse2.body.jwt_token });
     expect(createShelfResponse2.status).toBe(200);
 
     const addBookToShelfResponse = await addBookToShelf(createShelfResponse.text, uploadBookResponse.text, { jwt: registerResponse.body.jwt_token });
@@ -916,7 +958,7 @@ describe('Delete book from shelf', () => {
     const uploadBookResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadBookResponse.status).toBe(200);
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     const addBookToShelfResponse = await addBookToShelf(createShelfResponse.text, uploadBookResponse.text, { jwt: registerResponse.body.jwt_token });
@@ -938,7 +980,7 @@ describe('Delete book from shelf', () => {
     const uploadBookResponse = await uploadBook(userId, 'The_Great_Gatsby.epub', { jwt: registerResponse.body.jwt_token });
     expect(uploadBookResponse.status).toBe(200);
 
-    const createShelfResponse = await createShelf('shelf!', userId, { jwt: registerResponse.body.jwt_token });
+    const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
     const addBookToShelfResponse = await addBookToShelf(createShelfResponse.text, uploadBookResponse.text, { jwt: registerResponse.body.jwt_token });
@@ -961,7 +1003,7 @@ async function userFixture() {
 async function shelfFixture() {
   const { userId, jwt, username } = await userFixture();
 
-  const createShelfResponse = await createShelf('shelf!', userId, { jwt });
+  const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt });
   expect(createShelfResponse.status).toBe(200);
 
   return { userId, jwt, context: { userId, username, shelfId: createShelfResponse.text } };
@@ -995,7 +1037,7 @@ describeAuthContract('Create shelf auth', {
     const { userId, jwt } = await userFixture();
     return { userId, jwt, context: { userId } };
   },
-  call: ({ userId }, auth) => createShelf('shelf!', userId, auth)
+  call: ({ userId }, auth) => createShelf('shelf!', userId, undefined, auth)
 });
 
 describeAuthContract('Get shelf metadata auth', {

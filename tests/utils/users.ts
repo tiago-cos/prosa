@@ -17,16 +17,24 @@ export const MISSING_PROVIDER_KEY = 'This metadata provider requires an API key.
 export const DUPLICATE_PROVIDERS = 'The same metadata provider must not be selected more than once.';
 export const MISSING_METADATA_PREFERENCE = 'Automatic metadata preference must be present.';
 export const INVALID_PREFERENCES = 'Invalid or unsupported preferences provided.';
+export const INVALID_USER_ID = 'The provided user id is invalid.';
+export const USER_ID_CONFLICT = 'The provided user id is already in use.';
+export const INVALID_KEY_ID = 'The provided key id is invalid.';
+export const KEY_ID_CONFLICT = 'The provided key id is already in use.';
 export const INVALID_TOKEN = 'The provided token is invalid.';
 export const TOKEN_NOT_FOUND = 'The refresh token was not found or cannot be accessed.';
 
-export async function registerUser(username?: string, password?: string, admin = false, adminKey?: string) {
+export async function registerUser(username?: string, password?: string, admin = false, adminKey?: string, userId?: string) {
   username = username ?? randomString(16);
   password = password ?? randomString(16);
 
   const payload: any = { username, password };
   if (admin) {
     payload.admin = true;
+  }
+
+  if (userId !== undefined) {
+    payload.user_id = userId;
   }
 
   const req = request(SERVER_URL).post('/auth/register');
@@ -71,7 +79,7 @@ export async function refreshToken(refresh_token: string) {
   return response;
 }
 
-export async function createApiKey(user_id: string, keyName: string, capabilities: string[], expiresAt?: number, auth?: { jwt?: string; apiKey?: string }) {
+export async function createApiKey(user_id: string, keyName: string, capabilities: string[], expiresAt?: number, auth?: { jwt?: string; apiKey?: string }, keyId?: string) {
   let req = request(SERVER_URL).post(`/users/${user_id}/keys`);
 
   if (auth?.jwt) req = req.auth(auth.jwt, { type: 'bearer' });
@@ -83,6 +91,7 @@ export async function createApiKey(user_id: string, keyName: string, capabilitie
   };
 
   if (expiresAt) body.expires_at = expiresAt;
+  if (keyId !== undefined) body.key_id = keyId;
 
   return req.send(body);
 }

@@ -1,7 +1,8 @@
-import { addAnnotation, ALICE_NOTE, ANNOTATION_CONFLICT, ANNOTATION_NOT_FOUND, deleteAnnotation, getAnnotation, INVALID_ANNOTATION, listAnnotations, patchAnnotation } from '../utils/annotations.js';
+import { addAnnotation, ALICE_NOTE, ANNOTATION_CONFLICT, ANNOTATION_ID_CONFLICT, ANNOTATION_NOT_FOUND, deleteAnnotation, getAnnotation, INVALID_ANNOTATION, INVALID_ANNOTATION_ID, listAnnotations, patchAnnotation } from '../utils/annotations.js';
 import { BOOK_NOT_FOUND, uploadBook } from '../utils/books.js';
 import { registerUser } from '../utils/users.js';
 import { describeAuthContract } from '../utils/auth-contract.js';
+import { randomUUID } from 'crypto';
 
 describe('Add annotation', () => {
   test('Simple', async () => {
@@ -14,6 +15,54 @@ describe('Add annotation', () => {
 
     const addAnnotationResponse = await addAnnotation(uploadResponse.text, ALICE_NOTE, { jwt: registerResponse.body.jwt_token });
     expect(addAnnotationResponse.status).toBe(200);
+  });
+
+  test('Provided annotation id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    expect(uploadResponse.status).toBe(200);
+
+    const annotationId = randomUUID();
+    const addAnnotationResponse = await addAnnotation(uploadResponse.text, { ...ALICE_NOTE, annotation_id: annotationId }, { jwt: registerResponse.body.jwt_token });
+    expect(addAnnotationResponse.status).toBe(200);
+    expect(addAnnotationResponse.text).toBe(annotationId);
+
+    const getAnnotationResponse = await getAnnotation(uploadResponse.text, annotationId, { jwt: registerResponse.body.jwt_token });
+    expect(getAnnotationResponse.status).toBe(200);
+  });
+
+  test('Invalid annotation id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    expect(uploadResponse.status).toBe(200);
+
+    const addAnnotationResponse = await addAnnotation(uploadResponse.text, { ...ALICE_NOTE, annotation_id: 'invalid' }, { jwt: registerResponse.body.jwt_token });
+    expect(addAnnotationResponse.status).toBe(400);
+    expect(addAnnotationResponse.text).toBe(INVALID_ANNOTATION_ID);
+  });
+
+  test('Repeated annotation id', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: registerResponse.body.jwt_token });
+    expect(uploadResponse.status).toBe(200);
+
+    const annotationId = randomUUID();
+    let addAnnotationResponse = await addAnnotation(uploadResponse.text, { ...ALICE_NOTE, annotation_id: annotationId }, { jwt: registerResponse.body.jwt_token });
+    expect(addAnnotationResponse.status).toBe(200);
+
+    const otherNote = { ...ALICE_NOTE, end_location: 'OEBPS/229714655232534212_11-h-10.htm.xhtml#0/2/t0:41', annotation_id: annotationId };
+    addAnnotationResponse = await addAnnotation(uploadResponse.text, otherNote, { jwt: registerResponse.body.jwt_token });
+    expect(addAnnotationResponse.status).toBe(409);
+    expect(addAnnotationResponse.text).toBe(ANNOTATION_ID_CONFLICT);
   });
 
   test('Non-existent book', async () => {

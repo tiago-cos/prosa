@@ -64,7 +64,7 @@ describe('Sync JWT', () => {
       }
     });
 
-    const addShelfResponse = await createShelf('shelf', userId, { jwt: jwtToken });
+    const addShelfResponse = await createShelf('shelf', userId, undefined, { jwt: jwtToken });
     expect(addShelfResponse.status).toBe(200);
 
     syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken });
@@ -216,7 +216,7 @@ describe('Sync JWT', () => {
       }
     });
 
-    let addShelfResponse = await createShelf('shelf', userId, { jwt: jwtToken });
+    let addShelfResponse = await createShelf('shelf', userId, undefined, { jwt: jwtToken });
     expect(addShelfResponse.status).toBe(200);
     const shelfId = addShelfResponse.text;
 
@@ -460,7 +460,7 @@ describe('Sync JWT', () => {
     const bookId = uploadResponse.text;
     await wait(1);
 
-    const addShelfResponse = await createShelf('shelf', userId, { jwt: jwtToken });
+    const addShelfResponse = await createShelf('shelf', userId, undefined, { jwt: jwtToken });
     expect(addShelfResponse.status).toBe(200);
     const shelfId = addShelfResponse.text;
 
@@ -516,7 +516,7 @@ describe('Sync JWT', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    const addShelfResponse2 = await createShelf('shelf 2', userId, { jwt: jwtToken });
+    const addShelfResponse2 = await createShelf('shelf 2', userId, undefined, { jwt: jwtToken });
     expect(addShelfResponse2.status).toBe(200);
     const shelfId2 = addShelfResponse2.text;
 
@@ -986,7 +986,7 @@ describe('Sync JWT', () => {
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    const addShelfResponse = await createShelf('shelf', userId, { jwt: jwtToken });
+    const addShelfResponse = await createShelf('shelf', userId, undefined, { jwt: jwtToken });
     expect(addShelfResponse.status).toBe(200);
     const shelfId = addShelfResponse.text;
 
@@ -1078,7 +1078,7 @@ describe('Sync JWT', () => {
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    const addShelfResponse = await createShelf('shelf', userId, { jwt: jwtToken });
+    const addShelfResponse = await createShelf('shelf', userId, undefined, { jwt: jwtToken });
     expect(addShelfResponse.status).toBe(200);
 
     const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { jwt: jwtToken });
@@ -1095,7 +1095,7 @@ describe('Sync JWT', () => {
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    const addShelfResponse2 = await createShelf('shelf', userId2, { jwt: jwtToken2 });
+    const addShelfResponse2 = await createShelf('shelf', userId2, undefined, { jwt: jwtToken2 });
     expect(addShelfResponse2.status).toBe(200);
 
     const addBookToShelfResponse2 = await addBookToShelf(addShelfResponse2.text, uploadResponse2.text, { jwt: jwtToken2 });
@@ -1293,7 +1293,7 @@ describe('Sync api key', () => {
       }
     });
 
-    const addShelfResponse = await createShelf('shelf', userId, { apiKey });
+    const addShelfResponse = await createShelf('shelf', userId, undefined, { apiKey });
     expect(addShelfResponse.status).toBe(200);
 
     syncResponse = await sync(userId, currentSyncToken, { apiKey });
@@ -1449,7 +1449,7 @@ describe('Sync api key', () => {
       }
     });
 
-    let addShelfResponse = await createShelf('shelf', userId, { apiKey: apiKey2 });
+    let addShelfResponse = await createShelf('shelf', userId, undefined, { apiKey: apiKey2 });
     expect(addShelfResponse.status).toBe(200);
     const shelfId = addShelfResponse.text;
 
@@ -1697,7 +1697,7 @@ describe('Sync api key', () => {
     const bookId = uploadResponse.text;
     await wait(1);
 
-    const addShelfResponse = await createShelf('shelf', userId, { jwt: jwtToken });
+    const addShelfResponse = await createShelf('shelf', userId, undefined, { jwt: jwtToken });
     expect(addShelfResponse.status).toBe(200);
     const shelfId = addShelfResponse.text;
 
@@ -1753,7 +1753,7 @@ describe('Sync api key', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    const addShelfResponse2 = await createShelf('shelf 2', userId, { jwt: jwtToken });
+    const addShelfResponse2 = await createShelf('shelf 2', userId, undefined, { jwt: jwtToken });
     expect(addShelfResponse2.status).toBe(200);
     const shelfId2 = addShelfResponse2.text;
 
@@ -2223,7 +2223,7 @@ describe('Sync api key', () => {
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    const addShelfResponse = await createShelf('shelf', userId, { jwt: jwtToken });
+    const addShelfResponse = await createShelf('shelf', userId, undefined, { jwt: jwtToken });
     expect(addShelfResponse.status).toBe(200);
     const shelfId = addShelfResponse.text;
 
@@ -2319,7 +2319,7 @@ describe('Sync api key', () => {
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    const addShelfResponse = await createShelf('shelf', userId, { apiKey });
+    const addShelfResponse = await createShelf('shelf', userId, undefined, { apiKey });
     expect(addShelfResponse.status).toBe(200);
 
     const addBookToShelfResponse = await addBookToShelf(addShelfResponse.text, uploadResponse.text, { apiKey });
@@ -2340,7 +2340,7 @@ describe('Sync api key', () => {
     // Wait for cover and metadata to be extracted
     await wait(1);
 
-    const addShelfResponse2 = await createShelf('shelf', userId2, { apiKey: apiKey2 });
+    const addShelfResponse2 = await createShelf('shelf', userId2, undefined, { apiKey: apiKey2 });
     expect(addShelfResponse2.status).toBe(200);
 
     const addBookToShelfResponse2 = await addBookToShelf(addShelfResponse2.text, uploadResponse2.text, { apiKey: apiKey2 });
