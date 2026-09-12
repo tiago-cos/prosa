@@ -5,8 +5,6 @@ use crate::app::metadata::models::{Metadata, MetadataError, MetadataFetchRequest
 use crate::app::metadata::service;
 use crate::app::server::{LOCKS, METADATA_FETCHER};
 use crate::app::sync::models::{ChangeLogAction, ChangeLogEntityType};
-use crate::app::users::models::PreferencesError;
-use crate::app::users::service::{has_duplicate_providers, is_valid_provider};
 use crate::app::{books, sync, users};
 use axum::extract::{Path, Query};
 use axum::http::StatusCode;
@@ -125,25 +123,8 @@ pub async fn add_metadata_request_handler(
 ) -> Result<StatusCode, ProsaError> {
     let book = books::service::get_book(&request.book_id).await?;
 
-    let providers = match request.metadata_providers {
-        Some(p) => p,
-        None => users::service::get_preferences(&book.owner_id)
-            .await?
-            .metadata_providers
-            .expect("Providers should be present"),
-    };
-
-    if !providers.iter().all(|p| is_valid_provider(p)) {
-        return Err(PreferencesError::InvalidMetadataProvider.into());
-    }
-
-    if has_duplicate_providers(&providers) {
-        return Err(PreferencesError::DuplicateMetadataProvider.into());
-    }
-
-    if !users::service::providers_are_usable(&book.owner_id, &providers).await? {
-        return Err(PreferencesError::MissingProviderKey.into());
-    }
+    let providers =
+        users::service::resolve_fetch_providers(&book.owner_id, request.metadata_providers).await?;
 
     METADATA_FETCHER
         .enqueue_request(&book.owner_id, &request.book_id, providers)

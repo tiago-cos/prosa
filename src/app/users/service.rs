@@ -118,13 +118,47 @@ pub async fn get_provider_keys(
     Ok(keys)
 }
 
-pub async fn providers_are_usable(user_id: &str, providers: &[String]) -> Result<bool, ProsaError> {
+pub async fn resolve_fetch_providers(
+    user_id: &str,
+    requested: Option<Vec<String>>,
+) -> Result<Vec<String>, ProsaError> {
+    let providers = match requested {
+        Some(providers) => providers,
+        None => get_preferences(user_id)
+            .await?
+            .metadata_providers
+            .expect("Providers should be present"),
+    };
+
+    if !providers.iter().all(|p| is_valid_provider(p)) {
+        return Err(PreferencesError::InvalidMetadataProvider.into());
+    }
+
+    if has_duplicate_providers(&providers) {
+        return Err(PreferencesError::DuplicateMetadataProvider.into());
+    }
+
+    if !providers_are_usable(user_id, &providers).await? {
+        return Err(PreferencesError::MissingProviderKey.into());
+    }
+
+    Ok(providers)
+}
+
+async fn providers_are_usable(user_id: &str, providers: &[String]) -> Result<bool, ProsaError> {
     let configured = repository::get_configured_providers(pool(), user_id).await?;
 
     Ok(providers
         .iter()
         .filter(|p| requires_api_key(p))
         .all(|p| configured.contains(p)))
+}
+
+pub fn has_duplicate_providers(providers: &[String]) -> bool {
+    providers
+        .iter()
+        .enumerate()
+        .any(|(index, provider)| providers[..index].contains(provider))
 }
 
 pub async fn update_preferences(user_id: &str, preferences: Preferences) -> Result<(), ProsaError> {
@@ -235,11 +269,4 @@ pub fn requires_api_key(provider: &str) -> bool {
     PROVIDERS
         .iter()
         .any(|(name, requires)| *name == provider && *requires)
-}
-
-pub fn has_duplicate_providers(providers: &[String]) -> bool {
-    providers
-        .iter()
-        .enumerate()
-        .any(|(index, provider)| providers[..index].contains(provider))
 }
