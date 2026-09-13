@@ -1,5 +1,5 @@
 # setup cargo-chef
-FROM clux/muslrust:stable AS chef
+FROM docker.io/clux/muslrust:stable AS chef
 USER root
 RUN cargo install cargo-chef
 WORKDIR /app
@@ -16,16 +16,6 @@ RUN cargo chef cook --release --target x86_64-unknown-linux-musl --recipe-path r
 COPY . .
 RUN cargo build --release --target x86_64-unknown-linux-musl --bin prosa
 
-# build kepubify
-FROM golang:alpine AS kepubify-builder
-ARG KEPUBIFY_REPO=https://github.com/tiago-cos/kepubify.git
-ARG KEPUBIFY_REF=master
-RUN apk add --no-cache git
-WORKDIR /build
-RUN git clone --depth 1 --branch ${KEPUBIFY_REF} ${KEPUBIFY_REPO} kepubify
-WORKDIR /build/kepubify
-RUN go build ./cmd/kepubify
-
 FROM alpine AS runtime
 
 # setup a healthcheck
@@ -34,12 +24,13 @@ HEALTHCHECK --interval=300s --timeout=5s --retries=3 --start-period=10s \
 
 # copy binaries
 COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/prosa /usr/local/bin/
-COPY --from=kepubify-builder /build/kepubify/kepubify /app/kepubify/kepubify
 
 # run prosa as non-root user
-RUN mkdir /app/library
-RUN addgroup -S prosa && adduser -S prosa -G prosa
-RUN chown -R prosa:prosa /app
+RUN addgroup -S prosa \
+    && adduser -S prosa -G prosa \
+    && mkdir -p /app/library \
+    && chown -R prosa:prosa /app
+
 USER prosa
 WORKDIR /app
 
@@ -47,7 +38,8 @@ ENTRYPOINT ["sh", "-c", "\
     unset BOOK_STORAGE__EPUB_PATH \
           BOOK_STORAGE__COVER_PATH \
           DATABASE__FILE_PATH \
-          KEPUBIFY__PATH \
-          AUTH__JWT_KEY_PATH; \
+          AUTH__PUBLIC_KEY_PATH \
+          AUTH__PRIVATE_KEY_PATH \
+          AUTH__SYMMETRIC_KEY_PATH; \
     exec /usr/local/bin/prosa \
 "]
