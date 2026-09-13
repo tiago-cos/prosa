@@ -20,9 +20,6 @@ pub enum BookError {
     #[strum(message = "This book is already in your library.")]
     #[strum(props(StatusCode = "409"))]
     BookConflict,
-    #[strum(message = "The requested pagination is invalid.")]
-    #[strum(props(StatusCode = "400"))]
-    InvalidPagination,
     #[strum(message = "The provided book id is invalid.")]
     #[strum(props(StatusCode = "400"))]
     InvalidBookId,

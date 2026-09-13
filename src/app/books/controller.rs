@@ -5,6 +5,7 @@ use crate::app::{
         models::{BookFileMetadataResponse, PaginatedBookResponse},
         service,
     },
+    core::pagination::Pagination,
     covers::{self},
     epubs,
     error::ProsaError,
@@ -92,31 +93,19 @@ pub async fn upload_book_handler(
 
 pub async fn search_books_handler(
     Query(params): Query<HashMap<String, String>>,
+    pagination: Pagination,
 ) -> Result<Json<PaginatedBookResponse>, ProsaError> {
     if let Some(username) = params.get("username") {
         users::service::get_user_by_username(username).await?;
     }
 
-    let page = match params.get("page").map(|t| t.parse::<i64>()) {
-        Some(Ok(p)) => Some(p),
-        None => None,
-        _ => return Err(BookError::InvalidPagination.into()),
-    };
-
-    let size = match params.get("size").map(|t| t.parse::<i64>()) {
-        Some(Ok(s)) => Some(s),
-        None => None,
-        _ => return Err(BookError::InvalidPagination.into()),
-    };
-
     let books = service::search_books(
         params.get("username").map(ToString::to_string),
         params.get("title").map(ToString::to_string),
         params.get("author").map(ToString::to_string),
-        page,
-        size,
+        &pagination,
     )
-    .await?;
+    .await;
 
     Ok(Json(books))
 }

@@ -1,5 +1,7 @@
+use crate::app::core::pagination::Pagination;
 use crate::app::server::LOCKS;
 use crate::app::shelves::service;
+use crate::app::users;
 use crate::app::{
     authentication::models::AuthToken,
     error::ProsaError,
@@ -8,7 +10,6 @@ use crate::app::{
         UpdateShelfRequest,
     },
 };
-use crate::app::users;
 use axum::Extension;
 use axum::extract::{Path, Query};
 use axum::{Json, http::StatusCode};
@@ -73,32 +74,18 @@ pub async fn delete_shelf_handler(
 
 pub async fn search_shelves_handler(
     Query(params): Query<HashMap<String, String>>,
+    pagination: Pagination,
 ) -> Result<Json<PaginatedShelves>, ProsaError> {
     if let Some(username) = params.get("username") {
         users::service::get_user_by_username(username).await?;
     }
 
-    let page = params.get("page").map(|t| t.parse::<i64>());
-    let page = match page {
-        Some(Ok(p)) => Some(p),
-        None => None,
-        _ => return Err(ShelfError::InvalidPagination.into()),
-    };
-
-    let size = params.get("size").map(|t| t.parse::<i64>());
-    let size = match size {
-        Some(Ok(s)) => Some(s),
-        None => None,
-        _ => return Err(ShelfError::InvalidPagination.into()),
-    };
-
     let shelves = service::search_shelves(
         params.get("username").map(ToString::to_string),
         params.get("name").map(ToString::to_string),
-        page,
-        size,
+        &pagination,
     )
-    .await?;
+    .await;
 
     Ok(Json(shelves))
 }

@@ -1,6 +1,6 @@
 use crate::app::{
     books,
-    core::ids,
+    core::{ids, pagination::Pagination},
     error::ProsaError,
     server::LOCKS,
     shelves::{
@@ -79,17 +79,9 @@ pub async fn delete_shelf(shelf_id: &str, session_id: &str) -> Result<(), ProsaE
 pub async fn search_shelves(
     username: Option<String>,
     name: Option<String>,
-    page: Option<i64>,
-    page_size: Option<i64>,
-) -> Result<PaginatedShelves, ProsaError> {
-    let page = page.unwrap_or(1);
-    let page_size = page_size.unwrap_or(10);
-
-    if page <= 0 || page_size <= 0 {
-        return Err(ShelfError::InvalidPagination.into());
-    }
-
-    Ok(repository::get_paginated_shelves(pool(), page, page_size, username, name).await)
+    pagination: &Pagination,
+) -> PaginatedShelves {
+    repository::get_paginated_shelves(pool(), pagination.page, pagination.size, username, name).await
 }
 
 pub async fn add_book_to_shelf(shelf_id: &str, book_id: &str, session_id: &str) -> Result<(), ProsaError> {

@@ -1,7 +1,7 @@
 use super::models::{BookEntity, BookError, PaginatedBookResponse};
 use crate::app::{
     books::{models::OrphanedFiles, repository},
-    core::ids,
+    core::{ids, pagination::Pagination},
     covers::{self, models::CoverError},
     epubs,
     error::ProsaError,
@@ -104,18 +104,9 @@ pub async fn search_books(
     username: Option<String>,
     title: Option<String>,
     author: Option<String>,
-    page: Option<i64>,
-    page_size: Option<i64>,
-) -> Result<PaginatedBookResponse, ProsaError> {
-    let page = page.unwrap_or(1);
-    let page_size = page_size.unwrap_or(10);
-
-    if page <= 0 || page_size <= 0 {
-        return Err(BookError::InvalidPagination.into());
-    }
-
-    let result = repository::get_paginated_books(pool(), page, page_size, username, title, author).await;
-    Ok(result)
+    pagination: &Pagination,
+) -> PaginatedBookResponse {
+    repository::get_paginated_books(pool(), pagination.page, pagination.size, username, title, author).await
 }
 
 pub async fn get_cover(book_id: &str) -> Result<Vec<u8>, ProsaError> {

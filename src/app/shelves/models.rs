@@ -21,9 +21,6 @@ pub enum ShelfError {
     #[strum(message = "The provided shelf name is invalid.")]
     #[strum(props(StatusCode = "400"))]
     InvalidName,
-    #[strum(message = "The requested pagination is invalid.")]
-    #[strum(props(StatusCode = "400"))]
-    InvalidPagination,
     #[strum(message = "The provided shelf request is invalid.")]
     #[strum(props(StatusCode = "400"))]
     InvalidShelfRequest,
