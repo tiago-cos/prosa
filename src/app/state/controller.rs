@@ -1,13 +1,8 @@
 use crate::app::{
     authentication::models::AuthToken,
-    books,
     error::ProsaError,
     server::LOCKS,
     state::{models::State, service},
-    sync::{
-        self,
-        models::{ChangeLogAction, ChangeLogEntityType},
-    },
 };
 use axum::{Extension, Json, extract::Path, http::StatusCode};
 
@@ -28,18 +23,7 @@ pub async fn patch_state_handler(
     let lock = LOCKS.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = books::service::get_book(&book_id).await?;
-
-    service::patch_state(&book_id, &book.epub_id, book_state).await?;
-
-    sync::service::log_change(
-        &book_id,
-        ChangeLogEntityType::BookState,
-        ChangeLogAction::Update,
-        &book.owner_id,
-        &token.session_id,
-    )
-    .await;
+    service::patch_state(&book_id, book_state, &token.session_id).await?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -52,18 +36,7 @@ pub async fn update_state_handler(
     let lock = LOCKS.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = books::service::get_book(&book_id).await?;
-
-    service::update_state(&book_id, &book.epub_id, book_state).await?;
-
-    sync::service::log_change(
-        &book_id,
-        ChangeLogEntityType::BookState,
-        ChangeLogAction::Update,
-        &book.owner_id,
-        &token.session_id,
-    )
-    .await;
+    service::update_state(&book_id, book_state, &token.session_id).await?;
 
     Ok(StatusCode::NO_CONTENT)
 }

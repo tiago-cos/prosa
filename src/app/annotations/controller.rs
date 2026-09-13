@@ -4,8 +4,7 @@ use crate::app::annotations::service;
 use crate::app::authentication::models::AuthToken;
 use crate::app::error::ProsaError;
 use crate::app::server::LOCKS;
-use crate::app::sync::models::{ChangeLogAction, ChangeLogEntityType};
-use crate::app::{books, sync};
+use crate::app::books;
 use axum::extract::Path;
 use axum::http::StatusCode;
 use axum::{Extension, Json};
@@ -18,17 +17,7 @@ pub async fn add_annotation_handler(
     let lock = LOCKS.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = books::service::get_book(&book_id).await?;
-    let annotation_id = service::add_annotation(&book_id, annotation).await?;
-
-    sync::service::log_change(
-        &book_id,
-        ChangeLogEntityType::BookAnnotations,
-        ChangeLogAction::Create,
-        &book.owner_id,
-        &token.session_id,
-    )
-    .await;
+    let annotation_id = service::add_annotation(&book_id, annotation, &token.session_id).await?;
 
     Ok(annotation_id)
 }
@@ -62,17 +51,7 @@ pub async fn delete_annotation_handler(
     let lock = LOCKS.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = books::service::get_book(&book_id).await?;
-    service::delete_annotation(&annotation_id).await?;
-
-    sync::service::log_change(
-        &book_id,
-        ChangeLogEntityType::BookAnnotations,
-        ChangeLogAction::Delete,
-        &book.owner_id,
-        &token.session_id,
-    )
-    .await;
+    service::delete_annotation(&book_id, &annotation_id, &token.session_id).await?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -85,18 +64,7 @@ pub async fn patch_annotation_handler(
     let lock = LOCKS.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = books::service::get_book(&book_id).await?;
-
-    service::patch_annotation(&annotation_id, request.note).await?;
-
-    sync::service::log_change(
-        &book_id,
-        ChangeLogEntityType::BookAnnotations,
-        ChangeLogAction::Update,
-        &book.owner_id,
-        &token.session_id,
-    )
-    .await;
+    service::patch_annotation(&book_id, &annotation_id, request.note, &token.session_id).await?;
 
     Ok(StatusCode::NO_CONTENT)
 }

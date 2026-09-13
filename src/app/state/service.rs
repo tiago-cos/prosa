@@ -1,7 +1,8 @@
 use super::models::{State, StateError, Statistics, VALID_READING_STATUS};
-use crate::app::epubs;
-use crate::database::pool;
+use crate::app::sync::models::{ChangeLogAction, ChangeLogEntityType};
+use crate::app::{books, epubs, sync};
 use crate::app::{error::ProsaError, state::repository};
+use crate::database::pool;
 use kepub_rs::validate_epub_location;
 use merge::Merge;
 use sqlx::SqliteConnection;
@@ -22,7 +23,9 @@ pub async fn get_state(book_id: &str) -> State {
     repository::get_state(pool(), book_id).await
 }
 
-pub async fn patch_state(book_id: &str, epub_id: &str, mut state: State) -> Result<(), ProsaError> {
+pub async fn patch_state(book_id: &str, mut state: State, session_id: &str) -> Result<(), ProsaError> {
+    let book = books::service::get_book(book_id).await?;
+
     if state.location.is_none() && state.statistics.is_none() {
         return Err(StateError::InvalidState.into());
     }
@@ -30,15 +33,19 @@ pub async fn patch_state(book_id: &str, epub_id: &str, mut state: State) -> Resu
     let original = repository::get_state(pool(), book_id).await;
     state.merge(original);
 
-    validate_state(&state, epub_id).await?;
+    validate_state(&state, &book.epub_id).await?;
     repository::update_state(pool(), book_id, state).await;
+    log_change(book_id, &book.owner_id, session_id).await;
 
     Ok(())
 }
 
-pub async fn update_state(book_id: &str, epub_id: &str, state: State) -> Result<(), ProsaError> {
-    validate_state(&state, epub_id).await?;
+pub async fn update_state(book_id: &str, state: State, session_id: &str) -> Result<(), ProsaError> {
+    let book = books::service::get_book(book_id).await?;
+
+    validate_state(&state, &book.epub_id).await?;
     repository::update_state(pool(), book_id, state).await;
+    log_change(book_id, &book.owner_id, session_id).await;
 
     Ok(())
 }
@@ -84,4 +91,15 @@ async fn validate_state(state: &State, epub_id: &str) -> Result<(), ProsaError> 
     }
 
     Ok(())
+}
+
+async fn log_change(book_id: &str, owner_id: &str, session_id: &str) {
+    sync::service::log_change(
+        book_id,
+        ChangeLogEntityType::BookState,
+        ChangeLogAction::Update,
+        owner_id,
+        session_id,
+    )
+    .await;
 }

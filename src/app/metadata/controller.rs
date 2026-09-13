@@ -1,11 +1,10 @@
 use crate::app::authentication::models::AuthToken;
 use crate::app::core::metadata_fetcher::MetadataFetcherRequest;
 use crate::app::error::ProsaError;
-use crate::app::metadata::models::{Metadata, MetadataError, MetadataFetchRequest};
+use crate::app::metadata::models::{Metadata, MetadataFetchRequest};
 use crate::app::metadata::service;
 use crate::app::server::{LOCKS, METADATA_FETCHER};
-use crate::app::sync::models::{ChangeLogAction, ChangeLogEntityType};
-use crate::app::{books, sync, users};
+use crate::app::{books, users};
 use axum::extract::{Path, Query};
 use axum::http::StatusCode;
 use axum::{Extension, Json};
@@ -27,22 +26,7 @@ pub async fn add_metadata_handler(
     let lock = LOCKS.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = books::service::get_book(&book_id).await?;
-
-    if service::metadata_exists(&book_id).await {
-        return Err(MetadataError::MetadataConflict.into());
-    }
-
-    service::add_metadata(&book_id, metadata).await?;
-
-    sync::service::log_change(
-        &book_id,
-        ChangeLogEntityType::BookMetadata,
-        ChangeLogAction::Create,
-        &book.owner_id,
-        &token.session_id,
-    )
-    .await;
+    service::add_metadata(&book_id, metadata, &token.session_id).await?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -54,18 +38,7 @@ pub async fn delete_metadata_handler(
     let lock = LOCKS.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = books::service::get_book(&book_id).await?;
-
-    service::delete_metadata(&book_id).await?;
-
-    sync::service::log_change(
-        &book_id,
-        ChangeLogEntityType::BookMetadata,
-        ChangeLogAction::Delete,
-        &book.owner_id,
-        &token.session_id,
-    )
-    .await;
+    service::delete_metadata(&book_id, &token.session_id).await?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -78,18 +51,7 @@ pub async fn patch_metadata_handler(
     let lock = LOCKS.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = books::service::get_book(&book_id).await?;
-
-    service::patch_metadata(&book_id, metadata).await?;
-
-    sync::service::log_change(
-        &book_id,
-        ChangeLogEntityType::BookMetadata,
-        ChangeLogAction::Update,
-        &book.owner_id,
-        &token.session_id,
-    )
-    .await;
+    service::patch_metadata(&book_id, metadata, &token.session_id).await?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -102,18 +64,7 @@ pub async fn update_metadata_handler(
     let lock = LOCKS.get_book_lock(&book_id).await;
     let _guard = lock.write().await;
 
-    let book = books::service::get_book(&book_id).await?;
-
-    service::update_metadata(&book_id, metadata).await?;
-
-    sync::service::log_change(
-        &book_id,
-        ChangeLogEntityType::BookMetadata,
-        ChangeLogAction::Update,
-        &book.owner_id,
-        &token.session_id,
-    )
-    .await;
+    service::update_metadata(&book_id, metadata, &token.session_id).await?;
 
     Ok(StatusCode::NO_CONTENT)
 }

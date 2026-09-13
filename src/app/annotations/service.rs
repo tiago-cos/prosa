@@ -1,8 +1,9 @@
 use super::models::{Annotation, AnnotationError, NewAnnotationRequest};
 use crate::app::core::ids;
-use crate::app::epubs;
 use crate::app::server::LOCKS;
+use crate::app::sync::models::{ChangeLogAction, ChangeLogEntityType};
 use crate::app::{annotations::repository, books, error::ProsaError};
+use crate::app::{epubs, sync};
 use crate::database::pool;
 use kepub_rs::validate_epub_location;
 use std::fs::File;
@@ -10,8 +11,10 @@ use std::fs::File;
 pub async fn add_annotation(
     book_id: &str,
     mut annotation: NewAnnotationRequest,
+    session_id: &str,
 ) -> Result<String, ProsaError> {
-    let epub_id = books::repository::get_book(pool(), book_id).await?.epub_id;
+    let book = books::service::get_book(book_id).await?;
+    let epub_id = book.epub_id;
 
     let annotation_id =
         ids::resolve(annotation.annotation_id.take()).map_err(|_| AnnotationError::InvalidAnnotationId)?;
@@ -29,6 +32,8 @@ pub async fn add_annotation(
 
     repository::add_annotation(pool(), &annotation_id, book_id, &annotation).await?;
 
+    log_change(book_id, ChangeLogAction::Create, &book.owner_id, session_id).await;
+
     Ok(annotation_id)
 }
 
@@ -41,14 +46,27 @@ pub async fn get_annotations(book_id: &str) -> Vec<String> {
     repository::get_annotations(pool(), book_id).await
 }
 
-pub async fn delete_annotation(annotation_id: &str) -> Result<(), ProsaError> {
+pub async fn delete_annotation(
+    book_id: &str,
+    annotation_id: &str,
+    session_id: &str,
+) -> Result<(), ProsaError> {
+    let book = books::service::get_book(book_id).await?;
     repository::delete_annotation(pool(), annotation_id).await?;
+    log_change(book_id, ChangeLogAction::Delete, &book.owner_id, session_id).await;
     Ok(())
 }
 
-pub async fn patch_annotation(annotation_id: &str, note: Option<String>) -> Result<(), ProsaError> {
+pub async fn patch_annotation(
+    book_id: &str,
+    annotation_id: &str,
+    note: Option<String>,
+    session_id: &str,
+) -> Result<(), ProsaError> {
+    let book = books::service::get_book(book_id).await?;
     let note = note.filter(|n| !n.is_empty());
     repository::patch_annotation(pool(), annotation_id, note).await?;
+    log_change(book_id, ChangeLogAction::Update, &book.owner_id, session_id).await;
     Ok(())
 }
 
@@ -65,4 +83,15 @@ async fn validate_annotation(annotation: &NewAnnotationRequest, epub_id: &str) -
     })
     .await
     .expect("Annotation validation task failed")
+}
+
+async fn log_change(book_id: &str, action: ChangeLogAction, owner_id: &str, session_id: &str) {
+    sync::service::log_change(
+        book_id,
+        ChangeLogEntityType::BookAnnotations,
+        action,
+        owner_id,
+        session_id,
+    )
+    .await;
 }

@@ -6,8 +6,7 @@ use crate::app::{
     authentication::models::AuthToken,
     error::ProsaError,
     shelves::models::{
-        AddBookToShelfRequest, CreateShelfRequest, PaginatedShelves, Shelf, ShelfError, ShelfMetadata,
-        UpdateShelfRequest,
+        AddBookToShelfRequest, CreateShelfRequest, PaginatedShelves, Shelf, ShelfMetadata, UpdateShelfRequest,
     },
 };
 use axum::Extension;
