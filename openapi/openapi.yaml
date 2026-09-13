@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  version: 0.1.0
+  version: 0.2.0
   title: Prosa
   contact:
     name: Tiago Sousa
@@ -11,299 +11,32 @@ info:
     url: https://opensource.org/license/MIT
 
   description: |
-    # Overview
+    The HTTP API of [Prosa](https://github.com/tiago-cos/prosa), a self-hosted
+    book server for managing and reading a personal EPUB collection.
 
-    Prosa is a self-hosted book server for managing and reading your personal collection.
+    Installing a server, configuring it and getting a first book into it are
+    covered in the [wiki](https://github.com/tiago-cos/prosa/wiki). This
+    document is the API reference.
 
-    ## Main Features
+    ## Users
 
-    ### Book Management
-
-    - Manage EPUB files, including metadata and cover images
-    - Organize books into shelves
-
-    ### Reading, Annotations & Ratings
-
-    - Track and store reading progress for each book
-    - Add and manage book annotations
-    - Rate books
-
-    ### Automatic Metadata Fetching
-
-    - Automatically extract book metadata from various providers
-
-    ### User & Device Support
-
-    - Support multiple users with different roles (regular and admin)
-    - Sync books, annotations, and reading progress across multiple devices
-
-    ## User Types
-
-    - **Regular Users** – Can perform operations only on their own books
-    - **Admin Users** – Have full access to perform any operation on any book in the system
+    - **Regular users** can act only on their own books, shelves and settings.
+    - **Admin users** can act on anyone's.
 
     ## Authentication
 
-    - **JWT tokens** – Obtain from the authentication endpoint
-    - **API keys** – Create in your user preferences
+    Every endpoint requires credentials except `/health`, `/config`,
+    `/.well-known/jwks.json` and the `/auth/*` endpoints.
 
-    # Configuration
+    - **JWT** — `Authorization: Bearer <token>`, from `/auth/register`,
+      `/auth/login` or `/auth/refresh`. Short-lived; trade the refresh token for
+      a new pair when it expires.
+    - **API key** — `api-key: <key>`, created at `/users/{user_id}/keys`. A key
+      carries an expiry and a set of capabilities — `Read`, `Create`, `Update`,
+      `Delete` — and an endpoint refuses a key that lacks the one it needs.
 
-    Prosa can be configured in two ways:
-
-    1. **Configuration files (TOML)**
-    2. **Environment variables**
-
-    The configuration system is layered, meaning defaults are loaded first and then overridden by local configuration or environment variables.
-
-    ## Default Configuration
-
-    Prosa comes with built-in default configurations that are embedded directly into the binary.  
-
-    The following example shows the default configuration values.  
-    You can override these defaults by providing your own configuration file.
-
-    ### Example (Default) Configuration
-
-    ```toml
-    [server]
-    host = "0.0.0.0"
-    port = 5000
-
-    # Define admin_key in your configuration
-
-    [auth]
-    # admin_key = "admin_key"
-    jwt_token_duration = 900
-    refresh_token_duration = 604800
-    allow_user_registration = true
-    public_key_path = "library/public_key.bin"
-    private_key_path = "library/private_key.bin"
-    symmetric_key_path = "library/symmetric_key.bin"
-
-    [book_storage]
-    epub_path = "library/epubs"
-    cover_path = "library/covers"
-
-    [metadata_cooldown]
-    openlibrary = 1000
-    hardcover = 1000
-    google_books = 1000
-
-    [database]
-    file_path = "library/database.db"
-    max_connections = 16
-    busy_timeout_seconds = 10
-    backup_before_migration = true
-    ```
-
-    ## Local Configuration
-
-    Any value from the default configuration can be overridden by creating a local configuration file.
-
-    By default, Prosa looks for `src/config/configuration.toml`.
-
-    You can change this path using the `CONFIGURATION` environment variable.  
-    Values defined in `configuration.toml` will override the default values.
-
-    ## Environment Variables
-
-    All configuration values can also be controlled directly through environment variables.  
-    The format is `<SECTION>__<KEY>`.
-
-    -   Sections map to the `[section]` headers in the TOML file.
-        
-    -   Keys map to the field names inside each section.
-
-    **Important:**
-
-    - Sections and keys are separated using **double underscores (`__`)**.
-        
-    - Single underscores (`_`) inside a key name (e.g. `admin_key`) remain as-is and **are not separators**.
-        
-    For example:
-
-    - To set the server port (`[server].port`):
-        
-      ```bash
-      export SERVER__PORT=8080
-      ```
-
-    - To set the admin key (`[auth].admin_key`):  
-      _(notice there is only **one underscore** between `ADMIN` and `KEY` because the field name itself has an underscore)_
-        
-      ```bash
-      export AUTH__ADMIN_KEY=super_secret_key
-      ```
-
-    ## Configuration Reference
-
-    -   **[server]**
-        
-        -   `host`: Network interface where the server will listen.
-            
-        -   `port`: Port number the server will listen on.
-            
-    -   **[auth]**
-        
-        -   `admin_key`: Secret used to register admin users. **Must be defined and at least 8 characters long.**  
-        The server will not start if this is missing or too short.
-            
-        -   `jwt_token_duration`: Expiration duration for JWT tokens (seconds).
-            
-        -   `refresh_token_duration`: Expiration duration for refresh tokens (seconds).
-
-        -   `allow_user_registration`: Whether new users can register without an admin key.  
-        Set to `true` to allow anyone to register and `false` to require the admin key for all registrations.
-
-        -   `public_key_path`, `private_key_path`: Paths to the files that will store the JWT signing key pair.
-
-        -   `symmetric_key_path`: Path to the file that will store the symmetric key used to encrypt
-        stored metadata provider API keys. Generated on first run; losing it means every stored key
-        has to be entered again.
-            
-    -   **[book_storage]**
-        
-        -   `epub_path`: Directory where EPUB files are stored.
-            
-        -   `cover_path`: Directory where cover images are stored.
-            
-    -   **[metadata_cooldown]**
-
-        Minimum delay (ms) between requests to each online catalogue. The EPUB
-        metadata extractor reads the book file itself, so it has no cooldown.
-
-        -   `openlibrary`: Minimum delay (ms) between Open Library requests.
-
-        -   `hardcover`: Minimum delay (ms) between Hardcover requests.
-
-        -   `google_books`: Minimum delay (ms) between Google Books requests.
-            
-    -   **[database]**
-        
-        -   `file_path`: Path to the SQLite database file.
-            
-        -   `max_connections`: Size of the SQLite connection pool.
-            
-        -   `busy_timeout_seconds`: How long a statement waits for a contended write before failing.
-            
-        -   `backup_before_migration`: Snapshot the database before applying or reverting schema migrations.
-            
-    # Database Schema
-
-    The schema is managed with versioned, reversible migrations that are embedded
-    into the binary at build time. There is nothing to deploy alongside the
-    executable and no manual setup step.
-
-    On startup Prosa applies any migrations the database has not seen yet. A
-    database created by an older Prosa is upgraded in place, and a snapshot is
-    written next to it first (unless `backup_before_migration` is disabled).
-
-    ## Inspecting the schema
-
-    ```bash
-    prosa --migrate-status
-    ```
-
-    Lists every migration, whether it has been applied, and whether it can be
-    reverted.
-
-    ## Downgrading
-
-    ```bash
-    prosa --migrate-down <version>
-    ```
-
-    Reverts every migration newer than `<version>`.
-
-    **A binary can only revert migrations whose down scripts it carries.** To move
-    from a newer Prosa to an older one, run `--migrate-down` with the *newer*
-    binary first, then swap in the older one. Running it the other way round
-    leaves the schema ahead of the code. Prosa refuses to start a revert it cannot
-    complete rather than leaving the schema half-migrated.
-
-    ## Logging
-
-    You can control the logging level using the standard `RUST_LOG` environment variable.  
-    Supported values include `error`, `warn`, `info`, `debug`, and `trace`.
-
-    - Default:
-      ```bash
-      RUST_LOG=info
-      ```
-        
-    - Example (set log level to warn):
-      ```bash
-      export RUST_LOG=warn
-      ```
-
-    # Installation & Setup
-
-    Prosa can be run either as a **Docker container (recommended)** or as a standalone **binary**.
-
-    ## Docker Container (Recommended)
-
-    The simplest way to get Prosa running is with Docker. Add the following entry to your `docker-compose.yml`:
-
-    ```yaml
-    services:
-      prosa:
-        image: tsousa28/prosa
-        container_name: prosa
-        ports:
-          - "5000:5000"
-        environment:
-          - AUTH__ADMIN_KEY=very_secret_key
-        volumes:
-          - prosa_library:/app/library
-        restart: unless-stopped
-
-    volumes:
-      prosa_library:
-    ```
-
-    This will start Prosa and make it available on port `5000`.
-
-    **Important notes:**
-
-    -  Don't forget to set `AUTH__ADMIN_KEY` to a secure value before using Prosa.
-        
-    -  Persistence requires a **named volume** mounted at `/app/library` inside the container. Bind mounts are currently not supported due to permission issues in the rootless container.
-        
-    -  Environment variables to change paths are ignored in this container image.
-        
-    ## Binary
-
-    If you prefer running Prosa as a binary:
-
-    1.  **Configure Prosa**  
-        Adjust the configuration file as needed (authentication, storage paths, etc.).
-        
-    2.  **Run the Server**  
-        Launch the binary, and Prosa will be ready to accept connections.
-
-    ## Next Steps
-
-    1.  **Create a User**  
-        Register a new user with the [Register User](#tag/Authentication/operation/register) endpoint.
-        
-    2.  **(Optional) Enable Online Metadata Providers**  
-        A new user starts with only `epub_metadata_extractor` enabled, so no
-        third-party service is contacted until you ask for one.
-
-        -   To enable others, update your preferences with the [Patch User Preferences](#tag/Preferences/operation/patchPreferences) endpoint.
-
-        -   Add the providers you want to the `metadata_providers` array, in order of preference.
-            `openlibrary` needs nothing further; `hardcover` and `google_books` require an API key,
-            supplied in the same request through `provider_keys`. Stored keys are encrypted and are
-            never returned.
-
-        -   `GET /config` lists the providers this server knows about and which of them need a key.
-            
-    3.  **Upload Your First Book**  
-        Add a book using the [Upload Book](#tag/File/operation/uploadBook) endpoint. You can also manage metadata and cover images at this stage.
-
-    You’re now ready to browse, read, and annotate your books with Prosa!
+    The `/users/{user_id}/…` endpoints take a JWT only: an API key cannot manage
+    the credentials it is one of.
 
 
 externalDocs:

@@ -115,13 +115,6 @@ jobs:
       - name: Make binary executable
         run: chmod +x ./bin/prosa
 
-      - name: Download kepubify
-        run: |
-          mkdir -p kepubify
-          curl -L https://github.com/tiago-cos/kepubify/releases/latest/download/kepubify-linux-64bit \
-            -o kepubify/kepubify
-          chmod +x kepubify/kepubify
-
       - name: Run server in background
         run: |
           AUTH__ADMIN_KEY=admin_key \

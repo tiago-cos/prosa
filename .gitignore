@@ -4,4 +4,3 @@ src/config/configuration.toml
 tests/config/.env.local
 /library
 tests/node_modules
-/kepubify
