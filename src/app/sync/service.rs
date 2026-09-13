@@ -51,6 +51,7 @@ pub async fn get_unsynced_changes(
     // Ensure user exists
     users::repository::get_user(pool(), owner_id).await?;
 
+    // Already one entry per entity and kind of change: the newest of each.
     let changes = repository::get_changes(pool(), owner_id, sync_token, session_id).await;
 
     let mut unsynced_books = UnsyncedBooks {

@@ -46,11 +46,12 @@ pub async fn get_changes<'e>(
 ) -> Vec<ChangeLogEntry> {
     let changes: Vec<ChangeLogEntry> = sqlx::query_as(
         r"
-        SELECT log_id, entity_id, entity_type, owner_id, session_id, action
+        SELECT MAX(log_id) AS log_id, entity_id, entity_type, owner_id, session_id, action
         FROM change_log
         WHERE owner_id = $1
         AND log_id > $2
         AND session_id != $3
+        GROUP BY entity_id, entity_type
         ORDER BY log_id ASC
         ",
     )

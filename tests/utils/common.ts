@@ -20,6 +20,10 @@ export function wait(seconds: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
 }
 
+export function settleBackgroundFetch(seconds = 1): Promise<void> {
+  return wait(seconds);
+}
+
 export async function raceCreations(count: number, create: (index: number) => Promise<any>) {
   const responses = await Promise.all(Array.from({ length: count }, (_, index) => create(index)));
 

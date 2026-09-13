@@ -1,5 +1,11 @@
 type: object
-description: Contains the IDs of items whose data has changed since the last sync.
+description: |
+  The IDs of items whose data has changed since the last sync.
+
+  Each list is a set: an ID appears at most once in it, however many times that
+  item changed. A book whose metadata was edited ten times is still one book to
+  re-fetch. A book may appear in more than one list, since its file, cover,
+  metadata, state and annotations change independently.
 required:
   - new_sync_token
   - unsynced_books
@@ -23,6 +29,7 @@ properties:
     properties:
       file:
         type: array
+        uniqueItems: true
         items:
           type: string
           format: uuid
@@ -30,6 +37,7 @@ properties:
 
       metadata:
         type: array
+        uniqueItems: true
         items:
           type: string
           format: uuid
@@ -37,6 +45,7 @@ properties:
 
       cover:
         type: array
+        uniqueItems: true
         items:
           type: string
           format: uuid
@@ -44,6 +53,7 @@ properties:
 
       state:
         type: array
+        uniqueItems: true
         items:
           type: string
           format: uuid
@@ -51,6 +61,7 @@ properties:
 
       annotations:
         type: array
+        uniqueItems: true
         items:
           type: string
           format: uuid
@@ -58,6 +69,7 @@ properties:
 
       deleted:
         type: array
+        uniqueItems: true
         items:
           type: string
           format: uuid
@@ -72,6 +84,7 @@ properties:
     properties:
       metadata:
         type: array
+        uniqueItems: true
         items:
           type: string
           format: uuid
@@ -79,6 +92,7 @@ properties:
 
       contents:
         type: array
+        uniqueItems: true
         items:
           type: string
           format: uuid
@@ -86,6 +100,7 @@ properties:
 
       deleted:
         type: array
+        uniqueItems: true
         items:
           type: string
           format: uuid

@@ -1,9 +1,9 @@
 import { addAnnotation, ALICE_NOTE, deleteAnnotation, patchAnnotation } from '../utils/annotations.js';
 import { deleteBook, uploadBook } from '../utils/books.js';
-import { FORBIDDEN, INVALID_API_KEY, UNAUTHORIZED, wait } from '../utils/common.js';
+import { FORBIDDEN, INVALID_API_KEY, settleBackgroundFetch, UNAUTHORIZED, wait } from '../utils/common.js';
 import { deleteCover, updateCover } from '../utils/covers.js';
-import { deleteMetadata, EXAMPLE_METADATA, patchMetadata, updateMetadata } from '../utils/metadata.js';
-import { addBookToShelf, createShelf, deleteBookFromShelf, deleteShelf } from '../utils/shelves.js';
+import { addMetadata, deleteMetadata, EXAMPLE_METADATA, patchMetadata, updateMetadata } from '../utils/metadata.js';
+import { addBookToShelf, createShelf, deleteBookFromShelf, deleteShelf, updateShelf } from '../utils/shelves.js';
 import { ALICE_STATE, patchState, updateState } from '../utils/state.js';
 import { INVALID_SYNC_TOKEN, sync } from '../utils/sync.js';
 import { createApiKey, loginUser, registerUser, USER_NOT_FOUND } from '../utils/users.js';
@@ -2480,5 +2480,223 @@ describe('Sync api key', () => {
     let syncResponse = await sync(userId, undefined, { apiKey: createApiKeyResponse.body.key });
     expect(syncResponse.status).toBe(401);
     expect(syncResponse.text).toBe(INVALID_API_KEY);
+  });
+});
+
+describe('Sync collapses repeated changes', () => {
+  // A sync response is a list of things to re-fetch, so an entity belongs in it
+  // once however many times it changed. Ten metadata edits are still one book
+  // to re-download, and repeating its id ten times makes a client do the work
+  // ten times over.
+
+  test('Repeated changes to a book are one entry per field', async () => {
+    const { response: registerResponse, username, password } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
+
+    const loginResponse = await loginUser(username, password);
+    expect(loginResponse.status).toBe(200);
+    const jwtToken2 = loginResponse.body.jwt_token;
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
+    expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
+    await settleBackgroundFetch();
+
+    // The second session catches up, so what follows is all it has left to hear.
+    let syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+    const syncToken = syncResponse.body.new_sync_token;
+
+    for (let i = 0; i < 4; i++) {
+      const response = await patchMetadata(bookId, { title: `Title ${i}` }, { jwt: jwtToken });
+      expect(response.status).toBe(204);
+    }
+
+    for (let i = 0; i < 3; i++) {
+      const response = await updateCover(bookId, 'Generic.jpeg', { jwt: jwtToken });
+      expect(response.status).toBe(204);
+    }
+
+    for (let i = 0; i < 3; i++) {
+      const response = await patchState(bookId, { statistics: { rating: i + 1 } }, { jwt: jwtToken });
+      expect(response.status).toBe(204);
+    }
+
+    const addResponse = await addAnnotation(bookId, ALICE_NOTE, { jwt: jwtToken });
+    expect(addResponse.status).toBe(200);
+    for (let i = 0; i < 3; i++) {
+      const response = await patchAnnotation(bookId, addResponse.text, `note ${i}`, { jwt: jwtToken });
+      expect(response.status).toBe(204);
+    }
+
+    syncResponse = await sync(userId, syncToken, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+
+    expect(syncResponse.body.unsynced_books).toEqual({
+      file: [],
+      metadata: [bookId],
+      cover: [bookId],
+      state: [bookId],
+      annotations: [bookId],
+      deleted: []
+    });
+    expect(syncResponse.body.new_sync_token).toBeGreaterThan(syncToken);
+  });
+
+  test('Repeated changes to a shelf are one entry per field', async () => {
+    const { response: registerResponse, username, password } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
+
+    const loginResponse = await loginUser(username, password);
+    expect(loginResponse.status).toBe(200);
+    const jwtToken2 = loginResponse.body.jwt_token;
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
+    expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
+    await settleBackgroundFetch();
+
+    const shelfResponse = await createShelf('Repeated', userId, undefined, { jwt: jwtToken });
+    expect(shelfResponse.status).toBe(200);
+    const shelfId = shelfResponse.text;
+
+    let syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+    const syncToken = syncResponse.body.new_sync_token;
+
+    for (let i = 0; i < 3; i++) {
+      const response = await updateShelf(shelfId, `Renamed ${i}`, { jwt: jwtToken });
+      expect(response.status).toBe(204);
+    }
+
+    for (let i = 0; i < 2; i++) {
+      const added = await addBookToShelf(shelfId, bookId, { jwt: jwtToken });
+      expect(added.status).toBe(204);
+      const removed = await deleteBookFromShelf(shelfId, bookId, { jwt: jwtToken });
+      expect(removed.status).toBe(204);
+    }
+
+    syncResponse = await sync(userId, syncToken, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+
+    expect(syncResponse.body.unsynced_shelves).toEqual({
+      metadata: [shelfId],
+      contents: [shelfId],
+      deleted: []
+    });
+  });
+
+  test('Collapsing keeps different books apart', async () => {
+    const { response: registerResponse, username, password } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
+
+    const loginResponse = await loginUser(username, password);
+    expect(loginResponse.status).toBe(200);
+    const jwtToken2 = loginResponse.body.jwt_token;
+
+    const firstUpload = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
+    expect(firstUpload.status).toBe(200);
+    const firstBook = firstUpload.text;
+
+    const secondUpload = await uploadBook(userId, 'The_Great_Gatsby.epub', { jwt: jwtToken });
+    expect(secondUpload.status).toBe(200);
+    const secondBook = secondUpload.text;
+    await settleBackgroundFetch();
+
+    // Gatsby carries no metadata of its own, and PATCH needs some to merge into.
+    const seed = await addMetadata(secondBook, EXAMPLE_METADATA, { jwt: jwtToken });
+    expect([204, 409]).toContain(seed.status);
+
+    let syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+    const syncToken = syncResponse.body.new_sync_token;
+
+    for (let i = 0; i < 3; i++) {
+      expect((await patchMetadata(firstBook, { title: `First ${i}` }, { jwt: jwtToken })).status).toBe(204);
+      expect((await patchMetadata(secondBook, { title: `Second ${i}` }, { jwt: jwtToken })).status).toBe(204);
+    }
+
+    syncResponse = await sync(userId, syncToken, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+
+    expect(syncResponse.body.unsynced_books.metadata.sort()).toEqual([firstBook, secondBook].sort());
+  });
+
+  test('The newest change decides which field a book lands in', async () => {
+    // Collapsing a book's entries into one has to keep the latest, not any of
+    // them: a book deleted and then uploaded again under the same id exists,
+    // and belongs in `file` rather than `deleted`.
+    const { response: registerResponse, username, password } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
+
+    const loginResponse = await loginUser(username, password);
+    expect(loginResponse.status).toBe(200);
+    const jwtToken2 = loginResponse.body.jwt_token;
+
+    const bookId = crypto.randomUUID();
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken }, bookId);
+    expect(uploadResponse.status).toBe(200);
+    await settleBackgroundFetch();
+
+    let syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+    const syncToken = syncResponse.body.new_sync_token;
+
+    expect((await deleteBook(bookId, { jwt: jwtToken })).status).toBe(204);
+
+    const reupload = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken }, bookId);
+    expect(reupload.status).toBe(200);
+    await settleBackgroundFetch();
+
+    syncResponse = await sync(userId, syncToken, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+
+    expect(syncResponse.body.unsynced_books.file).toEqual([bookId]);
+    expect(syncResponse.body.unsynced_books.deleted).toEqual([]);
+  });
+
+  test('A deleted book is reported as deleted however many times it changed', async () => {
+    const { response: registerResponse, username, password } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+    const jwtToken = registerResponse.body.jwt_token;
+
+    const loginResponse = await loginUser(username, password);
+    expect(loginResponse.status).toBe(200);
+    const jwtToken2 = loginResponse.body.jwt_token;
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', { jwt: jwtToken });
+    expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
+    await settleBackgroundFetch();
+
+    let syncResponse = await sync(userId, undefined, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+    const syncToken = syncResponse.body.new_sync_token;
+
+    for (let i = 0; i < 3; i++) {
+      expect((await patchMetadata(bookId, { title: `Title ${i}` }, { jwt: jwtToken })).status).toBe(204);
+    }
+    expect((await deleteBook(bookId, { jwt: jwtToken })).status).toBe(204);
+
+    syncResponse = await sync(userId, syncToken, { jwt: jwtToken2 });
+    expect(syncResponse.status).toBe(200);
+
+    expect(syncResponse.body.unsynced_books).toEqual({
+      file: [],
+      metadata: [],
+      cover: [],
+      state: [],
+      annotations: [],
+      deleted: [bookId]
+    });
   });
 });
