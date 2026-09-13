@@ -166,6 +166,50 @@ describe('Add annotation', () => {
     addAnnotationResponse = await addAnnotation(uploadResponse.text, offsetPastEndOfText, { jwt: registerResponse.body.jwt_token });
     expect(addAnnotationResponse.status).toBe(400);
     expect(addAnnotationResponse.text).toBe(INVALID_ANNOTATION);
+
+    // Both ends resolve, so these are rejected on order alone.
+    const endBeforeStart = {
+      start_location: ALICE_NOTE.end_location,
+      end_location: ALICE_NOTE.start_location,
+      note: 'I loved this part!'
+    };
+
+    addAnnotationResponse = await addAnnotation(uploadResponse.text, endBeforeStart, { jwt: registerResponse.body.jwt_token });
+    expect(addAnnotationResponse.status).toBe(400);
+    expect(addAnnotationResponse.text).toBe(INVALID_ANNOTATION);
+
+    const emptyRange = {
+      start_location: ALICE_NOTE.start_location,
+      end_location: ALICE_NOTE.start_location,
+      note: 'I loved this part!'
+    };
+
+    addAnnotationResponse = await addAnnotation(uploadResponse.text, emptyRange, { jwt: registerResponse.body.jwt_token });
+    expect(addAnnotationResponse.status).toBe(400);
+    expect(addAnnotationResponse.text).toBe(INVALID_ANNOTATION);
+
+    // The test book's cover page is an <svg> inside a <div>, so both of these
+    // are real, correctly ordered positions -- they are rejected only for
+    // being elements rather than text.
+    const elementEnds = {
+      start_location: 'OEBPS/wrap0000.xhtml#0',
+      end_location: 'OEBPS/wrap0000.xhtml#0/0',
+      note: 'I loved this part!'
+    };
+
+    addAnnotationResponse = await addAnnotation(uploadResponse.text, elementEnds, { jwt: registerResponse.body.jwt_token });
+    expect(addAnnotationResponse.status).toBe(400);
+    expect(addAnnotationResponse.text).toBe(INVALID_ANNOTATION);
+
+    const elementStartIntoText = {
+      start_location: 'OEBPS/wrap0000.xhtml#0/0',
+      end_location: ALICE_NOTE.start_location,
+      note: 'I loved this part!'
+    };
+
+    addAnnotationResponse = await addAnnotation(uploadResponse.text, elementStartIntoText, { jwt: registerResponse.body.jwt_token });
+    expect(addAnnotationResponse.status).toBe(400);
+    expect(addAnnotationResponse.text).toBe(INVALID_ANNOTATION);
   });
 
   test('Different user without permission', async () => {

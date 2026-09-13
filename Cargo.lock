@@ -1943,9 +1943,9 @@ dependencies = [
 
 [[package]]
 name = "kepub-rs"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7defc32b51d98fcb44d7388dea94f2e7b1b3d176e9cee7bd1265ccb18d0b31f4"
+checksum = "4074d5b8751723fd6855388a51bcd1b14187b23be5bb778cfdcd99cb1baa1d71"
 dependencies = [
  "indextree",
  "markup5ever",

@@ -1,1 +1,7 @@
-description: The provided annotation is invalid, or the provided annotation id is not a valid UUID.
+description: |
+  The provided annotation is invalid, or the provided annotation id is not a
+  valid UUID.
+
+  An annotation is invalid when either end does not resolve to a real position
+  in the book, when either end names a whole element rather than text, or when
+  the start does not come strictly before the end in reading order.

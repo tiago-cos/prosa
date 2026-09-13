@@ -19,7 +19,7 @@ config = "0.15.25"
 epub = "2.1.5"
 image = "0.25.10"
 jsonwebtoken = { version = "11.0.0", features = ["aws_lc_rs"] }
-kepub-rs = "0.1.0"
+kepub-rs = "0.1.1"
 log = "0.4.34"
 merge = "0.2.0"
 quick_cache = "0.7.0"

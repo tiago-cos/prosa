@@ -5,7 +5,8 @@ use crate::app::sync::models::{ChangeLogAction, ChangeLogEntityType};
 use crate::app::{annotations::repository, books, error::ProsaError};
 use crate::app::{epubs, sync};
 use crate::database::pool;
-use kepub_rs::validate_epub_location;
+use kepub_rs::{compare_locations, location_is_text};
+use std::cmp::Ordering;
 use std::fs::File;
 
 pub async fn add_annotation(
@@ -71,15 +72,22 @@ pub async fn patch_annotation(
 }
 
 async fn validate_annotation(annotation: &NewAnnotationRequest, epub_id: &str) -> bool {
-    let epub_file = epubs::service::epub_path(epub_id);
     let start = annotation.start_location.clone();
     let end = annotation.end_location.clone();
 
-    //TODO add annotation relative order verification in kepub-rs crate.
+    let both_text = [&start, &end]
+        .into_iter()
+        .all(|location| location_is_text(location).unwrap_or(false));
+
+    if !both_text {
+        return false;
+    }
+
+    let epub_file = epubs::service::epub_path(epub_id);
+
     tokio::task::spawn_blocking(move || {
-        [start, end].iter().all(|location| {
-            File::open(&epub_file).is_ok_and(|file| validate_epub_location(file, location).is_ok())
-        })
+        File::open(&epub_file)
+            .is_ok_and(|file| compare_locations(file, &start, &end).is_ok_and(Ordering::is_lt))
     })
     .await
     .expect("Annotation validation task failed")

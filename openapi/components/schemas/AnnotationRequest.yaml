@@ -15,6 +15,14 @@ description: |
   Element indices and text run indices are separate 0-based sequences, and the
   element path may be empty (`chapter.xhtml#t0:5`) for text sitting directly in
   `<body>`. Offsets count Unicode scalar values.
+
+  An annotation covers a stretch of text, so both ends must address text. A
+  location ending in a bare element index (`chapter.xhtml#0/0`) names a whole
+  image or SVG, which has no character positions inside it, and is rejected.
+
+  `start_location` must also come strictly before `end_location` in reading
+  order, which the book's spine and markup decide -- not the order the two
+  strings sort in. The two may not name the same position.
 properties:
   start_location:
     type: string
