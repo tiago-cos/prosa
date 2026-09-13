@@ -12,11 +12,7 @@ pub async fn get_unsynced_handler(
     Extension(token): Extension<AuthToken>,
 ) -> Result<Json<UnsyncedResponse>, ProsaError> {
     let sync_token = params.get("sync_token").map(|t| t.parse::<i64>());
-
-    let user_id = match params.get("user_id") {
-        Some(id) => id,
-        None => token.role.get_user(),
-    };
+    let user_id = token.owner_or_self(params.get("user_id").map(String::as_str));
 
     let sync_token = match sync_token {
         Some(Ok(t)) => t,

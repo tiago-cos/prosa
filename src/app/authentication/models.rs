@@ -200,4 +200,8 @@ impl AuthToken {
     pub fn can(&self, capability: &str) -> bool {
         self.capabilities.iter().any(|held| held == capability)
     }
+
+    pub fn owner_or_self<'a>(&'a self, requested: Option<&'a str>) -> &'a str {
+        requested.unwrap_or_else(|| self.role.get_user())
+    }
 }

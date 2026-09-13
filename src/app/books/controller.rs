@@ -60,10 +60,7 @@ pub async fn upload_book_handler(
         return Err(BookError::BookIdConflict.into());
     }
 
-    let owner_id = match data.owner_id.as_deref() {
-        Some(id) => id,
-        None => token.role.get_user(),
-    };
+    let owner_id = token.owner_or_self(data.owner_id.as_deref());
 
     let preferences = users::service::get_preferences(owner_id).await?;
     let epub_id = epubs::service::write_epub(&data.epub.to_vec()).await?;

@@ -18,10 +18,7 @@ pub async fn add_shelf_handler(
     Extension(token): Extension<AuthToken>,
     Json(request): Json<CreateShelfRequest>,
 ) -> Result<String, ProsaError> {
-    let owner_id = match request.owner_id.as_deref() {
-        Some(id) => id,
-        None => token.role.get_user(),
-    };
+    let owner_id = token.owner_or_self(request.owner_id.as_deref());
 
     users::service::get_user(owner_id).await?;
 
