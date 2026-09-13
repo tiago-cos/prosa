@@ -7,9 +7,8 @@ properties:
     example: "Harry Potter"
   number:
     type: number
-    description: The number of the book in the series.
+    description: _(Optional)_ The number of the book in the series. Absent when the book belongs to a series without a known position in it.
     example: 3
 required:
   - title
-  - number
 additionalProperties: false

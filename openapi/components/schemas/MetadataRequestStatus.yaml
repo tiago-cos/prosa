@@ -16,10 +16,12 @@ properties:
       type: string
       enum:
         - epub_metadata_extractor
-        - goodreads_metadata_scraper
+        - openlibrary
+        - hardcover
+        - google_books
     example:
       - "epub_metadata_extractor"
-      - "goodreads_metadata_scraper"
+      - "openlibrary"
 
 required:
   - user_id

@@ -1,0 +1,57 @@
+get:
+  tags:
+    - Authentication
+  summary: "Get JWT signing keys"
+  description: |
+    Returns the public half of the key pair Prosa signs JWTs with, as a JSON Web
+    Key Set.
+
+    A service that wants to verify a Prosa token without asking Prosa about it
+    can fetch this and check the signature itself. The private half never leaves
+    the server.
+
+    Takes no credentials.
+  operationId: getJwks
+
+  responses:
+    "200":
+      description: The signing keys.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              keys:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    alg:
+                      type: string
+                      description: The signing algorithm.
+                      example: "RS256"
+                    kid:
+                      type: string
+                      description: The key id carried in the `kid` header of every token.
+                      example: "prosa-key-1"
+                    kty:
+                      type: string
+                      description: The key type.
+                      example: "RSA"
+                    n:
+                      type: string
+                      description: The RSA modulus, base64url encoded.
+                    e:
+                      type: string
+                      description: The RSA exponent, base64url encoded.
+                      example: "AQAB"
+                  required:
+                    - alg
+                    - kid
+                    - kty
+                    - n
+                    - e
+            required:
+              - keys
+
+  security: []

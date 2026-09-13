@@ -77,21 +77,24 @@ info:
     jwt_token_duration = 900
     refresh_token_duration = 604800
     allow_user_registration = true
-    jwt_key_path = "library/jwt_secret_key.bin"
+    public_key_path = "library/public_key.bin"
+    private_key_path = "library/private_key.bin"
+    symmetric_key_path = "library/symmetric_key.bin"
 
     [book_storage]
     epub_path = "library/epubs"
     cover_path = "library/covers"
 
     [metadata_cooldown]
-    goodreads = 1000
-    epub_extractor = 0
+    openlibrary = 1000
+    hardcover = 1000
+    google_books = 1000
 
     [database]
     file_path = "library/database.db"
-
-    [kepubify]
-    path = "kepubify/kepubify"
+    max_connections = 16
+    busy_timeout_seconds = 10
+    backup_before_migration = true
     ```
 
     ## Local Configuration
@@ -153,7 +156,11 @@ info:
         -   `allow_user_registration`: Whether new users can register without an admin key.  
         Set to `true` to allow anyone to register and `false` to require the admin key for all registrations.
 
-        -   `jwt_key_path`: Path to the file that will store the JWT HMAC signing key.
+        -   `public_key_path`, `private_key_path`: Paths to the files that will store the JWT signing key pair.
+
+        -   `symmetric_key_path`: Path to the file that will store the symmetric key used to encrypt
+        stored metadata provider API keys. Generated on first run; losing it means every stored key
+        has to be entered again.
             
     -   **[book_storage]**
         
@@ -162,18 +169,58 @@ info:
         -   `cover_path`: Directory where cover images are stored.
             
     -   **[metadata_cooldown]**
-        
-        -   `goodreads`: Minimum delay (ms) between Goodreads metadata fetch attempts.
-            
-        -   `epub_extractor`: Minimum delay (ms) between EPUB extractor metadata fetch attempts.
+
+        Minimum delay (ms) between requests to each online catalogue. The EPUB
+        metadata extractor reads the book file itself, so it has no cooldown.
+
+        -   `openlibrary`: Minimum delay (ms) between Open Library requests.
+
+        -   `hardcover`: Minimum delay (ms) between Hardcover requests.
+
+        -   `google_books`: Minimum delay (ms) between Google Books requests.
             
     -   **[database]**
         
         -   `file_path`: Path to the SQLite database file.
             
-    -   **[kepubify]**
-        
-        -   `path`: Path to the `kepubify` binary.
+        -   `max_connections`: Size of the SQLite connection pool.
+            
+        -   `busy_timeout_seconds`: How long a statement waits for a contended write before failing.
+            
+        -   `backup_before_migration`: Snapshot the database before applying or reverting schema migrations.
+            
+    # Database Schema
+
+    The schema is managed with versioned, reversible migrations that are embedded
+    into the binary at build time. There is nothing to deploy alongside the
+    executable and no manual setup step.
+
+    On startup Prosa applies any migrations the database has not seen yet. A
+    database created by an older Prosa is upgraded in place, and a snapshot is
+    written next to it first (unless `backup_before_migration` is disabled).
+
+    ## Inspecting the schema
+
+    ```bash
+    prosa --migrate-status
+    ```
+
+    Lists every migration, whether it has been applied, and whether it can be
+    reverted.
+
+    ## Downgrading
+
+    ```bash
+    prosa --migrate-down <version>
+    ```
+
+    Reverts every migration newer than `<version>`.
+
+    **A binary can only revert migrations whose down scripts it carries.** To move
+    from a newer Prosa to an older one, run `--migrate-down` with the *newer*
+    binary first, then swap in the older one. Running it the other way round
+    leaves the schema ahead of the code. Prosa refuses to start a revert it cannot
+    complete rather than leaving the schema half-migrated.
 
     ## Logging
 
@@ -229,19 +276,10 @@ info:
 
     If you prefer running Prosa as a binary:
 
-    1.  **Install Kepubify**  
-        Prosa depends on [`kepubify`](https://github.com/tiago-cos/kepubify).
-        
-        -   Download the latest **kepubify-linux-64bit** release from [GitHub](https://github.com/tiago-cos/kepubify/releases/latest).
-            
-        -   Place it somewhere accessible on your system.
-            
-        -   Configure its path in Prosa via the [Local Configuration](#section/Configuration/Local-Configuration) under `[kepubify].path`.
-            
-    2.  **Configure Prosa**  
+    1.  **Configure Prosa**  
         Adjust the configuration file as needed (authentication, storage paths, etc.).
         
-    3.  **Run the Server**  
+    2.  **Run the Server**  
         Launch the binary, and Prosa will be ready to accept connections.
 
     ## Next Steps
@@ -249,12 +287,18 @@ info:
     1.  **Create a User**  
         Register a new user with the [Register User](#tag/Authentication/operation/register) endpoint.
         
-    2.  **(Optional) Enable Goodreads Metadata**  
-        By default, Goodreads metadata extraction is **disabled**.
-        
-        -   To enable it, update your preferences with the [Patch User Preferences](#tag/Preferences/operation/patchPreferences) endpoint.
-            
-        -   Add `"goodreads_metadata_extractor"` to the `metadata_providers` array.
+    2.  **(Optional) Enable Online Metadata Providers**  
+        A new user starts with only `epub_metadata_extractor` enabled, so no
+        third-party service is contacted until you ask for one.
+
+        -   To enable others, update your preferences with the [Patch User Preferences](#tag/Preferences/operation/patchPreferences) endpoint.
+
+        -   Add the providers you want to the `metadata_providers` array, in order of preference.
+            `openlibrary` needs nothing further; `hardcover` and `google_books` require an API key,
+            supplied in the same request through `provider_keys`. Stored keys are encrypted and are
+            never returned.
+
+        -   `GET /config` lists the providers this server knows about and which of them need a key.
             
     3.  **Upload Your First Book**  
         Add a book using the [Upload Book](#tag/File/operation/uploadBook) endpoint. You can also manage metadata and cover images at this stage.
@@ -267,20 +311,36 @@ externalDocs:
   url: "https://github.com/tiago-cos/prosa"
 
 tags:
+  - name: Server
+    description: What this deployment is and what it allows. No credentials needed.
   - name: File
+    description: Uploading, downloading and deleting the EPUB itself.
   - name: Cover
+    description: The image shown for a book.
   - name: Metadata
+    description: What a book is -- title, authors, publisher, series and the rest.
   - name: Annotations
+    description: Passages a reader marked, and the notes attached to them.
   - name: State
+    description: Where a reader left off, and what they thought of the book.
   - name: Shelves
+    description: Creating, renaming and deleting shelves.
   - name: Books
+    description: Which books a shelf holds.
   - name: Search Shelves
+    description: Finding shelves by owner or name.
   - name: Search Books
+    description: Finding books by owner, title or author.
   - name: Sync
+    description: What has changed since a client last asked.
   - name: Authentication
+    description: Registering, signing in, and the keys that verify a token.
   - name: User Profile
+    description: Reading and changing a user's own details.
   - name: Preferences
+    description: Which metadata providers a user uses, and in what order.
   - name: API Keys
+    description: Long-lived credentials for a device, scoped to chosen capabilities.
 
 x-tagGroups:
   - name: Book Management
@@ -305,7 +365,19 @@ x-tagGroups:
       - User Profile
       - Preferences
       - API Keys
+  - name: Server
+    tags:
+      - Server
       
+# Every endpoint takes either a JWT or an API key unless it says otherwise.
+# The exceptions declare their own: the four `/auth` endpoints and the three
+# unauthenticated server endpoints use `security: []`, and everything under
+# `/users/{user_id}` takes a JWT only, because an API key cannot manage the
+# credentials it is one of.
+security:
+  - prosaToken: []
+  - apiKey: []
+
 servers:
   - url: http://{host}
     variables:
@@ -313,6 +385,12 @@ servers:
         default: localhost
         description: The server host
 paths:
+  /health:
+    $ref: "paths/health.yaml"
+  /config:
+    $ref: "paths/config.yaml"
+  /.well-known/jwks.json:
+    $ref: "paths/.well-known/jwks.json.yaml"
   /books:
     $ref: "paths/books.yaml"
   /books/{book_id}/file-metadata:

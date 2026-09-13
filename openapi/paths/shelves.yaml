@@ -25,6 +25,13 @@ post:
               description: |
                 _(Optional)_ The UUID of the user who owns the shelf.
                 If not specified, the owner is determined from the authenticated user.
+            shelf_id:
+              type: string
+              format: uuid
+              description: |
+                _(Optional)_ The UUID the shelf should be created under.
+                If not specified, one is generated. A value that is not a UUID
+                is rejected, as is one already in use.
           required:
             - name
         example:
@@ -44,7 +51,7 @@ post:
               summary: Example response for a successful shelf creation
               value: "050299f0-6d4d-4015-a522-9aeb92924a56"
     "400":
-      description: The provided shelf name is invalid.
+      description: The provided shelf name is invalid, or the provided shelf id is not a valid UUID.
     "401":
       $ref: ../components/responses/Unauthorized.yaml
     "403":
@@ -52,11 +59,8 @@ post:
     "404":
       $ref: ../components/responses/users/UserNotFound.yaml
     "409":
-      $ref: ../components/responses/shelves/ShelfConflict.yaml
+      description: There is already a shelf with this name in your library, or the provided shelf id is already in use.
 
-  security:
-    - prosaToken: []
-    - apiKey: []
 
 get:
   tags:
@@ -68,13 +72,7 @@ get:
     **Note:** Only users with admin privileges can search without user-based filtering.
   operationId: searchShelves
   parameters:
-    - name: username
-      in: query
-      required: false
-      description: Shelf owner filter.
-      schema:
-        type: string
-      example: "john.doe"
+    - $ref: ../components/parameters/username.yaml
     - name: name
       in: query
       required: false
@@ -82,22 +80,8 @@ get:
       schema:
         type: string
       example: "Sci-Fi"
-    - name: page
-      in: query
-      required: false
-      description: The page number to retrieve.
-      schema:
-        type: integer
-        default: 1
-      example: 1
-    - name: size
-      in: query
-      required: false
-      description: Number of items per page.
-      schema:
-        type: integer
-        default: 10
-      example: 10
+    - $ref: ../components/parameters/page.yaml
+    - $ref: ../components/parameters/size.yaml
 
   responses:
     "200":
@@ -107,7 +91,7 @@ get:
           schema:
             $ref: ../components/schemas/ShelfSearchResult.yaml
     "400":
-      $ref: ../components/responses/shelves/InvalidPagination.yaml
+      $ref: ../components/responses/InvalidPagination.yaml
     "401":
       $ref: ../components/responses/Unauthorized.yaml
     "403":
@@ -115,6 +99,3 @@ get:
     "404":
       $ref: ../components/responses/users/UserNotFound.yaml
 
-  security:
-    - prosaToken: []
-    - apiKey: []

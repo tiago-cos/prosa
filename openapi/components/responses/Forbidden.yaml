@@ -1,1 +1,4 @@
-description: You do not have the necessary permissions to perform this action.
+description: |
+  The credentials do not permit this action: they lack the required capability,
+  they belong to another user, or the endpoint accepts only a JWT and an API key
+  was used.

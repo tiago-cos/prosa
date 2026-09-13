@@ -48,6 +48,8 @@ post:
       $ref: ../../../components/responses/Forbidden.yaml
     "404":
       $ref: ../../../components/responses/users/UserNotFound.yaml
+    "409":
+      $ref: ../../../components/responses/users/KeyIdConflict.yaml
 
   security:
     - prosaToken: []

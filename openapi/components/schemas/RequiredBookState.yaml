@@ -1,13 +1,22 @@
 allOf:
   - $ref: ./BookState.yaml
   - type: object
+    description: |
+      A complete book state, as stored.
+
+      `PUT` replaces the state outright, so unlike `PATCH` it has to carry the
+      statistics and the reading status within them; only the location stays
+      optional, since a book that has not been opened has none.
     required:
       - statistics
     properties:
       statistics:
+        type: object
         required:
           - reading_status
-      location:
-        required:
-          - source
-          - tag
+        properties:
+          reading_status:
+            type: string
+            enum: ["Unread", "Reading", "Read"]
+            description: The current reading status of the book.
+            example: "Unread"

@@ -17,7 +17,7 @@ post:
     "204":
       description: The metadata fetch request was successfully enqueued.
     "400":
-      description: Invalid or unsupported metadata provider selection.
+      description: Invalid, repeated, or unsupported metadata provider selection, or a selected provider requires an API key the user has not stored.
     "401":
       $ref: ../components/responses/Unauthorized.yaml
     "403":
@@ -27,9 +27,6 @@ post:
     "409":
       description: This metadata request is already enqueued.
 
-  security:
-    - prosaToken: []
-    - apiKey: []
 
 get:
   tags:
@@ -69,6 +66,3 @@ get:
     "403":
       $ref: ../components/responses/Forbidden.yaml
 
-  security:
-    - prosaToken: []
-    - apiKey: []

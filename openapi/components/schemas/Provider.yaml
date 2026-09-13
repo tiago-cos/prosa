@@ -1,3 +1,8 @@
 type: string
-description: Represents a metadata provider.
-enum: ["goodreads_metadata_scraper", "epub_metadata_extractor"]
+description: |
+  Represents a metadata provider.
+
+  `epub_metadata_extractor` reads what the book file says about itself; the
+  others are online catalogues. `hardcover` and `google_books` only work once
+  an API key has been stored for the user (see `provider_keys`).
+enum: ["epub_metadata_extractor", "openlibrary", "hardcover", "google_books"]

@@ -23,9 +23,6 @@ get:
     "404":
       description: The requested book or annotation was not found or cannot be accessed.
 
-  security:
-    - prosaToken: []
-    - apiKey: []
 
 delete:
   tags:
@@ -48,9 +45,6 @@ delete:
     "404":
       description: The requested book or annotation was not found or cannot be accessed.
 
-  security:
-    - prosaToken: []
-    - apiKey: []
 
 
 patch:

@@ -1,0 +1,9 @@
+name: page
+in: query
+required: false
+schema:
+  type: integer
+  format: int64
+  default: 1
+description: Which page of results to return. Must be a positive integer.
+example: 1

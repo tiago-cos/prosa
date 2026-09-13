@@ -51,7 +51,7 @@ put:
     "204":
       description: Preferences updated successfully.
     "400":
-      description: Invalid or unsupported preferences.
+      description: Invalid or unsupported preferences, a repeated metadata provider, or a provider that requires an API key was enabled without one.
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
     "403":
@@ -86,7 +86,7 @@ patch:
     "204":
       description: Preferences patched successfully.
     "400":
-      description: No fields specified or invalid/unsupported preferences.
+      description: No fields specified, invalid/unsupported preferences, a repeated metadata provider, or a provider that requires an API key was enabled without one.
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
     "403":

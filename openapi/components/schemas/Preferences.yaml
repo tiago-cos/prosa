@@ -5,11 +5,41 @@ properties:
     type: array
     items:
       $ref: ./Provider.yaml
-    example: ["goodreads_metadata_scraper", "epub_metadata_extractor"]
+    example: ["epub_metadata_extractor", "openlibrary"]
     description: |
       An array of metadata providers, in order of preference.
       This is the order in which metadata providers will be used when searching for book metadata.
-  
+
+      Enabling a provider that requires an API key is rejected unless a key is
+      supplied in the same request or is already stored for it.
+
+      A provider may appear only once: each gets a single turn in the order, so
+      a repeat either does nothing or silently means something other than it
+      appears to.
+
+  provider_keys:
+    type: object
+    writeOnly: true
+    additionalProperties:
+      type: ["string", "null"]
+    example: { "hardcover": "your-hardcover-api-key" }
+    description: |
+      _(Write-only)_ API keys to store, by provider.
+
+      A provider mapped to a key has it stored, encrypted; a provider mapped to
+      `null` has its stored key cleared; a provider left out keeps whatever is
+      already stored, including when it is turned off. Keys are never returned.
+
+  configured_providers:
+    type: array
+    readOnly: true
+    items:
+      $ref: ./Provider.yaml
+    example: ["hardcover"]
+    description: |
+      _(Read-only)_ The providers that currently have an API key stored, whether
+      or not they are enabled.
+
   automatic_metadata:
     type: boolean
     example: true

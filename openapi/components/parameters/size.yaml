@@ -1,0 +1,9 @@
+name: size
+in: query
+required: false
+schema:
+  type: integer
+  format: int64
+  default: 10
+description: How many items a page holds. Must be a positive integer.
+example: 10

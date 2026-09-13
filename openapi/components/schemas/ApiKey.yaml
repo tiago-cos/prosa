@@ -17,6 +17,15 @@ properties:
     type: number
     description: The expiration date and time of the API key (UNIX milliseconds).
     example: 1712761552000
+  key_id:
+    type: string
+    format: uuid
+    writeOnly: true
+    description: |
+      _(Optional)_ The UUID the key should be created under.
+      If not specified, one is generated. A value that is not a UUID is
+      rejected, as is one already in use.
+    example: "3a8d9e3a-8d9e-3a8d-9e3a-8d9e3a8d9e3a"
 required:
   - name
   - capabilities

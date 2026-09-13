@@ -23,9 +23,6 @@ get:
     "404":
       $ref: ../../components/responses/books/BookNotFound.yaml
 
-  security:
-    - prosaToken: []
-    - apiKey: []
 
 delete:
   tags:
@@ -47,6 +44,3 @@ delete:
     "404":
       $ref: ../../components/responses/books/BookNotFound.yaml
 
-  security:
-    - prosaToken: []
-    - apiKey: []

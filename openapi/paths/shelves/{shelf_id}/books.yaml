@@ -39,9 +39,6 @@ post:
     "409":
       description: The provided book is already present in this shelf.
 
-  security:
-    - prosaToken: []
-    - apiKey: []
 
 get:
   tags:
@@ -77,6 +74,3 @@ get:
     "404":
       $ref: ../../../components/responses/shelves/ShelfNotFound.yaml
 
-  security:
-    - prosaToken: []
-    - apiKey: []

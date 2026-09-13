@@ -45,9 +45,6 @@ get:
     "404":
       $ref: ../../components/responses/shelves/ShelfNotFound.yaml
 
-  security:
-    - prosaToken: []
-    - apiKey: []
 
 put:
   tags:
@@ -89,9 +86,6 @@ put:
     "409":
       $ref: ../../components/responses/shelves/ShelfConflict.yaml
 
-  security:
-    - prosaToken: []
-    - apiKey: []
 
 delete:
   tags:

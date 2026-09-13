@@ -1,7 +1,11 @@
 name: username
-in: path
-required: true
+in: query
+required: false
 schema:
   type: string
-description: The username that identifies the user.
+description: |
+  Restricts the results to one user's items.
+
+  Required for regular users, who may only search their own; optional for
+  admins, who see everything when it is left out.
 example: "silveira12"

@@ -1,0 +1,58 @@
+get:
+  tags:
+    - Server
+  summary: "Get public configuration"
+  description: |
+    Reports the server settings a client needs before anyone has signed in:
+    whether it accepts registrations, and which metadata providers it knows.
+
+    Takes no credentials.
+  operationId: getConfig
+
+  responses:
+    "200":
+      description: The public configuration.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              allow_user_registration:
+                type: boolean
+                description: |
+                  Whether anyone may register. When `false`, registering
+                  requires the `admin-key` header.
+                example: true
+              metadata_providers:
+                type: array
+                description: |
+                  Every provider this server knows how to use. A provider with
+                  `requires_api_key` only works once the user has stored a key
+                  for it through their preferences.
+                items:
+                  type: object
+                  properties:
+                    provider_id:
+                      $ref: ../components/schemas/Provider.yaml
+                    requires_api_key:
+                      type: boolean
+                      description: Whether the provider needs a per-user API key.
+                  required:
+                    - provider_id
+                    - requires_api_key
+                  additionalProperties: false
+                example:
+                  - provider_id: "epub_metadata_extractor"
+                    requires_api_key: false
+                  - provider_id: "openlibrary"
+                    requires_api_key: false
+                  - provider_id: "hardcover"
+                    requires_api_key: true
+                  - provider_id: "google_books"
+                    requires_api_key: true
+            required:
+              - allow_user_registration
+              - metadata_providers
+            additionalProperties: false
+
+  security: []

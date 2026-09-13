@@ -19,6 +19,3 @@ delete:
     "404":
       description: The shelf was not found, or the book is not in the shelf.
    
-  security:
-    - prosaToken: []
-    - apiKey: []

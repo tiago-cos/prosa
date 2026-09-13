@@ -1,1 +1,1 @@
-description: Invalid API key.
+description: Invalid API key, or the provided key id is not a valid UUID.

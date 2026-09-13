@@ -42,6 +42,13 @@ post:
               type: boolean
               description: Whether the user should be registered as an admin. Defaults to `false`.
               default: false
+            user_id:
+              type: string
+              format: uuid
+              description: |
+                _(Optional)_ The UUID the user should be created under.
+                If not specified, one is generated. A value that is not a UUID
+                is rejected, as is one already in use.
           required:
             - username
             - password

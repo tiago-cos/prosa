@@ -1,35 +1,41 @@
 type: object
-description: Represents an annotation added by a user to a specific section of an EPUB book.
+description: |
+  Represents an annotation added by a user to a specific section of an EPUB book.
+
+  Both ends are EPUB locations, naming a character position inside the book:
+
+  ```
+  OEBPS/chapter-001.xhtml#0/2/t1:44
+  ```
+
+  This reads as: content document `OEBPS/chapter-001.xhtml`, descend to the first
+  element under `<body>` (`0`), then to its third child element (`2`), then take
+  the second text run in that element (`t1`, 0-based), character offset 44.
+
+  Element indices and text run indices are separate 0-based sequences, and the
+  element path may be empty (`chapter.xhtml#t0:5`) for text sitting directly in
+  `<body>`. Offsets count Unicode scalar values.
 properties:
-  source:
+  start_location:
     type: string
-    description: The path or name of the XHTML file inside the EPUB where the annotation is located.
-    example: "OEBPS/chapter-1.htm.xhtml"
-  start_tag:
+    description: The EPUB location where the annotation begins.
+    example: "OEBPS/chapter-001.xhtml#0/2/t1:44"
+  end_location:
     type: string
-    description: The `id` attribute of the XHTML `koboSpan` tag where the annotation begins.
-    example: "kobo.74.3"
-  end_tag:
-    type: string
-    description: The `id` attribute of the XHTML `koboSpan` tag where the annotation ends.
-    example: "kobo.74.5"
-  start_char:
-    type: integer
-    format: int32
-    description: The character offset within the `start_tag` element where the annotation starts.
-    example: 15
-  end_char:
-    type: integer
-    format: int32
-    description: The character offset within the `end_tag` element where the annotation ends.
-    example: 42
+    description: The EPUB location where the annotation ends.
+    example: "OEBPS/chapter-001.xhtml#0/3/t0:12"
   note:
     type: string
     description: An optional user-provided note attached to the annotation.
     example: "Important point about the plot."
+  annotation_id:
+    type: string
+    format: uuid
+    description: |
+      _(Optional)_ The UUID the annotation should be created under.
+      If not specified, one is generated. A value that is not a UUID is
+      rejected, as is one already in use.
+    example: "b0f027db-12d8-4c3a-b8ad-d7d3cfcf91ce"
 required:
-  - source
-  - start_tag
-  - end_tag
-  - start_char
-  - end_char
+  - start_location
+  - end_location

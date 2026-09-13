@@ -1,0 +1,37 @@
+get:
+  tags:
+    - Server
+  summary: "Health check"
+  description: |
+    Reports that the server is up, and which build is answering.
+
+    Takes no credentials, so it can be used as a container health check.
+  operationId: healthCheck
+
+  responses:
+    "200":
+      description: The server is running.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              status:
+                type: string
+                enum: ["ok"]
+                description: Always `ok`; an unhealthy server does not answer.
+              software:
+                type: string
+                description: The name of the running software.
+                example: "prosa"
+              version:
+                type: string
+                description: The version of the running software.
+                example: "0.2.0"
+            required:
+              - status
+              - software
+              - version
+            additionalProperties: false
+
+  security: []

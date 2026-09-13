@@ -1,1 +1,1 @@
-description: The request body is invalid or missing required fields.
+description: The request body is invalid or missing required fields, or the provided book id is not a valid UUID.

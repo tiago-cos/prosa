@@ -2,8 +2,8 @@ type: object
 description: Contains the IDs of items whose data has changed since the last sync.
 required:
   - new_sync_token
-  - book
-  - shelf
+  - unsynced_books
+  - unsynced_shelves
 properties:
   new_sync_token:
     type: integer
@@ -11,7 +11,7 @@ properties:
     description: The new sync token (Update Sequence Number) that the client should store and use for the next sync request.
     example: 15024
     
-  book:
+  unsynced_books:
     type: object
     required:
       - file
@@ -61,9 +61,9 @@ properties:
         items:
           type: string
           format: uuid
-        example: ["3ac123d4b-8c9d-4c9b-3a9d-2d4b9c3a5f3b", "46858af9-6348-4f4b-82f6-f02ca69b58e4"]
+        example: ["3ac123d4-8c9d-4c9b-3a9d-2d4b9c3a5f3b", "46858af9-6348-4f4b-82f6-f02ca69b58e4"]
 
-  shelf:
+  unsynced_shelves:
     type: object
     required:
       - metadata

@@ -38,9 +38,6 @@ post:
     "409":
       $ref: ../../../components/responses/annotations/AnnotationConflict.yaml
 
-  security:
-    - prosaToken: []
-    - apiKey: []
 
 get:
   tags:

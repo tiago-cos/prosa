@@ -22,9 +22,6 @@ get:
     "404":
       $ref: ../../../components/responses/books/BookNotFound.yaml
 
-  security:
-    - prosaToken: []
-    - apiKey: []
 
 put:
   tags:
@@ -56,9 +53,6 @@ put:
     "404":
       $ref: ../../../components/responses/books/BookNotFound.yaml
 
-  security:
-    - prosaToken: []
-    - apiKey: []
 
 patch:
   tags:
@@ -91,6 +85,3 @@ patch:
     "404":
       $ref: ../../../components/responses/books/BookNotFound.yaml
 
-  security:
-    - prosaToken: []
-    - apiKey: []
