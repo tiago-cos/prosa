@@ -19,7 +19,7 @@ pub fn init_logging() {
         .with_thread_names(false)
         .with_file(false)
         .with_line_number(false)
-        .with_timer(ChronoUtc::rfc_3339())
+        .with_timer(ChronoUtc::new("[%Y-%m-%d %H:%M:%S]".to_string()))
         .with_ansi_sanitization(false)
         .compact();
 
