@@ -149,6 +149,8 @@ pub struct RefreshTokenRequest {
     pub refresh_token: String,
 }
 
+/// The source of truth the `providers` table is seeded from. The two must
+/// agree, so adding one here means a migration that adds the row.
 pub const PROVIDERS: [(&str, bool); 4] = [
     ("epub_metadata_extractor", false),
     ("openlibrary", false),
@@ -156,6 +158,8 @@ pub const PROVIDERS: [(&str, bool); 4] = [
     ("google_books", true),
 ];
 
+/// The only provider a new user starts with: a fresh account should not make
+/// calls to third-party APIs without being asked.
 pub const DEFAULT_PROVIDER: &str = "epub_metadata_extractor";
 
 #[skip_serializing_none]

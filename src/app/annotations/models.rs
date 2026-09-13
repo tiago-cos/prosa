@@ -61,6 +61,8 @@ pub struct Annotation {
     pub note: Option<String>,
 }
 
+/// A location names a character position: content document, element path from
+/// `<body>`, text run, character offset -- `OEBPS/chapter-001.xhtml#0/2/t1:44`.
 #[derive(Deserialize)]
 pub struct NewAnnotationRequest {
     pub start_location: String,

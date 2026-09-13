@@ -190,6 +190,8 @@ pub struct AuthenticationResponse {
 }
 
 impl AuthToken {
+    /// An admin may act for anyone, which is what makes the admin-only
+    /// endpoints work without a second check.
     pub fn can_act_for(&self, user_id: &str) -> bool {
         match &self.role {
             AuthRole::Admin(_) => true,

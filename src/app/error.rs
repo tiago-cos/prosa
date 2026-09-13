@@ -20,6 +20,11 @@ where
     }
 }
 
+/// Logs a database failure the client will hear nothing useful about -- a full
+/// disk, a corrupt file, a lock held past the timeout -- and returns what it is
+/// reported as instead. Converting to a `ProsaError` keeps only a status code
+/// and a fixed message, so this is the last place the database's own account of
+/// the failure exists.
 pub fn unmapped<E>(error: &dyn Display, reported: E) -> E {
     error!("Unhandled database error: {error}");
     reported

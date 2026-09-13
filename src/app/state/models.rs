@@ -33,6 +33,8 @@ pub struct Statistics {
 #[derive(Serialize, Deserialize, Merge)]
 #[merge(strategy = merge::option::recurse)]
 pub struct State {
+    /// An EPUB location: content document, element path from `<body>`, text run
+    /// and character offset -- `OEBPS/chapter-001.xhtml#0/2/t1:44`.
     #[merge(strategy = merge::option::overwrite_none)]
     pub location: Option<String>,
     pub statistics: Option<Statistics>,

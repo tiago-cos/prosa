@@ -21,6 +21,8 @@ pub async fn log_change(
     log_change_in(&mut conn, entity_id, entity_type, action, owner_id, session_id).await;
 }
 
+/// As [`log_change`], but joins a transaction already in flight, so the entry
+/// commits atomically with the change it describes.
 pub async fn log_change_in(
     conn: &mut SqliteConnection,
     entity_id: &str,

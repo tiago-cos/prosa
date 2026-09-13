@@ -13,6 +13,8 @@ use crate::app::{
 };
 use crate::database::pool;
 
+/// Separate from `create_book` because the book's lock is keyed on the id, so
+/// the caller needs it settled before the book exists.
 pub fn resolve_book_id(book_id: Option<String>) -> Result<String, ProsaError> {
     ids::resolve(book_id).map_err(|_| BookError::InvalidBookId.into())
 }

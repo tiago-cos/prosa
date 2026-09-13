@@ -4,6 +4,10 @@ use std::{
 };
 use tokio::sync::{Mutex, RwLock};
 
+/// Per-key locks, handed out by name and dropped once nobody holds one. Keys
+/// are namespaced by what they identify, so a book and a shelf sharing an id do
+/// not share a lock. Where two are held at once they are taken in this order --
+/// book, then shelf, hash or annotation -- and never the other way round.
 pub struct LockService {
     locks: Mutex<HashMap<String, Weak<RwLock<()>>>>,
     cleaning_threshold: usize,

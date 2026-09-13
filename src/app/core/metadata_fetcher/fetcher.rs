@@ -15,6 +15,8 @@ impl MetadataFetcher {
         }
     }
 
+    /// Fields are filled in provider order and never overwritten, so the first
+    /// provider to supply one wins.
     pub async fn fetch_metadata(
         &self,
         epub_data: &[u8],

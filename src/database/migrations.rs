@@ -5,6 +5,8 @@ use log::{info, warn};
 use sqlx::{SqlitePool, migrate::Migrator};
 use std::{fmt::Write, path::Path};
 
+/// Embedded at compile time, so a release ships as a single self-contained
+/// executable with no migration files to deploy alongside it.
 static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 
 pub fn latest_version() -> i64 {
@@ -69,6 +71,9 @@ async fn is_populated(pool: &SqlitePool) -> Result<bool, sqlx::Error> {
     Ok(tables > 0)
 }
 
+/// A consistent snapshot, written next to the live file. `VACUUM INTO` cannot
+/// run inside a transaction, so it is issued directly against the pool. Backups
+/// are never pruned automatically; that is left to whoever operates the server.
 async fn backup(pool: &SqlitePool, filename: &str, label: &str) -> Result<String, DatabaseError> {
     let timestamp = Utc::now().format("%Y%m%dT%H%M%SZ");
     let target = format!("{filename}.backup-{label}-{timestamp}");
