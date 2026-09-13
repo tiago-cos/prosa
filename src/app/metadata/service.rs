@@ -78,9 +78,7 @@ pub async fn store_metadata(book_id: &str, metadata: Metadata, session_id: &str)
         update_metadata(book_id, metadata, session_id).await
     } else {
         add_metadata(book_id, metadata, session_id).await
-    };
-
-    Ok(())
+    }
 }
 
 async fn log_change(book_id: &str, action: ChangeLogAction, owner_id: &str, session_id: &str) {

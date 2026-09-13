@@ -1,9 +1,4 @@
-use crate::app::{
-    authentication::models::AuthToken,
-    books,
-    error::ProsaError,
-    server::LOCKS,
-};
+use crate::app::{authentication::models::AuthToken, books, error::ProsaError, server::LOCKS};
 use axum::{Extension, body::Bytes, extract::Path, http::StatusCode};
 
 pub async fn get_cover_handler(Path(book_id): Path<String>) -> Result<Vec<u8>, ProsaError> {
