@@ -38,7 +38,7 @@ Pull requests are welcome. Please make sure to follow these guidelines:
    - TypeScript code (in `tests/`):  
 
      ```bash
-     npm run format
+     bun run format
      ```
 
 4. **Linting**
@@ -51,7 +51,7 @@ Pull requests are welcome. Please make sure to follow these guidelines:
    - TypeScript (in `tests/`):  
 
      ```bash
-     npm run lint
+     bun run lint
      ```
 
 5. **Commit Messages**

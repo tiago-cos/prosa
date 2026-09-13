@@ -22,11 +22,12 @@ git-ignored. See [Configuration](Configuration) for the rest.
 ## Running the tests
 
 The suite is TypeScript — Jest driving real HTTP requests against a running
-server, rather than Rust unit tests.
+server, rather than Rust unit tests. Dependencies are managed with
+[Bun](https://bun.sh), and `bun.lock` is the only lockfile in the repository:
 
 ```bash
 cd tests
-npm install
+bun install
 ```
 
 Create `config/.env.local` and set `ADMIN_KEY` to match the `admin_key` in your
@@ -34,11 +35,15 @@ Create `config/.env.local` and set `ADMIN_KEY` to match the `admin_key` in your
 git-ignored and overrides it). Then, with the server running:
 
 ```bash
-npm test
+bun test
 ```
 
 Tests run against a live server and share one database, so expect them to leave
 users and books behind.
+
+Bun installs the dependencies, but Jest itself runs under Node — `bun run test`
+executes `node_modules/.bin/jest`, which is a Node program. That is why CI sets
+up both runtimes, and why a Node version still matters here.
 
 ### How the suite is organised
 
@@ -56,7 +61,7 @@ Both are enforced in CI, so run them first:
 cargo fmt
 cargo clippy --all-targets --all-features -- -W clippy::pedantic -D warnings
 
-cd tests && npm run format && npm run lint
+cd tests && bun run format && bun run lint
 ```
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).

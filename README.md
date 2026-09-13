@@ -90,14 +90,20 @@ every setting.
     cd prosa/tests
     ```
 
-2. Create a `.env.local` file in the `config` subfolder and configure the `ADMIN_KEY` (see `.env` in the same folder).
-
-3. Make sure the server is running.
-
-4. Run the tests:
+2. Install the dependencies with [Bun](https://bun.sh):
 
     ```bash
-    npm run test
+    bun install
+    ```
+
+3. Create a `.env.local` file in the `config` subfolder and configure the `ADMIN_KEY` (see `.env` in the same folder).
+
+4. Make sure the server is running.
+
+5. Run the tests:
+
+    ```bash
+    bun run test
     ```
 
 ## Roadmap
