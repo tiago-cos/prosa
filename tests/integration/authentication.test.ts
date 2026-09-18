@@ -1,6 +1,8 @@
 import { jwtVerify, createRemoteJWKSet } from 'jose';
 import { SERVER_URL } from '../utils/common.js';
-import { registerUser } from '../utils/users.js';
+import { createApiKey, registerUser } from '../utils/users.js';
+import { fetchIdentity } from '../utils/authentication.js';
+import { describeAuthContract } from '../utils/auth-contract.js';
 
 describe('JWT + JWKS Verification', () => {
   test('Verify Signature', async () => {
@@ -29,4 +31,61 @@ describe('JWT + JWKS Verification', () => {
     expect(payload).toHaveProperty('iss');
     expect(payload).toHaveProperty('exp');
   });
+});
+
+describe('Get identity', () => {
+  test('JWT', async () => {
+    const { response } = await registerUser();
+    expect(response.status).toBe(200);
+
+    const identity = await fetchIdentity({ jwt: response.body.jwt_token });
+    expect(identity.status).toBe(200);
+
+    expect(identity.body.auth_type).toBe('Jwt');
+    expect(identity.body.user_id).toBe(response.body.user_id);
+    expect(identity.body.is_admin).toBe(false);
+    expect(identity.body.capabilities.sort()).toEqual(['Create', 'Delete', 'Read', 'Update']);
+    expect(identity.body.key_id).toBeUndefined();
+  });
+
+  test('Admin JWT', async () => {
+    const { response } = await registerUser(undefined, undefined, true, process.env.ADMIN_KEY);
+    expect(response.status).toBe(200);
+
+    const identity = await fetchIdentity({ jwt: response.body.jwt_token });
+    expect(identity.status).toBe(200);
+
+    expect(identity.body.is_admin).toBe(true);
+  });
+
+  test('Api key', async () => {
+    const { response } = await registerUser();
+    expect(response.status).toBe(200);
+    const userId = response.body.user_id;
+    const jwt = response.body.jwt_token;
+
+    const keyResponse = await createApiKey(userId, 'Test Key', ['Read', 'Create'], undefined, { jwt });
+    expect(keyResponse.status).toBe(200);
+
+    const identity = await fetchIdentity({ apiKey: keyResponse.body.key });
+    expect(identity.status).toBe(200);
+
+    expect(identity.body.auth_type).toBe('ApiKey');
+    expect(identity.body.user_id).toBe(userId);
+    expect(identity.body.is_admin).toBe(false);
+    expect(identity.body.capabilities.sort()).toEqual(['Create', 'Read']);
+    expect(identity.body.key_id).toBe(keyResponse.body.id);
+  });
+});
+
+describeAuthContract('Get identity auth', {
+  capability: 'Read',
+  success: 200,
+  setup: async () => {
+    const { response } = await registerUser();
+    expect(response.status).toBe(200);
+
+    return { userId: response.body.user_id, jwt: response.body.jwt_token, context: null };
+  },
+  call: (_context, auth) => fetchIdentity(auth)
 });

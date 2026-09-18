@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_with::skip_serializing_none;
 use sqlx::error::DatabaseError;
 use sqlx::{FromRow, sqlite::SqliteError};
 use strum_macros::{EnumMessage, EnumProperty};
@@ -180,6 +181,16 @@ pub struct RefreshToken {
     pub session_id: String,
     pub refresh_token_hash: String,
     pub expiration: DateTime<Utc>,
+}
+
+#[skip_serializing_none]
+#[derive(Serialize)]
+pub struct IdentityResponse {
+    pub auth_type: AuthType,
+    pub user_id: String,
+    pub is_admin: bool,
+    pub capabilities: Vec<String>,
+    pub key_id: Option<String>,
 }
 
 #[derive(Serialize)]

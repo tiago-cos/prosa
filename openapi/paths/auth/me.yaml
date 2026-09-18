@@ -1,0 +1,58 @@
+get:
+  tags:
+    - Authentication
+  summary: "Describe the current credentials"
+  description: |
+    Reports what the credentials on the request are, and what they may do,
+    without naming a user in the path.
+
+    Takes a JWT or an API key.
+  operationId: getIdentity
+
+  responses:
+    "200":
+      description: The credentials the request was made with.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              auth_type:
+                type: string
+                enum: ["Jwt", "ApiKey"]
+                description: Which kind of credential the request carried.
+                example: "ApiKey"
+              user_id:
+                type: string
+                format: uuid
+                description: The UUID of the user the credentials act as.
+                example: "14ae396c-07c3-437d-a0a0-ef48189ba40a"
+              is_admin:
+                type: boolean
+                description: Whether that user is an admin.
+                example: false
+              capabilities:
+                type: array
+                items:
+                  $ref: ../../components/schemas/Capability.yaml
+                description: |
+                  What the credentials may do. A JWT carries every capability;
+                  an API key carries the ones it was created with.
+                example: ["Read", "Create"]
+              key_id:
+                type: string
+                format: uuid
+                description: |
+                  The id of the API key the request was made with. Absent when
+                  the request carried a JWT.
+                example: "3a8d9e3a-8d9e-3a8d-9e3a-8d9e3a8d9e3a"
+            required:
+              - auth_type
+              - user_id
+              - is_admin
+              - capabilities
+            additionalProperties: false
+    "401":
+      $ref: ../../components/responses/Unauthorized.yaml
+    "403":
+      $ref: ../../components/responses/Forbidden.yaml

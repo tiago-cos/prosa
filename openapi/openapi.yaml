@@ -156,6 +156,8 @@ paths:
     $ref: "paths/auth/logout.yaml"
   /auth/refresh:
     $ref: "paths/auth/refresh.yaml"
+  /auth/me:
+    $ref: "paths/auth/me.yaml"
   /users/{user_id}:
     $ref: "paths/users/{user_id}.yaml"
   /users/{user_id}/preferences:
