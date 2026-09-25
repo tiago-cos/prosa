@@ -63,7 +63,10 @@ pub async fn update_book(book_id: &str, book: &BookEntity) -> Result<(), ProsaEr
 }
 
 pub async fn delete_book_cascade(book_id: &str, session_id: &str) -> Result<OrphanedFiles, ProsaError> {
-    let mut tx = pool().begin().await.map_err(BookError::from)?;
+    let mut tx = pool()
+        .begin_with("BEGIN IMMEDIATE")
+        .await
+        .map_err(BookError::from)?;
 
     let book = repository::get_book(&mut *tx, book_id).await?;
     repository::delete_book(&mut *tx, book_id).await?;

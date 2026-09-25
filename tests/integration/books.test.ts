@@ -254,6 +254,26 @@ describe('Delete book', () => {
     expect(downloadResponse2.text).toBe(BOOK_NOT_FOUND);
   });
 
+  test('Simultaneous deletes of different books', async () => {
+    const owners = await Promise.all(
+      Array.from({ length: 12 }, async () => {
+        const { response: registerResponse } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(registerResponse.body.user_id, 'The_Great_Gatsby.epub', { jwt: registerResponse.body.jwt_token });
+        expect(uploadResponse.status).toBe(200);
+
+        return { bookId: uploadResponse.text, jwt: registerResponse.body.jwt_token };
+      })
+    );
+
+    const responses = await Promise.all(owners.map(({ bookId, jwt }) => deleteBook(bookId, { jwt })));
+
+    for (const response of responses) {
+      expect(response.status).toBe(204);
+    }
+  }, 30000);
+
   test('Check metadata, cover and annotations', async () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
