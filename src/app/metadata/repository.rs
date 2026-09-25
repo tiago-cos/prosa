@@ -173,22 +173,6 @@ pub async fn update_metadata<'a>(
 
     let metadata_id: Option<String> = sqlx::query_scalar(
         r"
-        SELECT metadata_id
-        FROM metadata
-        WHERE book_id = $1
-        ",
-    )
-    .bind(book_id)
-    .fetch_optional(&mut *tx)
-    .await?;
-
-    let Some(metadata_id) = metadata_id else {
-        return Err(MetadataError::MetadataNotFound);
-    };
-    let metadata_id = metadata_id.as_str();
-
-    let result = sqlx::query(
-        r"
         UPDATE metadata SET
             title = $2,
             subtitle = $3,
@@ -198,10 +182,11 @@ pub async fn update_metadata<'a>(
             isbn = $7,
             page_count = $8,
             language = $9
-        WHERE metadata_id = $1
+        WHERE book_id = $1
+        RETURNING metadata_id
         ",
     )
-    .bind(metadata_id)
+    .bind(book_id)
     .bind(&metadata.title)
     .bind(&metadata.subtitle)
     .bind(&metadata.description)
@@ -210,12 +195,13 @@ pub async fn update_metadata<'a>(
     .bind(&metadata.isbn)
     .bind(metadata.page_count)
     .bind(&metadata.language)
-    .execute(&mut *tx)
+    .fetch_optional(&mut *tx)
     .await?;
 
-    if result.rows_affected() == 0 {
+    let Some(metadata_id) = metadata_id else {
         return Err(MetadataError::MetadataNotFound);
-    }
+    };
+    let metadata_id = metadata_id.as_str();
 
     sqlx::query("DELETE FROM contributors WHERE metadata_id = ?")
         .bind(metadata_id)

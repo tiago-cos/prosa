@@ -1,5 +1,5 @@
 import { BOOK_NOT_FOUND, uploadBook } from '../utils/books.js';
-import { FORBIDDEN, wait } from '../utils/common.js';
+import { FORBIDDEN, settleBackgroundFetch, wait } from '../utils/common.js';
 import { addMetadata, addMetadataRequest, ALICE_METADATA, deleteMetadata, EXAMPLE_METADATA, getMetadata, INVALID_METADATA, listMetadataRequests, METADATA_CONFLICT, METADATA_NOT_FOUND, patchMetadata, updateMetadata } from '../utils/metadata.js';
 import { DUPLICATE_PROVIDERS, INVALID_PROVIDERS, MISSING_PROVIDER_KEY, patchPreferences, registerUser } from '../utils/users.js';
 import { describeAuthContract } from '../utils/auth-contract.js';
@@ -455,6 +455,33 @@ describe('Update metadata', () => {
 
     expect(downloadResponse.body).toEqual(EXAMPLE_METADATA);
   });
+
+  test('Simultaneous updates of different books', async () => {
+    const owners = await Promise.all(
+      Array.from({ length: 12 }, async () => {
+        const { response: registerResponse } = await registerUser();
+        expect(registerResponse.status).toBe(200);
+
+        const uploadResponse = await uploadBook(registerResponse.body.user_id, 'The_Great_Gatsby.epub', { jwt: registerResponse.body.jwt_token });
+        expect(uploadResponse.status).toBe(200);
+
+        return { bookId: uploadResponse.text, jwt: registerResponse.body.jwt_token };
+      })
+    );
+
+    await settleBackgroundFetch();
+
+    for (const { bookId, jwt } of owners) {
+      const addResponse = await addMetadata(bookId, ALICE_METADATA, { jwt });
+      expect(addResponse.status).toBe(204);
+    }
+
+    const responses = await Promise.all(owners.map(({ bookId, jwt }) => updateMetadata(bookId, EXAMPLE_METADATA, { jwt })));
+
+    for (const response of responses) {
+      expect(response.status).toBe(204);
+    }
+  }, 30000);
 
   test('Non-existent metadata', async () => {
     const { response: registerResponse } = await registerUser();
