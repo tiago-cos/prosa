@@ -188,6 +188,7 @@ pub struct RefreshToken {
 pub struct IdentityResponse {
     pub auth_type: AuthType,
     pub user_id: String,
+    pub username: String,
     pub is_admin: bool,
     pub capabilities: Vec<String>,
     pub key_id: Option<String>,

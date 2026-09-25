@@ -4,6 +4,7 @@ use crate::app::{
         service,
     },
     error::ProsaError,
+    users,
 };
 use axum::{Extension, Json};
 use jsonwebtoken::jwk::JwkSet;
@@ -21,9 +22,12 @@ pub async fn fetch_identity_handler(
         AuthType::Jwt => None,
     };
 
+    let user = users::service::get_user(token.role.get_user()).await?;
+
     Ok(Json(IdentityResponse {
         auth_type: token.auth_type,
-        user_id: token.role.get_user().to_string(),
+        user_id: user.user_id,
+        username: user.username,
         is_admin: matches!(token.role, AuthRole::Admin(_)),
         capabilities: token.capabilities,
         key_id,

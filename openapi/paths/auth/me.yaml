@@ -27,6 +27,12 @@ get:
                 format: uuid
                 description: The UUID of the user the credentials act as.
                 example: "14ae396c-07c3-437d-a0a0-ef48189ba40a"
+              username:
+                type: string
+                description: |
+                  The username of that user. A username can change, so a client
+                  that needs it asks here rather than keeping it.
+                example: "john.doe"
               is_admin:
                 type: boolean
                 description: Whether that user is an admin.
@@ -49,6 +55,7 @@ get:
             required:
               - auth_type
               - user_id
+              - username
               - is_admin
               - capabilities
             additionalProperties: false

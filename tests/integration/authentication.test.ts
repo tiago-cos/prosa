@@ -35,7 +35,7 @@ describe('JWT + JWKS Verification', () => {
 
 describe('Get identity', () => {
   test('JWT', async () => {
-    const { response } = await registerUser();
+    const { response, username } = await registerUser();
     expect(response.status).toBe(200);
 
     const identity = await fetchIdentity({ jwt: response.body.jwt_token });
@@ -43,6 +43,7 @@ describe('Get identity', () => {
 
     expect(identity.body.auth_type).toBe('Jwt');
     expect(identity.body.user_id).toBe(response.body.user_id);
+    expect(identity.body.username).toBe(username);
     expect(identity.body.is_admin).toBe(false);
     expect(identity.body.capabilities.sort()).toEqual(['Create', 'Delete', 'Read', 'Update']);
     expect(identity.body.key_id).toBeUndefined();
@@ -59,7 +60,7 @@ describe('Get identity', () => {
   });
 
   test('Api key', async () => {
-    const { response } = await registerUser();
+    const { response, username } = await registerUser();
     expect(response.status).toBe(200);
     const userId = response.body.user_id;
     const jwt = response.body.jwt_token;
@@ -72,6 +73,7 @@ describe('Get identity', () => {
 
     expect(identity.body.auth_type).toBe('ApiKey');
     expect(identity.body.user_id).toBe(userId);
+    expect(identity.body.username).toBe(username);
     expect(identity.body.is_admin).toBe(false);
     expect(identity.body.capabilities.sort()).toEqual(['Create', 'Read']);
     expect(identity.body.key_id).toBe(keyResponse.body.id);
