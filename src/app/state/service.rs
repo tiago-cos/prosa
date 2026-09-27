@@ -78,6 +78,15 @@ async fn validate_state(state: &State, epub_id: &str) -> Result<(), ProsaError> 
         return Ok(());
     };
 
+    let reading_status = state
+        .statistics
+        .as_ref()
+        .and_then(|s| s.reading_status.as_deref());
+
+    if reading_status != Some("Reading") {
+        return Err(StateError::LocationWithoutReading.into());
+    }
+
     let epub_file = epubs::service::epub_path(epub_id);
 
     let valid = tokio::task::spawn_blocking(move || {

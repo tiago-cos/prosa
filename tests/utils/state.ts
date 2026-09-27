@@ -3,6 +3,7 @@ import { SERVER_URL } from './common.js';
 
 export const INVALID_RATING = 'The provided rating is invalid.';
 export const INVALID_LOCATION = 'The provided location is invalid.';
+export const LOCATION_WITHOUT_READING = 'A location is only allowed while the reading status is Reading.';
 export const INVALID_READING_STATUS = 'The provided reading status is invalid.';
 export const INVALID_STATE = 'The provided state is invalid.';
 

@@ -14,6 +14,9 @@ pub enum StateError {
     #[strum(message = "The provided reading status is invalid.")]
     #[strum(props(StatusCode = "400"))]
     InvalidReadingStatus,
+    #[strum(message = "A location is only allowed while the reading status is Reading.")]
+    #[strum(props(StatusCode = "400"))]
+    LocationWithoutReading,
     #[strum(message = "The provided state is invalid.")]
     #[strum(props(StatusCode = "400"))]
     InvalidState,

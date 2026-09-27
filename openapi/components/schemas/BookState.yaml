@@ -6,7 +6,8 @@ properties:
     description: |
       The location in the book where the reader last left off, as an EPUB
       location: content document, element path from `<body>`, text run and
-      character offset. See `AnnotationRequest` for the full format.
+      character offset. See `AnnotationRequest` for the full format. Only
+      allowed while the reading status is `Reading`.
     example: "OEBPS/chapter-001.xhtml#0/2/t1:44"
   statistics:
     type: object

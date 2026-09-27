@@ -60,7 +60,8 @@ patch:
   summary: "Patch book state"
   description: |
     Update state for a specific book owned by a user.  
-    Only the fields specified in the request body will be updated.
+    Only the fields specified in the request body will be updated. A book with
+    a location cannot be patched out of `Reading`; replace its state instead.
   operationId: patchBookState
   parameters:
     - $ref: ../../../components/parameters/book_id.yaml
