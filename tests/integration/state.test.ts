@@ -340,7 +340,25 @@ describe('Location and reading status', () => {
     expect((await getState(bookId, auth)).body).toEqual({ location: ALICE_STATE.location, statistics: { reading_status: 'Reading' } });
   });
 
-  test('A book leaves Reading only once its location is removed', async () => {
+  test('Patching a book out of Reading removes its location', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const auth = { jwt: registerResponse.body.jwt_token };
+
+    const uploadResponse = await uploadBook(registerResponse.body.user_id, 'Alices_Adventures_in_Wonderland.epub', auth);
+    expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
+
+    for (const status of ['Read', 'Unread']) {
+      expect((await updateState(bookId, { ...ALICE_STATE, statistics: { rating: 4.5, reading_status: 'Reading' } }, auth)).status).toBe(204);
+
+      const patchResponse = await patchState(bookId, { statistics: { reading_status: status } }, auth);
+      expect(patchResponse.status).toBe(204);
+      expect((await getState(bookId, auth)).body).toEqual({ statistics: { rating: 4.5, reading_status: status } });
+    }
+  });
+
+  test('A patch cannot leave Reading while setting a location', async () => {
     const { response: registerResponse } = await registerUser();
     expect(registerResponse.status).toBe(200);
     const auth = { jwt: registerResponse.body.jwt_token };
@@ -350,13 +368,26 @@ describe('Location and reading status', () => {
     const bookId = uploadResponse.text;
     expect((await updateState(bookId, ALICE_STATE, auth)).status).toBe(204);
 
-    const patchResponse = await patchState(bookId, { statistics: { reading_status: 'Read' } }, auth);
-    expect(patchResponse.status).toBe(400);
-    expect(patchResponse.text).toBe(LOCATION_WITHOUT_READING);
+    for (const status of ['Read', 'Unread']) {
+      const patchResponse = await patchState(bookId, { location: ALICE_STATE.location, statistics: { reading_status: status } }, auth);
+      expect(patchResponse.status).toBe(400);
+      expect(patchResponse.text).toBe(LOCATION_WITHOUT_READING);
+    }
     expect((await getState(bookId, auth)).body).toEqual(ALICE_STATE);
+  });
 
-    expect((await updateState(bookId, { statistics: { rating: 4.5, reading_status: 'Read' } }, auth)).status).toBe(204);
-    expect((await getState(bookId, auth)).body).toEqual({ statistics: { rating: 4.5, reading_status: 'Read' } });
+  test('Patching the rating of a book being read keeps its location', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const auth = { jwt: registerResponse.body.jwt_token };
+
+    const uploadResponse = await uploadBook(registerResponse.body.user_id, 'Alices_Adventures_in_Wonderland.epub', auth);
+    expect(uploadResponse.status).toBe(200);
+    const bookId = uploadResponse.text;
+    expect((await updateState(bookId, ALICE_STATE, auth)).status).toBe(204);
+
+    expect((await patchState(bookId, { statistics: { rating: 3 } }, auth)).status).toBe(204);
+    expect((await getState(bookId, auth)).body).toEqual({ location: ALICE_STATE.location, statistics: { ...ALICE_STATE.statistics, rating: 3 } });
   });
 });
 

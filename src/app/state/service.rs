@@ -30,8 +30,19 @@ pub async fn patch_state(book_id: &str, mut state: State, session_id: &str) -> R
         return Err(StateError::InvalidState.into());
     }
 
+    let leaves_reading = state.location.is_none()
+        && state
+            .statistics
+            .as_ref()
+            .and_then(|s| s.reading_status.as_deref())
+            .is_some_and(|status| status != "Reading");
+
     let original = repository::get_state(pool(), book_id).await;
     state.merge(original);
+
+    if leaves_reading {
+        state.location = None;
+    }
 
     validate_state(&state, &book.epub_id).await?;
     repository::update_state(pool(), book_id, state).await;

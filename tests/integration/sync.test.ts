@@ -822,7 +822,7 @@ describe('Sync JWT', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    stateResponse = await updateState(bookId, { statistics: { reading_status: 'Read' } }, { jwt: jwtToken });
+    stateResponse = await patchState(bookId, { statistics: { reading_status: 'Read' } }, { jwt: jwtToken });
     expect(stateResponse.status).toBe(204);
 
     syncResponse = await sync(userId, currentSyncToken, { jwt: jwtToken2 });
@@ -2059,7 +2059,7 @@ describe('Sync api key', () => {
 
     expect(syncResponse.body).toEqual(expectedResponse);
 
-    stateResponse = await updateState(bookId, { statistics: { reading_status: 'Read' } }, { jwt: jwtToken });
+    stateResponse = await patchState(bookId, { statistics: { reading_status: 'Read' } }, { jwt: jwtToken });
     expect(stateResponse.status).toBe(204);
 
     syncResponse = await sync(userId, currentSyncToken, { apiKey });
