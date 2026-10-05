@@ -7,11 +7,13 @@ use crate::app::{authentication, shelves, tracing};
 use axum::Router;
 use axum::middleware::from_fn;
 use axum::routing::get;
-use log::info;
+use log::{error, info};
 use quick_cache::sync::Cache as QuickCache;
+use std::future::pending;
 use std::sync::Arc;
 use std::sync::LazyLock;
 use tokio::net::TcpListener;
+use tokio::signal;
 
 pub struct Cache {
     pub image_cache: QuickCache<String, Arc<Vec<u8>>>,
@@ -46,5 +48,40 @@ pub async fn run() {
         .layer(from_fn(tracing::log_layer));
 
     let listener = TcpListener::bind(&host).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await
+        .unwrap();
+}
+
+async fn shutdown_signal() {
+    let interrupt = async {
+        if let Err(error) = signal::ctrl_c().await {
+            error!("Could not listen for Ctrl-C: {error}");
+            pending::<()>().await;
+        }
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        match signal::unix::signal(signal::unix::SignalKind::terminate()) {
+            Ok(mut terminate) => {
+                terminate.recv().await;
+            }
+            Err(error) => {
+                error!("Could not listen for SIGTERM: {error}");
+                pending::<()>().await;
+            }
+        }
+    };
+
+    #[cfg(not(unix))]
+    let terminate = pending::<()>();
+
+    tokio::select! {
+        () = interrupt => {}
+        () = terminate => {}
+    }
+
+    info!("Shutting down");
 }

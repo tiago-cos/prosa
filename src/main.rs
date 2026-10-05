@@ -79,6 +79,7 @@ async fn start() -> Result<(), StartupError> {
             let pool = database::init(&CONFIG.database.file_path).await?;
             database::set_pool(pool)?;
             app::run().await;
+            database::pool().close().await;
         }
     }
 
