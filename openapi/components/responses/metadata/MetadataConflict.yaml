@@ -1,1 +1,9 @@
 description: This book already has metadata.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      metadataConflict:
+        summary: Metadata exists
+        value: This book already has metadata.

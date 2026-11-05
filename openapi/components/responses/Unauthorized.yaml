@@ -1,1 +1,21 @@
 description: No credentials were provided, or the token or API key is expired, malformed or invalid.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      missingAuth:
+        summary: No credentials
+        value: No authentication was provided.
+      invalidToken:
+        summary: Invalid token
+        value: The provided token is invalid.
+      expiredToken:
+        summary: Expired token
+        value: The provided token is expired.
+      invalidSignature:
+        summary: Bad token signature
+        value: The provided signature is invalid.
+      invalidApiKey:
+        summary: Invalid or expired API key
+        value: The provided API key is invalid.

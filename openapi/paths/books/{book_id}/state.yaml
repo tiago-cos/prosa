@@ -46,12 +46,37 @@ put:
       description: The book state was updated successfully.
     "400":
       description: The provided book state is invalid.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            invalidState:
+              summary: Invalid state
+              value: "The provided state is invalid."
+            invalidLocation:
+              summary: Location not in the book
+              value: "The provided location is invalid."
+            invalidRating:
+              summary: Rating out of range
+              value: "The provided rating is invalid."
+            invalidReadingStatus:
+              summary: Unknown reading status
+              value: "The provided reading status is invalid."
+            locationWithoutReading:
+              summary: Location while not Reading
+              value: "A location is only allowed while the reading status is Reading."
+            malformedJson:
+              summary: Malformed JSON body
+              value: "Failed to parse the request body as JSON: EOF while parsing an object at line 1 column 1"
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
     "403":
       $ref: ../../../components/responses/Forbidden.yaml
     "404":
       $ref: ../../../components/responses/books/BookNotFound.yaml
+    "422":
+      $ref: ../../../components/responses/UnprocessableEntity.yaml
 
 
 patch:
@@ -79,10 +104,35 @@ patch:
       description: The book state was patched successfully.
     "400":
       description: The provided book state is invalid.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            invalidState:
+              summary: Invalid state
+              value: "The provided state is invalid."
+            invalidLocation:
+              summary: Location not in the book
+              value: "The provided location is invalid."
+            invalidRating:
+              summary: Rating out of range
+              value: "The provided rating is invalid."
+            invalidReadingStatus:
+              summary: Unknown reading status
+              value: "The provided reading status is invalid."
+            locationWithoutReading:
+              summary: Location while not Reading
+              value: "A location is only allowed while the reading status is Reading."
+            malformedJson:
+              summary: Malformed JSON body
+              value: "Failed to parse the request body as JSON: EOF while parsing an object at line 1 column 1"
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
     "403":
       $ref: ../../../components/responses/Forbidden.yaml
     "404":
       $ref: ../../../components/responses/books/BookNotFound.yaml
+    "422":
+      $ref: ../../../components/responses/UnprocessableEntity.yaml
 

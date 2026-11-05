@@ -1,1 +1,12 @@
 description: The username is already taken, or the provided user id is already in use.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      userConflict:
+        summary: Username taken
+        value: The username is already taken.
+      userIdConflict:
+        summary: User id in use
+        value: The provided user id is already in use.

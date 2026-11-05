@@ -52,12 +52,34 @@ put:
       description: Preferences updated successfully.
     "400":
       description: Invalid or unsupported preferences, a repeated metadata provider, or a provider that requires an API key was enabled without one.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            invalidProvider:
+              summary: Unknown provider
+              value: "Invalid or unsupported metadata provider selection."
+            duplicateProvider:
+              summary: Provider repeated
+              value: "The same metadata provider must not be selected more than once."
+            missingProviderKey:
+              summary: Provider needs a key
+              value: "This metadata provider requires an API key."
+            missingAutomaticMetadata:
+              summary: "`automatic_metadata` missing"
+              value: "Automatic metadata preference must be present."
+            malformedJson:
+              summary: Malformed JSON body
+              value: "Failed to parse the request body as JSON: EOF while parsing an object at line 1 column 1"
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
     "403":
       $ref: ../../../components/responses/Forbidden.yaml
     "404":
       $ref: ../../../components/responses/users/UserNotFound.yaml
+    "422":
+      $ref: ../../../components/responses/UnprocessableEntity.yaml
 
   security:
     - prosaToken: []
@@ -87,12 +109,34 @@ patch:
       description: Preferences patched successfully.
     "400":
       description: No fields specified, invalid/unsupported preferences, a repeated metadata provider, or a provider that requires an API key was enabled without one.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            invalidPreferences:
+              summary: No fields specified
+              value: "Invalid or unsupported preferences provided."
+            invalidProvider:
+              summary: Unknown provider
+              value: "Invalid or unsupported metadata provider selection."
+            duplicateProvider:
+              summary: Provider repeated
+              value: "The same metadata provider must not be selected more than once."
+            missingProviderKey:
+              summary: Provider needs a key
+              value: "This metadata provider requires an API key."
+            malformedJson:
+              summary: Malformed JSON body
+              value: "Failed to parse the request body as JSON: EOF while parsing an object at line 1 column 1"
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
     "403":
       $ref: ../../../components/responses/Forbidden.yaml
     "404":
       $ref: ../../../components/responses/users/UserNotFound.yaml
+    "422":
+      $ref: ../../../components/responses/UnprocessableEntity.yaml
 
   security:
     - prosaToken: []

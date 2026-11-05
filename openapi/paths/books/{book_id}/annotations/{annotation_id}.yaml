@@ -22,6 +22,17 @@ get:
       $ref: ../../../../components/responses/Forbidden.yaml
     "404":
       description: The requested book or annotation was not found or cannot be accessed.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            bookNotFound:
+              summary: Book not found
+              value: "The requested book does not exist or is not accessible."
+            annotationNotFound:
+              summary: Annotation not found
+              value: "The requested annotation does not exist or is not accessible."
 
 
 delete:
@@ -44,6 +55,17 @@ delete:
       $ref: ../../../../components/responses/Forbidden.yaml
     "404":
       description: The requested book or annotation was not found or cannot be accessed.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            bookNotFound:
+              summary: Book not found
+              value: "The requested book does not exist or is not accessible."
+            annotationNotFound:
+              summary: Annotation not found
+              value: "The requested annotation does not exist or is not accessible."
 
 
 
@@ -53,7 +75,7 @@ patch:
   summary: "Patch book annotation"
   description: |
     Update the note of a specific annotation for a book owned by the user.  
-    If the note is an empty string, the existing note will be deleted.
+    Sending `null`, an empty string, or no `note` at all deletes the existing note.
   operationId: patchBookAnnotation
   parameters:
     - $ref: ../../../../components/parameters/book_id.yaml
@@ -67,23 +89,36 @@ patch:
           type: object
           properties:
             note:
-              type: string
-              description: The updated note content. An empty string will remove the existing note.
+              type: [string, "null"]
+              description: The updated note content. `null` or an empty string removes the existing note.
               example: "This section explains a key concept."
-          required:
-            - note
           additionalProperties: false
 
 
   responses:
     "204":
       description: The book annotation note was updated successfully.
+    "400":
+      $ref: ../../../../components/responses/MalformedJson.yaml
     "401":
       $ref: ../../../../components/responses/Unauthorized.yaml
     "403":
       $ref: ../../../../components/responses/Forbidden.yaml
     "404":
       description: The requested book or annotation was not found or cannot be accessed.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            bookNotFound:
+              summary: Book not found
+              value: "The requested book does not exist or is not accessible."
+            annotationNotFound:
+              summary: Annotation not found
+              value: "The requested annotation does not exist or is not accessible."
+    "422":
+      $ref: ../../../../components/responses/UnprocessableEntity.yaml
 
   security:
     - prosaToken: []

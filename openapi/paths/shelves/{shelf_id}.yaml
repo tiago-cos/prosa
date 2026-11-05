@@ -66,7 +66,9 @@ put:
           properties:
             name:
               type: string
-              description: The new name to assign to the shelf.
+              maxLength: 30
+              pattern: "^[ -~]*$"
+              description: The new name to assign to the shelf. Printable ASCII only, at most 30 characters.
           required:
             - name
         example:
@@ -77,6 +79,17 @@ put:
       description: Shelf name updated successfully.
     "400":
       description: The provided shelf name is invalid.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            invalidName:
+              summary: Invalid name
+              value: "The provided shelf name is invalid."
+            malformedJson:
+              summary: Malformed JSON body
+              value: "Failed to parse the request body as JSON: EOF while parsing an object at line 1 column 1"
     "401":
       $ref: ../../components/responses/Unauthorized.yaml
     "403":
@@ -85,6 +98,8 @@ put:
       $ref: ../../components/responses/shelves/ShelfNotFound.yaml
     "409":
       $ref: ../../components/responses/shelves/ShelfConflict.yaml
+    "422":
+      $ref: ../../components/responses/UnprocessableEntity.yaml
 
 
 delete:

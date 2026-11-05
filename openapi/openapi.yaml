@@ -26,7 +26,8 @@ info:
     ## Authentication
 
     Every endpoint requires credentials except `/health`, `/config`,
-    `/.well-known/jwks.json` and the `/auth/*` endpoints.
+    `/.well-known/jwks.json`, `/auth/register`, `/auth/login`, `/auth/logout`
+    and `/auth/refresh`.
 
     - **JWT** — `Authorization: Bearer <token>`, from `/auth/register`,
       `/auth/login` or `/auth/refresh`. Short-lived; trade the refresh token for
@@ -37,6 +38,18 @@ info:
 
     The `/users/{user_id}/…` endpoints take a JWT only: an API key cannot manage
     the credentials it is one of.
+
+    ## Errors
+
+    An error response carries its message as `text/plain`, and each operation
+    lists the messages it can return under each status. A few failures can
+    happen on any operation, so they are listed here rather than on each one:
+
+    - **400** `The authentication header is invalid.` when `Authorization` is
+      not of the form `<scheme> <token>`.
+    - **415** when a JSON body is sent without `Content-Type: application/json`.
+    - **500** `Internal error` (or `Internal server error`) when the server
+      itself fails.
 
 
 externalDocs:
@@ -112,11 +125,14 @@ security:
   - apiKey: []
 
 servers:
-  - url: http://{host}
+  - url: http://{host}:{port}
     variables:
       host:
         default: localhost
         description: The server host
+      port:
+        default: "5000"
+        description: The port set by `server.port` in the configuration
 paths:
   /health:
     $ref: "paths/health.yaml"

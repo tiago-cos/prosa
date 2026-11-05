@@ -30,14 +30,35 @@ post:
   responses:
     "204":
       description: The book was succesfully added to the shelf.
+    "400":
+      $ref: ../../../components/responses/shelves/InvalidShelfRequest.yaml
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
     "403":
       $ref: ../../../components/responses/Forbidden.yaml
     "404":
       description: The requested book or shelf was not found or cannot be accessed.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            shelfNotFound:
+              summary: Shelf not found
+              value: "The requested shelf does not exist or is not accessible."
+            bookNotFound:
+              summary: Book not found
+              value: "The requested book does not exist or is not accessible."
     "409":
       description: The provided book is already present in this shelf.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            shelfBookConflict:
+              summary: Already in shelf
+              value: "The provided book is already present in this shelf."
 
 
 get:

@@ -1,1 +1,9 @@
 description: The requested shelf does not exist or is not accessible.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      shelfNotFound:
+        summary: Shelf not found
+        value: The requested shelf does not exist or is not accessible.

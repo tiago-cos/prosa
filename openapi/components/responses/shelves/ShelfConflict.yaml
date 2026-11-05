@@ -1,1 +1,9 @@
 description: There is already a shelf with this name in your library.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      shelfConflict:
+        summary: Name in use
+        value: There is already a shelf with this name in your library.

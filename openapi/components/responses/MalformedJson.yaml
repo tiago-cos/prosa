@@ -1,0 +1,9 @@
+description: The body is not valid JSON.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      malformedJson:
+        summary: Malformed JSON body
+        value: 'Failed to parse the request body as JSON: EOF while parsing an object at line 1 column 1'

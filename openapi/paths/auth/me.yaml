@@ -6,6 +6,10 @@ get:
     Reports what the credentials on the request are, and what they may do,
     without naming a user in the path.
 
+    A client holding a token or key but not knowing whose it is -- a service
+    linking a device to an account, say -- can settle both questions here in
+    one call.
+
     Takes a JWT or an API key.
   operationId: getIdentity
 

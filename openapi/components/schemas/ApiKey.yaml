@@ -7,14 +7,18 @@ properties:
     example: "My API Key"
   capabilities:
     type: array
+    minItems: 1
+    uniqueItems: true
     items:
       $ref: ./Capability.yaml
     example: ["Create", "Read"]
     description: |
       An array of capabilities associated with the API key.
       Capabilities determine the actions that the API key can perform.
+      At least one is required, and each may appear only once.
   expires_at:
-    type: number
+    type: integer
+    format: int64
     description: The expiration date and time of the API key (UNIX milliseconds).
     example: 1712761552000
   key_id:

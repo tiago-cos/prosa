@@ -1,1 +1,9 @@
 description: The requested pagination is invalid.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      invalidPagination:
+        summary: Invalid pagination
+        value: The requested pagination is invalid.

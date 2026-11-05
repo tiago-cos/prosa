@@ -1,1 +1,9 @@
 description: The requested user does not exist or is not accessible.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      userNotFound:
+        summary: User not found
+        value: The requested user does not exist or is not accessible.

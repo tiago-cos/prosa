@@ -18,4 +18,15 @@ delete:
       $ref: ../../../../components/responses/Forbidden.yaml
     "404":
       description: The shelf was not found, or the book is not in the shelf.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            shelfNotFound:
+              summary: Shelf not found
+              value: "The requested shelf does not exist or is not accessible."
+            shelfBookNotFound:
+              summary: Book not in shelf
+              value: "The provided book does not exist in this shelf, or is not accessible."
    

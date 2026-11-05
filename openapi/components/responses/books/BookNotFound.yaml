@@ -1,1 +1,9 @@
 description: The requested book does not exist or is not accessible.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      bookNotFound:
+        summary: Book not found
+        value: The requested book does not exist or is not accessible.

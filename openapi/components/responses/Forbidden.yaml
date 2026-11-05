@@ -2,3 +2,11 @@ description: |
   The credentials do not permit this action: they lack the required capability,
   they belong to another user, or the endpoint accepts only a JWT and an API key
   was used.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      forbidden:
+        summary: Forbidden
+        value: Forbidden.

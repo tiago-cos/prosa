@@ -1,1 +1,12 @@
-description: The provided metadata is invalid.
+description: The provided metadata is invalid, or the body is not valid JSON.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      invalidMetadata:
+        summary: Invalid metadata
+        value: The provided metadata is invalid.
+      malformedJson:
+        summary: Malformed JSON body
+        value: 'Failed to parse the request body as JSON: EOF while parsing an object at line 1 column 1'

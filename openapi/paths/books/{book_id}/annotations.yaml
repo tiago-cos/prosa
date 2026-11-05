@@ -37,6 +37,8 @@ post:
       $ref: ../../../components/responses/books/BookNotFound.yaml
     "409":
       $ref: ../../../components/responses/annotations/AnnotationConflict.yaml
+    "422":
+      $ref: ../../../components/responses/UnprocessableEntity.yaml
 
 
 get:

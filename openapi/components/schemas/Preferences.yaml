@@ -3,6 +3,7 @@ description: User's preferences.
 properties:
   metadata_providers:
     type: array
+    uniqueItems: true
     items:
       $ref: ./Provider.yaml
     example: ["epub_metadata_extractor", "openlibrary"]

@@ -27,9 +27,29 @@ post:
   responses:
     "204":
       description: Logout successful. The refresh token has been invalidated.
+    "400":
+      $ref: ../../components/responses/MalformedJson.yaml
     "401":
       description: The provided refresh token is invalid.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            invalidToken:
+              summary: Malformed token
+              value: "The provided token is invalid."
     "404":
       description: The refresh token was not found or cannot be accessed.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            missingToken:
+              summary: Unknown token
+              value: "The refresh token was not found or cannot be accessed."
+    "422":
+      $ref: ../../components/responses/UnprocessableEntity.yaml
 
   security: []

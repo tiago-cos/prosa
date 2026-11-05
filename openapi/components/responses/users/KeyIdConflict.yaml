@@ -1,1 +1,9 @@
 description: The provided key id is already in use.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      keyIdConflict:
+        summary: Key id in use
+        value: The provided key id is already in use.

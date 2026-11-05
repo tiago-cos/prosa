@@ -1,0 +1,15 @@
+description: 'Registering this user needs a valid admin key: one was given and is wrong, an admin was requested without one, or open registration is disabled.'
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      invalidAdminKey:
+        summary: Wrong admin key
+        value: The provided admin key is invalid.
+      missingAdminKey:
+        summary: Admin requested without a key
+        value: No admin key was provided.
+      registrationDisabled:
+        summary: Open registration disabled
+        value: Registration without admin key is disabled.

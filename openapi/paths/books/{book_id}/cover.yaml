@@ -16,8 +16,14 @@ post:
     required: true
     description: The cover image to add.
     content:
-      'image/jpeg': {}
-      'image/png': {}
+      'image/jpeg':
+        schema:
+          type: string
+          format: binary
+      'image/png':
+        schema:
+          type: string
+          format: binary
 
   responses:
     "204":
@@ -52,12 +58,27 @@ get:
           schema:
             type: string
             format: binary
+        image/png:
+          schema:
+            type: string
+            format: binary
     "401":
       $ref: ../../../components/responses/Unauthorized.yaml
     "403":
       $ref: ../../../components/responses/Forbidden.yaml
     "404":
       description: The requested book or cover was not found or cannot be accessed.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            bookNotFound:
+              summary: Book not found
+              value: "The requested book does not exist or is not accessible."
+            coverNotFound:
+              summary: Cover not found
+              value: "The requested cover does not exist or is not accessible."
 
 
 put:
@@ -78,8 +99,14 @@ put:
     required: true
     description: The cover image to change to.
     content:
-      'image/jpeg': {}
-      'image/png': {}
+      'image/jpeg':
+        schema:
+          type: string
+          format: binary
+      'image/png':
+        schema:
+          type: string
+          format: binary
 
   responses:
     "204":
@@ -92,6 +119,17 @@ put:
       $ref: ../../../components/responses/Forbidden.yaml
     "404":
       description: The requested book or cover was not found or cannot be accessed.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            bookNotFound:
+              summary: Book not found
+              value: "The requested book does not exist or is not accessible."
+            coverNotFound:
+              summary: Cover not found
+              value: "The requested cover does not exist or is not accessible."
 
 
 delete:
@@ -113,4 +151,15 @@ delete:
       $ref: ../../../components/responses/Forbidden.yaml
     "404":
       description: The requested book or cover was not found or cannot be accessed.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            bookNotFound:
+              summary: Book not found
+              value: "The requested book does not exist or is not accessible."
+            coverNotFound:
+              summary: Cover not found
+              value: "The requested cover does not exist or is not accessible."
 

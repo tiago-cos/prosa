@@ -1,1 +1,9 @@
 description: The provided sync token is invalid.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      invalidSyncToken:
+        summary: Invalid sync token
+        value: The provided sync token is invalid.

@@ -1,0 +1,9 @@
+description: The body is missing, is not valid JSON, or does not have the expected shape.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      invalidRequest:
+        summary: Body missing, malformed or of the wrong shape
+        value: The provided shelf request is invalid.

@@ -34,9 +34,13 @@ post:
           properties:
             username:
               type: string
+              minLength: 1
+              maxLength: 20
               description: The username of the new user.
             password:
               type: string
+              minLength: 1
+              maxLength: 256
               description: The password of the new user.
             admin:
               type: boolean
@@ -98,8 +102,10 @@ post:
     "400":
       $ref: ../../components/responses/users/InvalidUsernamePassword.yaml
     "403":
-      $ref: ../../components/responses/users/InvalidCredentials.yaml
+      $ref: ../../components/responses/users/RegistrationForbidden.yaml
     "409":
       $ref: ../../components/responses/users/UserConflict.yaml
+    "422":
+      $ref: ../../components/responses/UnprocessableEntity.yaml
 
   security: []

@@ -18,7 +18,8 @@ properties:
     description: The publisher of the book.
     example: "HarperCollins"
   publication_date:
-    type: number
+    type: integer
+    format: int64
     description: The publication date of the book (UNIX milliseconds).
     example: -1411462448000
   isbn:

@@ -30,6 +30,8 @@ post:
       $ref: ../../../components/responses/books/BookNotFound.yaml
     "409":
       $ref: ../../../components/responses/metadata/MetadataConflict.yaml
+    "422":
+      $ref: ../../../components/responses/UnprocessableEntity.yaml
 
 
 get:
@@ -57,6 +59,17 @@ get:
       $ref: ../../../components/responses/Forbidden.yaml
     "404":
       description: The requested book or metadata was not found or cannot be accessed.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            bookNotFound:
+              summary: Book not found
+              value: "The requested book does not exist or is not accessible."
+            metadataNotFound:
+              summary: Metadata not found
+              value: "The requested metadata does not exist or is not accessible."
 
 
 put:
@@ -90,6 +103,19 @@ put:
       $ref: ../../../components/responses/Forbidden.yaml
     "404":
       description: The requested book or metadata was not found or cannot be accessed.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            bookNotFound:
+              summary: Book not found
+              value: "The requested book does not exist or is not accessible."
+            metadataNotFound:
+              summary: Metadata not found
+              value: "The requested metadata does not exist or is not accessible."
+    "422":
+      $ref: ../../../components/responses/UnprocessableEntity.yaml
 
 
 delete:
@@ -111,6 +137,17 @@ delete:
       $ref: ../../../components/responses/Forbidden.yaml
     "404":
       description: The requested book or metadata was not found or cannot be accessed.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            bookNotFound:
+              summary: Book not found
+              value: "The requested book does not exist or is not accessible."
+            metadataNotFound:
+              summary: Metadata not found
+              value: "The requested metadata does not exist or is not accessible."
 
 
 patch:
@@ -144,4 +181,17 @@ patch:
       $ref: ../../../components/responses/Forbidden.yaml
     "404":
       description: The requested book or metadata was not found or cannot be accessed.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            bookNotFound:
+              summary: Book not found
+              value: "The requested book does not exist or is not accessible."
+            metadataNotFound:
+              summary: Metadata not found
+              value: "The requested metadata does not exist or is not accessible."
+    "422":
+      $ref: ../../../components/responses/UnprocessableEntity.yaml
 

@@ -18,6 +18,20 @@ post:
       description: The metadata fetch request was successfully enqueued.
     "400":
       description: Invalid, repeated, or unsupported metadata provider selection, or a selected provider requires an API key the user has not stored.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            invalidRequest:
+              summary: Body missing, malformed or of the wrong shape
+              value: "The provided metadata request is invalid."
+            invalidProvider:
+              summary: Unknown or repeated provider
+              value: "Invalid or unsupported metadata provider selection."
+            missingProviderKey:
+              summary: Provider needs a key
+              value: "This metadata provider requires an API key."
     "401":
       $ref: ../components/responses/Unauthorized.yaml
     "403":
@@ -26,6 +40,14 @@ post:
       $ref: ../components/responses/books/BookNotFound.yaml
     "409":
       description: This metadata request is already enqueued.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            requestConflict:
+              summary: Already enqueued
+              value: "This metadata request is already enqueued."
 
 
 get:
@@ -60,7 +82,6 @@ get:
             type: array
             items:
               $ref: ../components/schemas/MetadataRequestStatus.yaml
-
     "401":
       $ref: ../components/responses/Unauthorized.yaml
     "403":

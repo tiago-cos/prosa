@@ -1,1 +1,12 @@
 description: The requested user or API key does not exist or is not accessible.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      keyNotFound:
+        summary: Key not found
+        value: The requested key does not exist or is not accessible.
+      userNotFound:
+        summary: User not found
+        value: The requested user does not exist or is not accessible.

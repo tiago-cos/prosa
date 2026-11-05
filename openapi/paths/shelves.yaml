@@ -18,7 +18,9 @@ post:
           properties:
             name:
               type: string
-              description: The name of the shelf.
+              maxLength: 30
+              pattern: "^[ -~]*$"
+              description: The name of the shelf. Printable ASCII only, at most 30 characters.
             owner_id:
               type: string
               format: uuid
@@ -52,6 +54,20 @@ post:
               value: "050299f0-6d4d-4015-a522-9aeb92924a56"
     "400":
       description: The provided shelf name is invalid, or the provided shelf id is not a valid UUID.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            invalidName:
+              summary: Invalid name
+              value: "The provided shelf name is invalid."
+            invalidShelfId:
+              summary: Shelf id is not a UUID
+              value: "The provided shelf id is invalid."
+            invalidRequest:
+              summary: Body missing, malformed or of the wrong shape
+              value: "The provided shelf request is invalid."
     "401":
       $ref: ../components/responses/Unauthorized.yaml
     "403":
@@ -60,6 +76,17 @@ post:
       $ref: ../components/responses/users/UserNotFound.yaml
     "409":
       description: There is already a shelf with this name in your library, or the provided shelf id is already in use.
+      content:
+        text/plain:
+          schema:
+            type: string
+          examples:
+            shelfConflict:
+              summary: Name in use
+              value: "There is already a shelf with this name in your library."
+            shelfIdConflict:
+              summary: Shelf id in use
+              value: "The provided shelf id is already in use."
 
 
 get:

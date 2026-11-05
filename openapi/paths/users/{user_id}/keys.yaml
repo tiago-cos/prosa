@@ -23,6 +23,7 @@ post:
       content:
         application/json:
           schema:
+            type: object
             properties:
               id:
                 type: string
@@ -50,6 +51,8 @@ post:
       $ref: ../../../components/responses/users/UserNotFound.yaml
     "409":
       $ref: ../../../components/responses/users/KeyIdConflict.yaml
+    "422":
+      $ref: ../../../components/responses/UnprocessableEntity.yaml
 
   security:
     - prosaToken: []

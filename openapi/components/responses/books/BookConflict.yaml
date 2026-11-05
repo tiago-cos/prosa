@@ -1,1 +1,12 @@
-description: This book is already in your library, or the provided book id is already in use.
+description: The book is already in the library, or the provided book id is already in use.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      bookConflict:
+        summary: Duplicate book
+        value: This book is already in your library.
+      bookIdConflict:
+        summary: Book id in use
+        value: The provided book id is already in use.

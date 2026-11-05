@@ -1,1 +1,15 @@
-description: The provided username is invalid.
+description: The provided username is invalid, or the body is not valid JSON.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      invalidCharacters:
+        summary: Disallowed characters
+        value: Username and password must not contain special characters.
+      usernameTooLong:
+        summary: Username too long
+        value: Username must not exceed 20 characters.
+      malformedJson:
+        summary: Malformed JSON body
+        value: 'Failed to parse the request body as JSON: EOF while parsing an object at line 1 column 1'

@@ -1,1 +1,9 @@
 description: The provided cover image is invalid.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      invalidCover:
+        summary: Invalid cover
+        value: The provided cover image is invalid.

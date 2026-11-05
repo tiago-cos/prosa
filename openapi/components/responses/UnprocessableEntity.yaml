@@ -1,0 +1,12 @@
+description: 'The body is valid JSON but does not fit the request schema: a required field is missing, or a field has the wrong type.'
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      missingField:
+        summary: Missing field
+        value: 'Failed to deserialize the JSON body into the target type: missing field `password` at line 1 column 25'
+      wrongType:
+        summary: Wrong type
+        value: 'Failed to deserialize the JSON body into the target type: page_count: invalid type: string "x", expected i64 at line 1 column 18'

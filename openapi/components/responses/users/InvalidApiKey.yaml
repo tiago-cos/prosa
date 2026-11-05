@@ -1,1 +1,18 @@
-description: Invalid API key, or the provided key id is not a valid UUID.
+description: The capabilities or expiry are invalid, the provided key id is not a valid UUID, or the body is not valid JSON.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      invalidCapabilities:
+        summary: Empty, repeated or unknown capabilities
+        value: Invalid or unsupported capabilities provided.
+      invalidTimestamp:
+        summary: Expiry in the past
+        value: Expiration timestamp is invalid or incorrectly formatted.
+      invalidKeyId:
+        summary: Key id is not a UUID
+        value: The provided key id is invalid.
+      malformedJson:
+        summary: Malformed JSON body
+        value: 'Failed to parse the request body as JSON: EOF while parsing an object at line 1 column 1'

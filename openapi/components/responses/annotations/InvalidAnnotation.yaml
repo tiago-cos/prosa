@@ -1,7 +1,21 @@
 description: |
-  The provided annotation is invalid, or the provided annotation id is not a
-  valid UUID.
+  The provided annotation is invalid, the provided annotation id is not a
+  valid UUID, or the body is not valid JSON.
 
   An annotation is invalid when either end does not resolve to a real position
   in the book, when either end names a whole element rather than text, or when
   the start does not come strictly before the end in reading order.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      invalidAnnotation:
+        summary: Invalid annotation
+        value: The provided annotation is invalid.
+      invalidAnnotationId:
+        summary: Annotation id is not a UUID
+        value: The provided annotation id is invalid.
+      malformedJson:
+        summary: Malformed JSON body
+        value: 'Failed to parse the request body as JSON: EOF while parsing an object at line 1 column 1'

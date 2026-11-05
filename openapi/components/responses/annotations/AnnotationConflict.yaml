@@ -1,1 +1,12 @@
-description: An annotation in this position already exists, or the provided annotation id is already in use.
+description: An annotation already exists at this position, or the provided annotation id is already in use.
+content:
+  text/plain:
+    schema:
+      type: string
+    examples:
+      annotationConflict:
+        summary: Same position
+        value: An annotation in this position already exists.
+      annotationIdConflict:
+        summary: Annotation id in use
+        value: The provided annotation id is already in use.

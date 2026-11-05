@@ -4,6 +4,7 @@ required: false
 schema:
   type: integer
   format: int64
+  minimum: 1
   default: 1
 description: Which page of results to return. Must be a positive integer.
 example: 1
