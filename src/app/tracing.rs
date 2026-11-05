@@ -58,9 +58,9 @@ pub async fn log_layer(req: Request, next: Next) -> Response {
     } else if status.is_success() || status.is_redirection() {
         info!("{method} {path} [{colored_code}]");
     } else {
-        let body = response.into_body();
-        let bytes = to_bytes(body, 1000).await.unwrap_or_default();
-        let body_text = String::from_utf8_lossy(&bytes);
+        let (parts, body) = response.into_parts();
+        let bytes = to_bytes(body, usize::MAX).await.unwrap_or_default();
+        let body_text: String = String::from_utf8_lossy(&bytes).chars().take(1000).collect();
 
         if body_text.is_empty() {
             error!("{method} {path} [{colored_code}]");
@@ -68,10 +68,7 @@ pub async fn log_layer(req: Request, next: Next) -> Response {
             error!("{method} {path} [{colored_code} - {body_text}]");
         }
 
-        response = Response::builder()
-            .status(status)
-            .body(Body::from(bytes))
-            .unwrap();
+        response = Response::from_parts(parts, Body::from(bytes));
     }
 
     response

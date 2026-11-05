@@ -40,7 +40,18 @@ export async function uploadBook(owner_id?: string, epub_name?: string, auth?: {
 }
 
 export async function downloadBook(book_id: string, auth?: { jwt?: string; apiKey?: string }) {
-  let req = request(SERVER_URL).get(`/books/${book_id}`);
+  let req = request(SERVER_URL)
+    .get(`/books/${book_id}`)
+    .buffer(true)
+    .parse((res, callback) => {
+      const chunks: Buffer[] = [];
+      res.on('data', (chunk: Buffer) => chunks.push(chunk));
+      res.on('end', () => {
+        const body = Buffer.concat(chunks);
+        (res as unknown as { text: string }).text = body.toString();
+        callback(null, body);
+      });
+    });
 
   if (auth?.jwt) req = req.auth(auth.jwt, { type: 'bearer' });
   if (auth?.apiKey) req = req.set('api-key', auth.apiKey);

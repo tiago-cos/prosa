@@ -15,19 +15,21 @@ use crate::app::{
 use axum::{
     Extension, Json,
     extract::{Path, Query},
-    http::StatusCode,
+    http::{HeaderName, StatusCode, header::CONTENT_TYPE},
 };
 use axum_typed_multipart::TypedMultipart;
 use std::collections::HashMap;
 
-pub async fn download_book_handler(Path(book_id): Path<String>) -> Result<Vec<u8>, ProsaError> {
+pub async fn download_book_handler(
+    Path(book_id): Path<String>,
+) -> Result<([(HeaderName, &'static str); 1], Vec<u8>), ProsaError> {
     let lock = LOCKS.get_book_lock(&book_id).await;
     let _guard = lock.read().await;
 
     let book = service::get_book(&book_id).await?;
     let epub = epubs::service::read_epub(&book.epub_id).await?;
 
-    Ok(epub)
+    Ok(([(CONTENT_TYPE, "application/epub+zip")], epub))
 }
 
 pub async fn get_book_file_metadata_handler(

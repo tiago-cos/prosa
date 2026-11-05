@@ -1,13 +1,21 @@
-use crate::app::{authentication::models::AuthToken, books, error::ProsaError, server::LOCKS};
-use axum::{Extension, body::Bytes, extract::Path, http::StatusCode};
+use crate::app::{authentication::models::AuthToken, books, covers, error::ProsaError, server::LOCKS};
+use axum::{
+    Extension,
+    body::Bytes,
+    extract::Path,
+    http::{HeaderName, StatusCode, header::CONTENT_TYPE},
+};
 
-pub async fn get_cover_handler(Path(book_id): Path<String>) -> Result<Vec<u8>, ProsaError> {
+pub async fn get_cover_handler(
+    Path(book_id): Path<String>,
+) -> Result<([(HeaderName, &'static str); 1], Vec<u8>), ProsaError> {
     let lock = LOCKS.get_book_lock(&book_id).await;
     let _guard = lock.read().await;
 
     let cover = books::service::get_cover(&book_id).await?;
+    let media_type = covers::service::media_type(&cover);
 
-    Ok(cover)
+    Ok(([(CONTENT_TYPE, media_type)], cover))
 }
 
 pub async fn add_cover_handler(

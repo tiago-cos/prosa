@@ -43,7 +43,9 @@ pub async fn can_add_metadata_request(
     }
 
     let (parts, body) = request.into_parts();
-    let body_bytes = to_bytes(body, 1000).await.expect("Failed to parse request");
+    let Ok(body_bytes) = to_bytes(body, 1000).await else {
+        return Err(MetadataError::InvalidMetadataRequest.into());
+    };
     let request1 = Request::from_parts(parts.clone(), Body::from(body_bytes.clone()));
     let request2 = Request::from_parts(parts, Body::from(body_bytes));
 

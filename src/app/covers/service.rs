@@ -84,6 +84,14 @@ pub async fn remove_cover_file(cover_id: &str) -> Result<(), CoverError> {
     Ok(())
 }
 
+pub fn media_type(cover_data: &[u8]) -> &'static str {
+    match image::guess_format(cover_data) {
+        Ok(ImageFormat::Png) => "image/png",
+        Ok(ImageFormat::Jpeg) => "image/jpeg",
+        _ => "application/octet-stream",
+    }
+}
+
 fn is_valid_image(cover_data: &[u8]) -> bool {
     if cover_data.len() > 10485760 {
         return false;

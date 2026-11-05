@@ -1,4 +1,4 @@
-use super::models::{AuthError, AuthToken};
+use super::models::{ApiKeyError, AuthError, AuthToken};
 use crate::app::{authentication::service, error::ProsaError};
 use axum::{
     extract::Request,
@@ -26,7 +26,7 @@ pub async fn extract_token_middleware(
 }
 
 fn handle_jwt(header: &HeaderValue) -> Result<AuthToken, ProsaError> {
-    let header = header.to_str().expect("Failed to convert jwt header to string");
+    let header = header.to_str().map_err(|_| AuthError::InvalidAuthHeader)?;
 
     let (_, token) = header
         .split_whitespace()
@@ -41,7 +41,7 @@ fn handle_jwt(header: &HeaderValue) -> Result<AuthToken, ProsaError> {
 }
 
 async fn handle_api_key(header: &HeaderValue) -> Result<AuthToken, ProsaError> {
-    let api_key = header.to_str().expect("Failed to convert key header to string");
+    let api_key = header.to_str().map_err(|_| ApiKeyError::InvalidKey)?;
     let token = service::verify_api_key(api_key).await?;
 
     Ok(token)
