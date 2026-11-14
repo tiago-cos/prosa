@@ -114,9 +114,43 @@ describe('Create shelf', () => {
     expect(registerResponse.status).toBe(200);
     const userId = registerResponse.body.user_id;
 
-    const shelfName = randomString(31);
+    const shelfName = randomString(61);
 
     const createShelfResponse = await createShelf(shelfName, userId, undefined, { jwt: registerResponse.body.jwt_token });
+    expect(createShelfResponse.status).toBe(400);
+    expect(createShelfResponse.text).toBe(INVALID_SHELF_NAME);
+  });
+
+  test('Unicode shelf name', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+
+    const createShelfResponse = await createShelf('Clássicos', undefined, undefined, { jwt: registerResponse.body.jwt_token });
+    expect(createShelfResponse.status).toBe(200);
+
+    const getShelfMetadataResponse = await getShelfMetadata(createShelfResponse.text, { jwt: registerResponse.body.jwt_token });
+    expect(getShelfMetadataResponse.status).toBe(200);
+    expect(getShelfMetadataResponse.body.name).toBe('Clássicos');
+  });
+
+  test('Shelf name length is counted in characters', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+
+    // 60 characters but 120 bytes: within the cap.
+    let createShelfResponse = await createShelf('é'.repeat(60), undefined, undefined, { jwt: registerResponse.body.jwt_token });
+    expect(createShelfResponse.status).toBe(200);
+
+    createShelfResponse = await createShelf('é'.repeat(61), undefined, undefined, { jwt: registerResponse.body.jwt_token });
+    expect(createShelfResponse.status).toBe(400);
+    expect(createShelfResponse.text).toBe(INVALID_SHELF_NAME);
+  });
+
+  test('Shelf name with control characters', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+
+    const createShelfResponse = await createShelf('two\nlines', undefined, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(400);
     expect(createShelfResponse.text).toBe(INVALID_SHELF_NAME);
   });
@@ -246,11 +280,25 @@ describe('Update shelf', () => {
     const createShelfResponse = await createShelf('shelf!', userId, undefined, { jwt: registerResponse.body.jwt_token });
     expect(createShelfResponse.status).toBe(200);
 
-    const invalidName = randomString(31);
+    const invalidName = randomString(61);
 
     const updateShelfResponse = await updateShelf(createShelfResponse.text, invalidName, { jwt: registerResponse.body.jwt_token });
     expect(updateShelfResponse.status).toBe(400);
     expect(updateShelfResponse.text).toBe(INVALID_SHELF_NAME);
+  });
+
+  test('Rename shelf to a unicode name', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+
+    const createShelfResponse = await createShelf('shelf!', undefined, undefined, { jwt: registerResponse.body.jwt_token });
+    expect(createShelfResponse.status).toBe(200);
+
+    const updateShelfResponse = await updateShelf(createShelfResponse.text, 'Clássicos', { jwt: registerResponse.body.jwt_token });
+    expect(updateShelfResponse.status).toBe(204);
+
+    const getShelfMetadataResponse = await getShelfMetadata(createShelfResponse.text, { jwt: registerResponse.body.jwt_token });
+    expect(getShelfMetadataResponse.body.name).toBe('Clássicos');
   });
 
   test('Repeated shelf name', async () => {

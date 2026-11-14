@@ -18,9 +18,8 @@ post:
           properties:
             name:
               type: string
-              maxLength: 30
-              pattern: "^[ -~]*$"
-              description: The name of the shelf. Printable ASCII only, at most 30 characters.
+              maxLength: 60
+              description: The name of the shelf. Any Unicode text except control characters (such as line breaks), at most 60 characters.
             owner_id:
               type: string
               format: uuid
@@ -88,7 +87,6 @@ post:
               summary: Shelf id in use
               value: "The provided shelf id is already in use."
 
-
 get:
   tags:
     - Search Shelves
@@ -125,4 +123,3 @@ get:
       $ref: ../components/responses/Forbidden.yaml
     "404":
       $ref: ../components/responses/users/UserNotFound.yaml
-

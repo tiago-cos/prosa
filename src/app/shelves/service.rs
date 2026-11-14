@@ -110,11 +110,11 @@ pub async fn delete_book_from_shelf(
 }
 
 fn verify_shelf_name(name: &str) -> Result<(), ShelfError> {
-    if !name.chars().all(|c| (' '..='~').contains(&c)) {
+    if name.chars().any(char::is_control) {
         return Err(ShelfError::InvalidName);
     }
 
-    if name.len() > 30 {
+    if name.chars().count() > 60 {
         return Err(ShelfError::InvalidName);
     }
 

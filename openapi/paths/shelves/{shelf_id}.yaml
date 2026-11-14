@@ -45,7 +45,6 @@ get:
     "404":
       $ref: ../../components/responses/shelves/ShelfNotFound.yaml
 
-
 put:
   tags:
     - Shelves
@@ -66,9 +65,8 @@ put:
           properties:
             name:
               type: string
-              maxLength: 30
-              pattern: "^[ -~]*$"
-              description: The new name to assign to the shelf. Printable ASCII only, at most 30 characters.
+              maxLength: 60
+              description: The new name to assign to the shelf. Any Unicode text except control characters (such as line breaks), at most 60 characters.
           required:
             - name
         example:
@@ -100,7 +98,6 @@ put:
       $ref: ../../components/responses/shelves/ShelfConflict.yaml
     "422":
       $ref: ../../components/responses/UnprocessableEntity.yaml
-
 
 delete:
   tags:
