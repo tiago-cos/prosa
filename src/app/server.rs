@@ -28,7 +28,7 @@ pub static METADATA_FETCHER: LazyLock<Arc<MetadataFetcherService>> =
 
 pub static LOCKS: LazyLock<LockService> = LazyLock::new(|| LockService::new(20));
 
-pub async fn run() {
+pub async fn run() -> std::io::Result<()> {
     let host = format!("{}:{}", CONFIG.server.host, CONFIG.server.port);
 
     info!("Server started on http://{host}");
@@ -47,11 +47,10 @@ pub async fn run() {
         .merge(authentication::routes::get_routes())
         .layer(from_fn(tracing::log_layer));
 
-    let listener = TcpListener::bind(&host).await.unwrap();
+    let listener = TcpListener::bind(&host).await?;
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
-        .unwrap();
 }
 
 async fn shutdown_signal() {

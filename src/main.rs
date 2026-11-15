@@ -78,8 +78,9 @@ async fn start() -> Result<(), StartupError> {
         Command::Serve => {
             let pool = database::init(&CONFIG.database.file_path).await?;
             database::set_pool(pool)?;
-            app::run().await;
+            let served = app::run().await;
             database::pool().close().await;
+            served?;
         }
     }
 
