@@ -9,7 +9,6 @@ pub struct Configuration {
     pub book_storage: BookStorage,
     pub metadata_cooldown: MetadataCooldown,
     pub database: Database,
-    pub kepubify: Kepubify,
 }
 
 #[derive(Deserialize, Clone)]
@@ -36,12 +35,6 @@ pub struct Auth {
 pub struct BookStorage {
     pub epub_path: String,
     pub cover_path: String,
-}
-
-#[derive(Deserialize, Clone)]
-#[serde(default)]
-pub struct Kepubify {
-    pub path: String,
 }
 
 #[derive(Deserialize, Clone)]
@@ -110,14 +103,6 @@ impl Default for Database {
             max_connections: 16,
             busy_timeout_seconds: 10,
             backup_before_migration: true,
-        }
-    }
-}
-
-impl Default for Kepubify {
-    fn default() -> Self {
-        Self {
-            path: "kepubify/kepubify".to_string(),
         }
     }
 }
