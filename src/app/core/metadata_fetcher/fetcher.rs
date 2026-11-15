@@ -24,7 +24,7 @@ impl MetadataFetcher {
     ) -> (Option<Metadata>, Option<Vec<u8>>) {
         let (local, local_cover) = epub_extractor::extract(epub_data);
 
-        let queries = local.as_ref().map(identify).unwrap_or_default();
+        let queries = local.as_ref().map_or_default(identify);
         if queries.is_empty() && providers.iter().any(|(id, _)| id != DEFAULT_PROVIDER) {
             warn!("The book carries no ISBN, title or author, so no catalogue can be searched");
         }

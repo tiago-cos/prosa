@@ -79,9 +79,5 @@ fn is_valid_epub(epub_data: &Vec<u8>) -> bool {
     }
 
     let cursor = Cursor::new(epub_data);
-    if EpubDoc::from_reader(cursor).is_err() {
-        return false;
-    }
-
-    true
+    EpubDoc::from_reader(cursor).is_ok()
 }
