@@ -35,7 +35,7 @@ Create `config/.env.local` and set `ADMIN_KEY` to match the `admin_key` in your
 git-ignored and overrides it). Then, with the server running:
 
 ```bash
-bun test
+bun run test
 ```
 
 Tests run against a live server and share one database, so expect them to leave
