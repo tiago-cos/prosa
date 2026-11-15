@@ -49,6 +49,10 @@ file_path = "library/database.db"
 max_connections = 16
 busy_timeout_seconds = 10
 backup_before_migration = true
+
+[cors]
+allowed_origins = []
+max_age_seconds = 3600
 ```
 
 ## Environment variables
@@ -114,6 +118,28 @@ The EPUB metadata extractor reads the book file itself, so it has no cooldown.
 | `max_connections` | Size of the connection pool. |
 | `busy_timeout_seconds` | How long a statement waits for a contended write before giving up. |
 | `backup_before_migration` | Snapshot the database before applying or reverting migrations. Leave this on. |
+
+### `[cors]`
+
+Lets a web app served from another origin call the API from the browser.
+
+| Setting | Meaning |
+|---|---|
+| `allowed_origins` | Origins allowed to call the API, such as `https://books.example.com`: scheme, host and optional port, with no path or trailing slash. `"*"` on its own allows any origin. Empty, the default, sends no CORS headers. |
+| `max_age_seconds` | How long a browser may cache the answer to a preflight request. |
+
+As an environment variable, `CORS__ALLOWED_ORIGINS` takes a comma-separated
+list:
+
+```bash
+export CORS__ALLOWED_ORIGINS=https://books.example.com,http://localhost:5173
+```
+
+An entry that is not an origin stops Prosa from starting, with a message naming
+it. Credentials travel in the `Authorization`, `api-key` and `admin-key`
+headers, never in cookies, so `"*"` exposes nothing a listed origin would not.
+A web app served from the same origin as the API, for example behind the same
+reverse proxy, needs none of this.
 
 ## Logging
 

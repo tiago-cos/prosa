@@ -34,5 +34,6 @@ sqlx = { version = "0.9.0", features = ["runtime-tokio", "sqlite", "chrono"] }
 strum = "0.28.0"
 strum_macros = "0.28.0"
 tokio = { version = "1.53.1", features = ["full"] }
+tower-http = { version = "0.6.11", features = ["cors"] }
 tracing-subscriber = { version = "0.3.23", features = ["env-filter", "chrono"] }
 uuid = { version = "1.26.0", features = ["v4"] }

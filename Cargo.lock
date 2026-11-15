@@ -2725,6 +2725,7 @@ dependencies = [
  "strum 0.28.0",
  "strum_macros 0.28.0",
  "tokio",
+ "tower-http",
  "tracing-subscriber",
  "uuid",
 ]

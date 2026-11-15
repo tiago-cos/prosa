@@ -1,5 +1,5 @@
 use config::{Config, ConfigError, File};
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 
 #[derive(Default, Deserialize, Clone)]
 #[serde(default)]
@@ -9,6 +9,7 @@ pub struct Configuration {
     pub book_storage: BookStorage,
     pub metadata_cooldown: MetadataCooldown,
     pub database: Database,
+    pub cors: Cors,
 }
 
 #[derive(Deserialize, Clone)]
@@ -52,6 +53,14 @@ pub struct MetadataCooldown {
     pub openlibrary: u64,
     pub hardcover: u64,
     pub google_books: u64,
+}
+
+#[derive(Deserialize, Clone)]
+#[serde(default)]
+pub struct Cors {
+    #[serde(deserialize_with = "list_or_comma_separated")]
+    pub allowed_origins: Vec<String>,
+    pub max_age_seconds: u64,
 }
 
 impl Default for Server {
@@ -105,6 +114,35 @@ impl Default for Database {
             backup_before_migration: true,
         }
     }
+}
+
+impl Default for Cors {
+    fn default() -> Self {
+        Self {
+            allowed_origins: Vec::new(),
+            max_age_seconds: 3600,
+        }
+    }
+}
+
+fn list_or_comma_separated<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Vec<String>, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Items {
+        List(Vec<String>),
+        CommaSeparated(String),
+    }
+
+    let items = match Items::deserialize(deserializer)? {
+        Items::List(items) => items,
+        Items::CommaSeparated(text) => text.split(',').map(str::to_owned).collect(),
+    };
+
+    Ok(items
+        .into_iter()
+        .map(|item| item.trim().to_owned())
+        .filter(|item| !item.is_empty())
+        .collect())
 }
 
 impl Configuration {

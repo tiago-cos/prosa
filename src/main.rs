@@ -120,6 +120,8 @@ async fn run_startup_checks() -> Result<(), StartupError> {
         return Err("admin_key must be configured and at least 8 characters long".into());
     }
 
+    app::cors_layer(&CONFIG.cors)?;
+
     create_parent_dir(&CONFIG.database.file_path).await?;
     create_parent_dir(&CONFIG.auth.public_key_path).await?;
     create_parent_dir(&CONFIG.auth.private_key_path).await?;

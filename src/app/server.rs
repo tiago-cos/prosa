@@ -3,7 +3,7 @@ use crate::CONFIG;
 use crate::app::core::controller;
 use crate::app::core::locking::service::LockService;
 use crate::app::core::metadata_fetcher::MetadataFetcherService;
-use crate::app::{authentication, shelves, tracing};
+use crate::app::{authentication, cors_layer, shelves, tracing};
 use axum::Router;
 use axum::middleware::from_fn;
 use axum::routing::get;
@@ -46,6 +46,11 @@ pub async fn run() -> std::io::Result<()> {
         .merge(shelves::routes::get_routes())
         .merge(authentication::routes::get_routes())
         .layer(from_fn(tracing::log_layer));
+
+    let app = match cors_layer(&CONFIG.cors).map_err(std::io::Error::other)? {
+        Some(cors) => app.layer(cors),
+        None => app,
+    };
 
     let listener = TcpListener::bind(&host).await?;
     axum::serve(listener, app)
