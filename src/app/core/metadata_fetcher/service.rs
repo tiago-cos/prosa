@@ -15,11 +15,24 @@ use tokio::sync::{Notify, RwLock};
 
 const SESSION: &str = "prosa";
 
-#[derive(Clone, Serialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Serialize, PartialEq, Eq)]
+pub enum MetadataRequestStatus {
+    Waiting,
+    InProgress,
+}
+
+#[derive(Clone, Serialize)]
 pub struct MetadataFetcherRequest {
     user_id: String,
     book_id: String,
     providers: Vec<String>,
+    status: MetadataRequestStatus,
+}
+
+impl MetadataFetcherRequest {
+    fn is_same_request(&self, user_id: &str, book_id: &str, providers: &[String]) -> bool {
+        self.user_id == user_id && self.book_id == book_id && self.providers == providers
+    }
 }
 
 pub struct MetadataFetcherService {
@@ -49,19 +62,21 @@ impl MetadataFetcherService {
         book_id: &str,
         providers: Vec<String>,
     ) -> Result<(), MetadataError> {
-        let req = MetadataFetcherRequest {
+        let mut q = self.queue.write().await;
+        let duplicate = q.iter().any(|req| {
+            req.status == MetadataRequestStatus::Waiting && req.is_same_request(user_id, book_id, &providers)
+        });
+        if duplicate {
+            return Err(MetadataError::MetadataRequestConflict);
+        }
+
+        q.push_back(MetadataFetcherRequest {
             user_id: user_id.to_string(),
             book_id: book_id.to_string(),
             providers,
-        };
-
-        let q = self.queue.read().await;
-        if q.contains(&req) {
-            return Err(MetadataError::MetadataRequestConflict);
-        }
+            status: MetadataRequestStatus::Waiting,
+        });
         drop(q);
-
-        self.queue.write().await.push_back(req);
         self.notify.notify_one();
 
         Ok(())
@@ -77,11 +92,7 @@ impl MetadataFetcherService {
 
     async fn worker_loop(self: Arc<Self>) {
         loop {
-            let mut q = self.queue.write().await;
-            let req = q.pop_front();
-            drop(q);
-
-            let Some(req) = req else {
+            let Some(req) = self.start_next().await else {
                 self.notify.notified().await;
                 continue;
             };
@@ -89,10 +100,32 @@ impl MetadataFetcherService {
             let (metadata, image) = self
                 .fetch_metadata(&req.user_id, &req.book_id, &req.providers)
                 .await;
-            if metadata.is_none() && image.is_none() {
-                continue;
+            if metadata.is_some() || image.is_some() {
+                self.store_metadata(&req.book_id, metadata, image).await;
             }
-            self.store_metadata(&req.book_id, metadata, image).await;
+
+            self.finish_current().await;
+        }
+    }
+
+    async fn start_next(&self) -> Option<MetadataFetcherRequest> {
+        let mut q = self.queue.write().await;
+        let req = q
+            .iter_mut()
+            .find(|req| req.status == MetadataRequestStatus::Waiting)?;
+        req.status = MetadataRequestStatus::InProgress;
+        let req = req.clone();
+        drop(q);
+        Some(req)
+    }
+
+    async fn finish_current(&self) {
+        let mut q = self.queue.write().await;
+        if let Some(index) = q
+            .iter()
+            .position(|req| req.status == MetadataRequestStatus::InProgress)
+        {
+            q.remove(index);
         }
     }
 

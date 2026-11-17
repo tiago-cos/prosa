@@ -22,10 +22,21 @@ properties:
     example:
       - "epub_metadata_extractor"
       - "openlibrary"
+  status:
+    type: string
+    enum:
+      - Waiting
+      - InProgress
+    description: |
+      `Waiting` while the request is queued, `InProgress` once its metadata is
+      being fetched. Requests are handled one at a time, so at most one is
+      `InProgress`.
+    example: "Waiting"
 
 required:
   - user_id
   - book_id
   - providers
+  - status
 
 additionalProperties: false

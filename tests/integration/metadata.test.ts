@@ -889,6 +889,95 @@ describe('List metadata requests', () => {
   });
 });
 
+describe('Metadata request lifecycle', () => {
+  test('A request stays listed until its metadata is stored', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+    const auth = { jwt: registerResponse.body.jwt_token };
+
+    const patchPreferencesResponse = await patchPreferences(userId, undefined, false, auth);
+    expect(patchPreferencesResponse.status).toBe(204);
+
+    const bookIds: string[] = [];
+    for (const epub of ['Alices_Adventures_in_Wonderland.epub', 'The_Wonderful_Wizard_of_Oz.epub']) {
+      const uploadResponse = await uploadBook(userId, epub, auth);
+      expect(uploadResponse.status).toBe(200);
+      bookIds.push(uploadResponse.text);
+    }
+
+    for (const bookId of bookIds) {
+      const addResponse = await addMetadataRequest(bookId, ['epub_metadata_extractor'], auth);
+      expect(addResponse.status).toBe(204);
+    }
+
+    for (let attempt = 0; attempt < 60; attempt++) {
+      const listResponse = await listMetadataRequests(userId, auth);
+      expect(listResponse.status).toBe(200);
+      const requests: { user_id: string; book_id: string; providers: string[]; status: string }[] = listResponse.body;
+
+      for (const request of requests) {
+        expect(request.user_id).toBe(userId);
+        expect(request.providers).toEqual(['epub_metadata_extractor']);
+        expect(['Waiting', 'InProgress']).toContain(request.status);
+      }
+
+      // One worker: at most one request runs, and it is the oldest one left.
+      const inProgress = requests.filter((request) => request.status === 'InProgress');
+      expect(inProgress.length).toBeLessThanOrEqual(1);
+      if (inProgress.length === 1) expect(requests[0].status).toBe('InProgress');
+
+      // A request only leaves the list once its metadata has been stored.
+      for (const bookId of bookIds) {
+        if (requests.some((request) => request.book_id === bookId)) continue;
+        const getResponse = await getMetadata(bookId, auth);
+        expect(getResponse.status).toBe(200);
+      }
+
+      if (requests.length === 0) break;
+      await wait(0.05);
+    }
+
+    const listResponse = await listMetadataRequests(userId, auth);
+    expect(listResponse.body).toEqual([]);
+  });
+
+  test('A request in progress does not block a new one', async () => {
+    const { response: registerResponse } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+    const auth = { jwt: registerResponse.body.jwt_token };
+
+    const patchPreferencesResponse = await patchPreferences(userId, undefined, false, auth);
+    expect(patchPreferencesResponse.status).toBe(204);
+
+    const uploadResponse = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', auth);
+    expect(uploadResponse.status).toBe(200);
+
+    // However far the first request has got, a second identical one is either
+    // queued behind it or refused because the first is still waiting.
+    const first = await addMetadataRequest(uploadResponse.text, undefined, auth);
+    expect(first.status).toBe(204);
+
+    const second = await addMetadataRequest(uploadResponse.text, undefined, auth);
+    expect([204, 409]).toContain(second.status);
+
+    if (second.status === 204) {
+      const listResponse = await listMetadataRequests(userId, auth);
+      const waiting = listResponse.body.filter((request: { status: string }) => request.status === 'Waiting');
+      expect(waiting.length).toBeLessThanOrEqual(1);
+    }
+
+    await wait(1.5);
+
+    const listResponse = await listMetadataRequests(userId, auth);
+    expect(listResponse.body).toEqual([]);
+
+    const getResponse = await getMetadata(uploadResponse.text, auth);
+    expect(getResponse.status).toBe(200);
+  });
+});
+
 async function bookWithMetadataFixture() {
   const { response: registerResponse } = await registerUser();
   expect(registerResponse.status).toBe(200);

@@ -5,7 +5,6 @@ post:
   description: |
     Enqueue a metadata fetch request for a specific book owned by a user.
   operationId: enqueueMetadataRequest
-
   requestBody:
     required: true
     content:
@@ -49,14 +48,15 @@ post:
               summary: Already enqueued
               value: "This metadata request is already enqueued."
 
-
 get:
   tags:
     - Metadata
   summary: "List metadata fetch requests"
   description: |
-    Returns a list of metadata fetch requests that are currently in progress.  
-    Completed or past requests are not included in the response.
+    Returns the metadata fetch requests that are queued or being fetched, in
+    the order they will be handled. A request stays in the list until its
+    metadata and cover have been stored, or until fetching them has failed, so
+    once it is gone, reading the book's metadata returns the result.
 
     - **Regular users** must include their own `user_id` in the query parameter.
     - **Admin users** can list requests for any user using the `user_id` parameter.
@@ -86,4 +86,3 @@ get:
       $ref: ../components/responses/Unauthorized.yaml
     "403":
       $ref: ../components/responses/Forbidden.yaml
-
