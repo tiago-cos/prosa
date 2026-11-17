@@ -101,7 +101,10 @@ get:
     - name: name
       in: query
       required: false
-      description: Shelf name search query.
+      description: |
+        Shelf name search query. Matches any shelf name containing the text, ignoring case in any
+        alphabet (`clássicos` finds `Clássicos`). Every character, `%` and `_`
+        included, is matched literally.
       schema:
         type: string
       example: "Sci-Fi"

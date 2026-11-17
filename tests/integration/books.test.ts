@@ -4,7 +4,7 @@ import { addAnnotation, ALICE_NOTE, getAnnotation } from '../utils/annotations.j
 import { BOOK_CONFLICT, BOOK_ID_CONFLICT, BOOK_NOT_FOUND, deleteBook, downloadBook, getBookFileMetadata, INVALID_BOOK, INVALID_BOOK_ID, INVALID_PAGINATION, searchBooks, uploadBook } from '../utils/books.js';
 import { BOOK_DIR, FORBIDDEN, raceCreations, wait } from '../utils/common.js';
 import { getCover } from '../utils/covers.js';
-import { getMetadata } from '../utils/metadata.js';
+import { getMetadata, updateMetadata } from '../utils/metadata.js';
 import { registerUser, USER_NOT_FOUND } from '../utils/users.js';
 import { randomUUID } from 'crypto';
 import { describeAuthContract } from '../utils/auth-contract.js';
@@ -417,6 +417,34 @@ describe('Search books', () => {
     expect(searchResponse3.status).toBe(200);
 
     expect(searchResponse3.body.book_ids).toEqual([uploadResponse2.text]);
+  });
+
+  test('Search title and author ignore case beyond ASCII', async () => {
+    const { response: registerResponse, username } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const userId = registerResponse.body.user_id;
+    const auth = { jwt: registerResponse.body.jwt_token };
+
+    const uploadResponse = await uploadBook(userId, 'The_Wonderful_Wizard_of_Oz.epub', auth);
+    expect(uploadResponse.status).toBe(200);
+
+    const uploadResponse2 = await uploadBook(userId, 'Alices_Adventures_in_Wonderland.epub', auth);
+    expect(uploadResponse2.status).toBe(200);
+
+    // Wait for metadata to be extracted
+    await wait(1);
+
+    const metadata = { title: 'Os Lusíadas', contributors: [{ name: 'Luís de Camões', role: 'Author' }] };
+    const updateResponse = await updateMetadata(uploadResponse.text, metadata, auth);
+    expect(updateResponse.status).toBe(204);
+
+    const searchResponse = await searchBooks(username, 'LUSÍADAS', undefined, undefined, undefined, auth);
+    expect(searchResponse.status).toBe(200);
+    expect(searchResponse.body.book_ids).toEqual([uploadResponse.text]);
+
+    const searchResponse2 = await searchBooks(username, undefined, 'LUÍS DE CAMÕES', undefined, undefined, auth);
+    expect(searchResponse2.status).toBe(200);
+    expect(searchResponse2.body.book_ids).toEqual([uploadResponse.text]);
   });
 
   test('Pagination', async () => {

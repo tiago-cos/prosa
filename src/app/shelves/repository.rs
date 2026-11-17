@@ -1,4 +1,5 @@
 use super::models::{Shelf, ShelfError};
+use crate::app::core::search;
 use crate::app::shelves::models::{PaginatedShelves, ShelfBookError};
 use sqlx::{Acquire, Sqlite, SqliteExecutor};
 
@@ -134,15 +135,9 @@ pub async fn get_paginated_shelves<'a>(
     }
 
     if let Some(name) = name {
-        shelf_query
-            .push(" AND s.name LIKE '%' || ")
-            .push_bind(&name)
-            .push(" || '%' COLLATE NOCASE");
-
-        count_query
-            .push(" AND s.name LIKE '%' || ")
-            .push_bind(name)
-            .push(" || '%' COLLATE NOCASE");
+        let pattern = search::contains_ignoring_case(&name);
+        shelf_query.push(" AND s.name REGEXP ").push_bind(pattern.clone());
+        count_query.push(" AND s.name REGEXP ").push_bind(pattern);
     }
 
     shelf_query

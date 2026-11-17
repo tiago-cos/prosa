@@ -509,6 +509,56 @@ describe('Search shelves', () => {
     expect(searchResponse.body.shelf_ids).toEqual([createShelfResponse2.text]);
   });
 
+  test('Search shelf name ignores case beyond ASCII', async () => {
+    const { response: registerResponse, username } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const auth = { jwt: registerResponse.body.jwt_token };
+
+    const classics = await createShelf('Clássicos', undefined, undefined, auth);
+    expect(classics.status).toBe(200);
+
+    const comics = await createShelf('Comic Books', undefined, undefined, auth);
+    expect(comics.status).toBe(200);
+
+    let searchResponse = await searchShelves(username, 'CLÁSSICOS', undefined, undefined, auth);
+    expect(searchResponse.status).toBe(200);
+    expect(searchResponse.body.shelf_ids).toEqual([classics.text]);
+
+    searchResponse = await searchShelves(username, 'ÁSSIC', undefined, undefined, auth);
+    expect(searchResponse.status).toBe(200);
+    expect(searchResponse.body.shelf_ids).toEqual([classics.text]);
+  });
+
+  test('Search shelf name treats wildcards literally', async () => {
+    const { response: registerResponse, username } = await registerUser();
+    expect(registerResponse.status).toBe(200);
+    const auth = { jwt: registerResponse.body.jwt_token };
+
+    const finished = await createShelf('100% Read', undefined, undefined, auth);
+    expect(finished.status).toBe(200);
+
+    const thousand = await createShelf('1000 Books', undefined, undefined, auth);
+    expect(thousand.status).toBe(200);
+
+    const underscored = await createShelf('to_read', undefined, undefined, auth);
+    expect(underscored.status).toBe(200);
+
+    const spaced = await createShelf('to read', undefined, undefined, auth);
+    expect(spaced.status).toBe(200);
+
+    let searchResponse = await searchShelves(username, '100%', undefined, undefined, auth);
+    expect(searchResponse.status).toBe(200);
+    expect(searchResponse.body.shelf_ids).toEqual([finished.text]);
+
+    searchResponse = await searchShelves(username, 'TO_', undefined, undefined, auth);
+    expect(searchResponse.status).toBe(200);
+    expect(searchResponse.body.shelf_ids).toEqual([underscored.text]);
+
+    searchResponse = await searchShelves(username, '(', undefined, undefined, auth);
+    expect(searchResponse.status).toBe(200);
+    expect(searchResponse.body.shelf_ids).toEqual([]);
+  });
+
   test('Pagination', async () => {
     const { response: registerResponse, username } = await registerUser();
     expect(registerResponse.status).toBe(200);

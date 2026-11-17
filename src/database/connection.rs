@@ -16,6 +16,7 @@ fn connect_options(filename: &str) -> SqliteConnectOptions {
         .journal_mode(SqliteJournalMode::Wal)
         .synchronous(SqliteSynchronous::Normal)
         .foreign_keys(true)
+        .with_regexp()
         .busy_timeout(Duration::from_secs(CONFIG.database.busy_timeout_seconds))
 }
 

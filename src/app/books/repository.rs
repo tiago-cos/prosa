@@ -1,4 +1,5 @@
 use super::models::{BookEntity, BookError, PaginatedBookResponse};
+use crate::app::core::search;
 use sqlx::{Acquire, Sqlite, SqliteExecutor};
 
 pub async fn get_book<'e>(db: impl SqliteExecutor<'e>, book_id: &str) -> Result<BookEntity, BookError> {
@@ -168,27 +169,15 @@ pub async fn get_paginated_books<'a>(
     }
 
     if let Some(title) = title {
-        book_query
-            .push(" AND m.title LIKE '%' || ")
-            .push_bind(&title)
-            .push(" || '%' COLLATE NOCASE");
-
-        count_query
-            .push(" AND m.title LIKE '%' || ")
-            .push_bind(title)
-            .push(" || '%' COLLATE NOCASE");
+        let pattern = search::contains_ignoring_case(&title);
+        book_query.push(" AND m.title REGEXP ").push_bind(pattern.clone());
+        count_query.push(" AND m.title REGEXP ").push_bind(pattern);
     }
 
     if let Some(author) = author {
-        book_query
-            .push(" AND c.name LIKE '%' || ")
-            .push_bind(&author)
-            .push(" || '%' COLLATE NOCASE");
-
-        count_query
-            .push(" AND c.name LIKE '%' || ")
-            .push_bind(author)
-            .push(" || '%' COLLATE NOCASE");
+        let pattern = search::contains_ignoring_case(&author);
+        book_query.push(" AND c.name REGEXP ").push_bind(pattern.clone());
+        count_query.push(" AND c.name REGEXP ").push_bind(pattern);
     }
 
     book_query

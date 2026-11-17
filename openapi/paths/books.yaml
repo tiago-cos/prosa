@@ -79,14 +79,20 @@ get:
     - name: title
       in: query
       required: false
-      description: Title search query.
+      description: |
+        Title search query. Matches any title containing the text, ignoring case in any
+        alphabet (`clássicos` finds `Clássicos`). Every character, `%` and `_`
+        included, is matched literally.
       schema:
         type: string
       example: "The Great Gatsby"
     - name: author
       in: query
       required: false
-      description: Author search query.
+      description: |
+        Author search query. Matches any contributor's name containing the text, ignoring case in any
+        alphabet (`clássicos` finds `Clássicos`). Every character, `%` and `_`
+        included, is matched literally.
       schema:
         type: string
       example: "Rick Riordan"
